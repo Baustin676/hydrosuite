@@ -1,77 +1,322 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
-<title>HydroSuite PRO</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+<meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self' https://pumpresource.us https://www.pumpresource.us">
+<title>PumpResource Engineer's Toolbox</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* ══════════════════════════════════════════════════════
-   HYDROSUITE PRO v5 — One Source of Truth
-   Architecture: G{} reactive state, zero duplicate inputs
-   Design: Industrial precision meets terminal aesthetics
-══════════════════════════════════════════════════════ */
-:root {
-  --bg:    #05070e;
-  --bg2:   #080c16;
-  --s1:    #0d1222;
-  --s2:    #111827;
-  --s3:    #172035;
-  --bd:    #1c2a3e;
-  --bd2:   #243348;
-  --amber: #f59e0b;
-  --amHi:  #fcd34d;
-  --amDim: rgba(245,158,11,.1);
-  --amGlow:rgba(245,158,11,.25);
-  --cyan:  #06b6d4;
-  --cyDim: rgba(6,182,212,.08);
-  --cyGl:  rgba(6,182,212,.2);
-  --green: #10b981;
-  --grDim: rgba(16,185,129,.08);
-  --grGl:  rgba(16,185,129,.2);
-  --red:   #ef4444;
-  --rdDim: rgba(239,68,68,.08);
-  --orange:#f97316;
-  --orDim: rgba(249,115,22,.08);
-  --violet:#8b5cf6;
-  --viDim: rgba(139,92,246,.08);
-  --t1: #f1f5f9;
-  --t2: #94a3b8;
-  --t3: #64748b;
-  --t4: #374151;
-  --mono: 'IBM Plex Mono', monospace;
-  --sans: 'Barlow', system-ui, sans-serif;
-  --r: 8px; --r2: 12px;
-  --gsh: 44px; /* global state bar height */
+:root{
+  --pr-navy:#0b1f33;
+  --pr-blue:#17446f;
+  --pr-blue2:#25608f;
+  --pr-sky:#5fa8d3;
+  --pr-yellow:#f4c430;
+  --pr-yellow2:#ffe08a;
+  --pr-gold:#d9a514;
+  --pr-orange:#f4c430;
+  --pr-orange2:#ffe08a;
+  --pr-green:#2e8b57;
+  --pr-red:#c2412d;
+  --ink:#0f172a;
+  --muted:#64748b;
+  --soft:#eef4f8;
+  --line:#d7e2eb;
+  --panel:#ffffff;
+  --panel2:#f8fbfd;
+  --dark:#07111d;
+  --dark2:#0d2136;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:'Barlow',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --r:14px;
+  --r2:20px;
+  --shadow:0 18px 45px rgba(11,31,51,.14);
 }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);color:var(--ink);background:
+  radial-gradient(circle at top left,rgba(244,196,48,.16),transparent 34rem),
+  linear-gradient(180deg,#f7fbff 0%,#eef5fa 48%,#f9fbfc 100%);min-height:100vh}
+button,input,select{font:inherit}
+button{border:0;cursor:pointer}
+.wrap{max-width:1320px;margin:0 auto;padding:0 18px 42px}
+.hero{background:linear-gradient(135deg,var(--pr-navy),#103a60 56%,#0f5381);color:white;border-radius:0 0 28px 28px;box-shadow:var(--shadow);overflow:hidden;position:relative}
+.hero:before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(0deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:34px 34px;mask-image:linear-gradient(90deg,rgba(0,0,0,.7),transparent)}
+.hero-inner{position:relative;padding:28px 24px 22px;display:grid;grid-template-columns:1.45fr .9fr;gap:20px;align-items:end}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.mark{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--pr-orange),var(--pr-orange2));color:#101827;display:grid;place-items:center;font-weight:800;font-family:var(--mono);box-shadow:0 8px 30px rgba(244,196,48,.34)}
+.brand-title{font-weight:800;letter-spacing:.4px;font-size:13px;text-transform:uppercase;color:#dcecf6}.brand-title span{color:var(--pr-orange2)}
+h1{font-size:clamp(31px,5vw,58px);line-height:.95;letter-spacing:-1.4px;font-weight:800;max-width:820px}
+.hero p{margin-top:14px;color:#c7d9e8;font-size:16px;line-height:1.55;max-width:780px}.hero p b{color:white}
+.hero-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}.pill{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-radius:999px;padding:7px 11px;border:1px solid rgba(255,255,255,.18);color:#d9e8f3;background:rgba(255,255,255,.06)}
+.state-card{background:rgba(7,17,29,.62);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.14);border-radius:var(--r2);padding:16px;box-shadow:0 15px 45px rgba(0,0,0,.22)}
+.state-title{display:flex;justify-content:space-between;align-items:center;color:#b9d4e7;font-size:11px;text-transform:uppercase;letter-spacing:.8px;font-family:var(--mono);margin-bottom:10px}.state-title strong{color:var(--pr-orange2)}
+.state-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.chip{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px}.chip .k{font-size:9px;color:#8fb0c8;font-family:var(--mono);text-transform:uppercase;letter-spacing:.6px}.chip .v{font-size:18px;font-weight:800;margin-top:2px;color:white}.chip .u{font-size:11px;color:#adc5d8;margin-left:2px}
+.nav{position:sticky;top:0;z-index:20;margin:18px 0;background:rgba(255,255,255,.88);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:999px;padding:6px;display:flex;gap:5px;overflow:auto;box-shadow:0 10px 25px rgba(11,31,51,.08)}
+.nav button{flex:0 0 auto;padding:10px 14px;border-radius:999px;background:transparent;color:#466276;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.45px}.nav button.active{background:var(--pr-navy);color:white;box-shadow:0 8px 18px rgba(11,31,51,.22)}
+.tab{display:none}.tab.active{display:block;animation:enter .18s ease}@keyframes enter{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}.card{grid-column:span 6;background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);box-shadow:0 10px 26px rgba(11,31,51,.07);overflow:hidden}.card.full{grid-column:1/-1}.card.third{grid-column:span 4}.card.small{grid-column:span 3}.card-head{padding:15px 16px;background:linear-gradient(180deg,var(--panel),var(--panel2));border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}.ico{width:34px;height:34px;border-radius:12px;background:linear-gradient(135deg,rgba(95,168,211,.22),rgba(244,196,48,.18));display:grid;place-items:center;font-size:17px}.card h2{font-size:16px;line-height:1.05}.sub{font-size:12px;color:var(--muted);margin-top:3px}.card-body{padding:16px}.fields{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.fields.three{grid-template-columns:repeat(3,1fr)}label{display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#617487;margin-bottom:5px;font-weight:700}.field input,.field select{width:100%;border:1px solid var(--line);background:#fbfdff;color:var(--ink);border-radius:12px;padding:10px 11px;outline:none;font-family:var(--mono);font-size:13px}.field input:focus,.field select:focus{border-color:var(--pr-orange);box-shadow:0 0 0 4px rgba(244,196,48,.18)}.inline{display:grid;grid-template-columns:1fr 104px;gap:7px}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.btn{border-radius:12px;padding:10px 14px;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.6px;font-weight:800}.btn.primary{background:var(--pr-orange);color:#111827}.btn.primary:hover{background:var(--pr-orange2)}.btn.dark{background:var(--pr-navy);color:white}.btn.ghost{background:#eef5fa;color:#193a55;border:1px solid var(--line)}.btn.small{padding:7px 10px;font-size:10px}.result{margin-top:14px;background:linear-gradient(180deg,#f8fbfd,#ffffff);border:1px solid var(--line);border-radius:15px;overflow:hidden}.result-title{padding:10px 12px;background:#0b1f33;color:white;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.7px;display:flex;justify-content:space-between;gap:10px}.result table{width:100%;border-collapse:collapse;font-size:13px}.result td{padding:8px 11px;border-bottom:1px solid #edf2f6}.result tr:last-child td{border-bottom:0}.result td:last-child{text-align:right;font-family:var(--mono);font-weight:700;color:var(--pr-blue)}.big{font-size:24px!important;color:var(--pr-orange)!important}.ok{color:var(--pr-green)!important}.warn{color:var(--pr-orange)!important}.bad{color:var(--pr-red)!important}.note{font-size:12px;line-height:1.45;color:#56697b;background:#f1f7fb;border:1px solid var(--line);padding:10px 12px;border-radius:13px;margin-top:10px}.formula{font-family:var(--mono);font-size:11px;color:#496477;background:#f8fbfd;border:1px dashed #c7d9e8;border-radius:12px;padding:9px;margin:10px 0}.converter-row{display:grid;grid-template-columns:1fr 110px 34px 1fr 110px;gap:8px;align-items:end}.swap{height:42px;border-radius:12px;background:var(--pr-navy);color:white;font-weight:800}.quickbar{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}.quick{background:white;border:1px solid var(--line);border-radius:15px;padding:11px 12px;box-shadow:0 8px 18px rgba(11,31,51,.05)}.quick .k{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}.quick .v{font-size:18px;font-weight:800;color:var(--pr-navy);margin-top:2px}.ref-table{width:100%;border-collapse:collapse;font-size:12px}.ref-table th{background:#f1f7fb;color:#466276;text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding:8px;border-bottom:1px solid var(--line)}.ref-table td{padding:7px 8px;border-bottom:1px solid #edf2f6}.ref-table td:not(:first-child){font-family:var(--mono);text-align:right}.tag{display:inline-flex;align-items:center;border-radius:999px;padding:3px 8px;background:#eaf4fb;color:#17446f;font-family:var(--mono);font-size:10px;font-weight:700}.footer-note{margin-top:18px;color:#64748b;font-size:12px;line-height:1.5}
+@media(max-width:980px){.hero-inner{grid-template-columns:1fr}.card,.card.third,.card.small{grid-column:1/-1}.quickbar{grid-template-columns:repeat(2,1fr)}.converter-row{grid-template-columns:1fr 96px;}.converter-row .swap{grid-column:1/-1}.state-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:620px){.wrap{padding:0 10px 28px}.hero-inner{padding:22px 16px}.fields,.fields.three{grid-template-columns:1fr}.quickbar{grid-template-columns:1fr}.state-grid{grid-template-columns:1fr}.nav{border-radius:18px}.nav button{padding:9px 11px;font-size:11px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="hero-inner">
+      <div>
+        <div class="brand"><div class="mark">PR</div><div class="brand-title">PumpResource <span>Engineer Toolbox</span></div></div>
+        <h1>Industrial pump calculations for the field, shop, and engineering desk.</h1>
+        <p>Linked calculations for <b>conversions, flow, pressure, head, velocity, NPSH, pump power, motor current, water hammer, and thermal service</b>. Change a value once and the related tools update around the same engineering state.</p>
+        <div class="hero-actions"><span class="pill">Linked calculations</span><span class="pill">US + metric units</span><span class="pill">Pump service focused</span><span class="pill">Field-ready references</span></div>
+      </div>
+      <aside class="state-card">
+        <div class="state-title"><span>Live calculation state</span><strong>Linked</strong></div>
+        <div class="state-grid">
+          <div class="chip"><div class="k">Flow</div><div class="v"><span id="s-flow">300</span><span class="u">GPM</span></div></div>
+          <div class="chip"><div class="k">Pipe ID</div><div class="v"><span id="s-dia">4.026</span><span class="u">in</span></div></div>
+          <div class="chip"><div class="k">Velocity</div><div class="v"><span id="s-vel">7.60</span><span class="u">ft/s</span></div></div>
+          <div class="chip"><div class="k">Pressure</div><div class="v"><span id="s-psi">65.0</span><span class="u">psi</span></div></div>
+          <div class="chip"><div class="k">Head</div><div class="v"><span id="s-head">150</span><span class="u">ft</span></div></div>
+          <div class="chip"><div class="k">Temp</div><div class="v"><span id="s-temp">68</span><span class="u">°F</span></div></div>
+        </div>
+      </aside>
+    </div>
+  </header>
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 15px; -webkit-text-size-adjust: 100%; }
-body {
-  background: var(--bg);
-  color: var(--t1);
-  font-family: var(--sans);
-  min-height: 100dvh;
-  overflow-x: hidden;
-}
-input, select, button, textarea { font-family: inherit; }
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button { opacity: 0.4; }
-input[type=number] { -moz-appearance: textfield; }
+  <nav class="nav" id="nav">
+    <button class="active" data-tab="state">State</button>
+    <button data-tab="convert">Conversions</button>
+    <button data-tab="hydraulic">Hydraulics</button>
+    <button data-tab="pump">Pump Power / NPSH</button>
+    <button data-tab="electric">Motor / Electrical</button>
+    <button data-tab="thermal">Thermal</button>
+    <button data-tab="refs">References</button>
+  </nav>
 
-/* ══ GLOBAL STATE BANNER — the single source of truth ══ */
-#gsb {
-  position: sticky;
-  top: 0;
-  z-index: 500;
-  background: var(--s1);
-  border-bottom: 1px solid var(--bd);
-  box-shadow: 0 2px 20px rgba(0,0,0,.6);
+  <section class="tab active" id="tab-state">
+    <div class="quickbar">
+      <div class="quick"><div class="k">Flow</div><div class="v" id="q-flow">300 GPM</div></div>
+      <div class="quick"><div class="k">Flow metric</div><div class="v" id="q-flow-m">1,135.6 L/min</div></div>
+      <div class="quick"><div class="k">Head pressure</div><div class="v" id="q-hp">64.9 psi</div></div>
+      <div class="quick"><div class="k">Velocity</div><div class="v" id="q-vel">7.60 ft/s</div></div>
+      <div class="quick"><div class="k">Reynolds</div><div class="v" id="q-re">690k</div></div>
+    </div>
+    <div class="grid">
+      <div class="card full">
+        <div class="card-head"><div class="ico">⚙️</div><div><h2>Global Inputs</h2><div class="sub">These are the values every calculator reads from. Unit conversions can push new values back into this state.</div></div></div>
+        <div class="card-body">
+          <div class="fields three">
+            <div class="field"><label>Flow</label><div class="inline"><input id="flowVal" type="number" value="300" step="any"><select id="flowUnit"><option value="gpm">GPM</option><option value="gph">GPH</option><option value="lpm">L/min</option><option value="lps">L/s</option><option value="m3h">m³/h</option><option value="m3d">m³/day</option><option value="bpd">BPD</option><option value="mgd">MGD</option></select></div></div>
+            <div class="field"><label>Pipe ID</label><div class="inline"><input id="diaVal" type="number" value="4.026" step="any"><select id="diaUnit"><option value="in">in</option><option value="mm">mm</option><option value="ft">ft</option><option value="m">m</option></select></div></div>
+            <div class="field"><label>Sch 40 Pipe Size</label><select id="pipePreset" onchange="setPipePreset(this.value)"><option value="custom">Custom / entered ID</option><option value="0.622">1/2 in</option><option value="0.824">3/4 in</option><option value="1.049">1 in</option><option value="1.380">1-1/4 in</option><option value="1.610">1-1/2 in</option><option value="2.067">2 in</option><option value="2.469">2-1/2 in</option><option value="3.068">3 in</option><option value="4.026">4 in</option><option value="6.065">6 in</option><option value="7.981">8 in</option><option value="10.020">10 in</option><option value="12.000">12 in</option></select></div>
+            <div class="field"><label>Specific Gravity</label><input id="sgVal" type="number" value="1.000" step="0.001"></div>
+            <div class="field"><label>Viscosity</label><div class="inline"><input id="viscVal" type="number" value="1.002" step="any"><select id="viscUnit"><option value="cp">cP</option><option value="pas">Pa·s</option></select></div></div>
+            <div class="field"><label>Head</label><div class="inline"><input id="headVal" type="number" value="150" step="any"><select id="headUnit"><option value="ft">ft</option><option value="m">m</option><option value="psi">psi</option><option value="kpa">kPa</option><option value="bar">bar</option></select></div></div>
+            <div class="field"><label>Pressure</label><div class="inline"><input id="pressVal" type="number" value="64.9" step="any"><select id="pressUnit"><option value="psi">psi</option><option value="kpa">kPa</option><option value="bar">bar</option><option value="ft">ft fluid</option><option value="m">m fluid</option></select></div></div>
+            <div class="field"><label>Temperature</label><div class="inline"><input id="tempVal" type="number" value="68" step="any"><select id="tempUnit"><option value="f">°F</option><option value="c">°C</option><option value="k">K</option></select></div></div>
+            <div class="field"><label>Atmospheric pressure</label><div class="inline"><input id="atmVal" type="number" value="14.696" step="any"><select id="atmUnit"><option value="psia">psia</option><option value="kpa">kPa abs</option></select></div></div>
+            <div class="field"><label>Vapor pressure</label><div class="inline"><input id="vpVal" type="number" value="0.339" step="any"><select id="vpUnit"><option value="psia">psia</option><option value="kpa">kPa abs</option></select></div></div>
+          </div>
+          <div class="actions"><button class="btn primary" onclick="readStateInputs()">Update State</button><button class="btn ghost" onclick="waterPreset()">Water @ 68°F</button><button class="btn ghost" onclick="glycolPreset()">EG 50% @ 68°F</button></div>
+          <div class="note">Conversion logic is bidirectional. Example: changing pressure updates equivalent head using SG. Changing flow in L/min updates GPM, velocity, Reynolds number, and all calculators using flow.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-convert">
+    <div class="grid">
+      <div class="card full">
+        <div class="card-head"><div class="ico">🔄</div><div><h2>Linked Unit Converter</h2><div class="sub">Converts values and can push relevant results into the live state.</div></div></div>
+        <div class="card-body">
+          <div class="converter-row">
+            <div class="field"><label>Value</label><input id="cvIn" type="number" value="300" step="any" oninput="convertNow()"></div>
+            <div class="field"><label>From</label><select id="cvFrom" onchange="convertNow()"></select></div>
+            <button class="swap" onclick="swapUnits()">⇄</button>
+            <div class="field"><label>Result</label><input id="cvOut" type="number" step="any" oninput="convertBack()"></div>
+            <div class="field"><label>To</label><select id="cvTo" onchange="convertNow()"></select></div>
+          </div>
+          <div class="actions"><select id="cvCat" class="btn ghost" onchange="loadConverter()"><option value="flow">Flow</option><option value="length">Length / Diameter</option><option value="pressure">Pressure</option><option value="head">Head ↔ Pressure</option><option value="temp">Temperature</option><option value="power">Power</option><option value="viscosity">Viscosity</option><option value="density">Density</option><option value="volume">Volume</option><option value="area">Area</option><option value="torque">Torque</option><option value="speed">Rotational Speed</option></select><button class="btn primary" onclick="pushConversion()">Push to Global State</button></div>
+          <div class="result" id="convTable"></div>
+        </div>
+      </div>
+      <div class="card third"><div class="card-head"><div class="ico">💧</div><div><h2>Flow Shortcut</h2><div class="sub">GPM / LPM / m³/h</div></div></div><div class="card-body"><div id="flowShortcut"></div></div></div>
+      <div class="card third"><div class="card-head"><div class="ico">📏</div><div><h2>Head / Pressure</h2><div class="sub">SG-sensitive</div></div></div><div class="card-body"><div id="headShortcut"></div></div></div>
+      <div class="card third"><div class="card-head"><div class="ico">🌡️</div><div><h2>Temperature</h2><div class="sub">F / C / K</div></div></div><div class="card-body"><div id="tempShortcut"></div></div></div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-hydraulic">
+    <div class="grid">
+      <div class="card"><div class="card-head"><div class="ico">💨</div><div><h2>Pipe Velocity + Reynolds</h2><div class="sub">Uses global flow, pipe ID, SG, viscosity.</div></div></div><div class="card-body"><div id="velRes"></div></div></div>
+      <div class="card"><div class="card-head"><div class="ico">📉</div><div><h2>Darcy-Weisbach Head Loss</h2><div class="sub">Straight pipe, elevation, and minor losses.</div></div></div><div class="card-body"><div class="fields"><div class="field"><label>Pipe length</label><div class="inline"><input id="hlLen" type="number" value="100" step="any"><select id="hlLenUnit"><option value="ft">ft</option><option value="m">m</option></select></div></div><div class="field"><label>Pipe ID</label><div class="inline"><input id="hlDiaVal" type="number" value="4.026" step="any"><select id="hlDiaUnit"><option value="in">in</option><option value="mm">mm</option><option value="ft">ft</option><option value="m">m</option></select></div></div><div class="field"><label>Sch 40 Pipe Size</label><select id="hlPipePreset" onchange="setHLPipePreset(this.value)"><option value="custom">Custom / entered ID</option><option value="0.622">1/2 in</option><option value="0.824">3/4 in</option><option value="1.049">1 in</option><option value="1.380">1-1/4 in</option><option value="1.610">1-1/2 in</option><option value="2.067">2 in</option><option value="2.469">2-1/2 in</option><option value="3.068">3 in</option><option value="4.026">4 in</option><option value="6.065">6 in</option><option value="7.981">8 in</option><option value="10.020">10 in</option><option value="12.000">12 in</option></select></div><div class="field"><label>ΣK fittings</label><input id="hlK" type="number" value="0" step="any"></div><div class="field"><label>Roughness ε</label><div class="inline"><input id="roughVal" type="number" value="0.0018" step="any"><select id="roughUnit"><option value="in">in</option><option value="mm">mm</option></select></div></div><div class="field"><label>Elevation change</label><div class="inline"><input id="elevVal" type="number" value="0" step="any"><select id="elevUnit"><option value="ft">ft</option><option value="m">m</option></select></div></div></div><div class="actions"><button class="btn primary" onclick="calcHeadLoss()">Calculate</button><button class="btn ghost" onclick="setHLPipeFromGlobal();calcHeadLoss()">Use State Pipe</button><button class="btn ghost" onclick="applyHLPipeToState()">Apply Pipe to State</button></div><div id="hlRes"></div></div></div>
+      <div class="card"><div class="card-head"><div class="ico">💥</div><div><h2>Water Hammer</h2><div class="sub">Joukowsky surge estimate.</div></div></div><div class="card-body"><div class="fields"><div class="field"><label>Valve closure time</label><input id="whTc" type="number" value="5" step="any"></div><div class="field"><label>Pipe length ft</label><input id="whLen" type="number" value="500" step="any"></div><div class="field"><label>Wave speed ft/s</label><select id="whA"><option value="4720">Steel ~4720</option><option value="4330">Ductile iron ~4330</option><option value="3530">Cast iron ~3530</option><option value="1400">PVC ~1400</option><option value="1200">HDPE ~1200</option></select></div><div class="field"><label>Operating pressure psi</label><input id="whP" type="number" value="100" step="any"></div></div><div class="actions"><button class="btn primary" onclick="calcWH()">Calculate</button></div><div id="whRes"></div></div></div>
+      <div class="card"><div class="card-head"><div class="ico">🔩</div><div><h2>Fitting K Accumulator</h2><div class="sub">Counts common fittings and sends ΣK to head loss.</div></div></div><div class="card-body"><div id="fitRows"></div><div class="actions"><button class="btn primary" onclick="sumFittings()">Update ΣK</button><button class="btn ghost" onclick="clearFittings()">Clear</button></div><div id="fitRes"></div></div></div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-pump">
+    <div class="grid">
+      <div class="card"><div class="card-head"><div class="ico">⚡</div><div><h2>Pump Hydraulic Power / BHP</h2><div class="sub">Uses global flow, head, SG.</div></div></div><div class="card-body"><div class="fields"><div class="field"><label>Pump efficiency %</label><input id="pumpEff" type="number" value="75" step="any"></div><div class="field"><label>Service factor</label><select id="pumpSF"><option value="1.15">1.15 standard</option><option value="1.20">1.20 viscous/heavy</option><option value="1.25">1.25 severe</option></select></div></div><div class="actions"><button class="btn primary" onclick="calcPumpPower()">Calculate</button></div><div id="pumpPowerRes"></div></div></div>
+      <div class="card"><div class="card-head"><div class="ico">🌊</div><div><h2>NPSH Available</h2><div class="sub">Atmosphere, vapor pressure, static suction, suction loss.</div></div></div><div class="card-body"><div class="fields"><div class="field"><label>Static suction head ft</label><input id="npshHs" type="number" value="5" step="any"></div><div class="field"><label>Suction friction ft</label><input id="npshHfs" type="number" value="2" step="any"></div><div class="field"><label>NPSHr ft</label><input id="npshR" type="number" value="10" step="any"></div><div class="field"><label>Required margin ft</label><input id="npshMargin" type="number" value="3" step="any"></div></div><div class="actions"><button class="btn primary" onclick="calcNPSH()">Calculate</button></div><div id="npshRes"></div></div></div>
+      <div class="card"><div class="card-head"><div class="ico">🎛️</div><div><h2>Control Valve Cv</h2><div class="sub">Liquid Cv sizing with SG from state.</div></div></div><div class="card-body"><div class="fields"><div class="field"><label>Flow GPM</label><input id="cvFlow" type="number" value="300" step="any"></div><div class="field"><label>ΔP psi</label><input id="cvDp" type="number" value="15" step="any"></div><div class="field"><label>Target opening %</label><input id="cvOpen" type="number" value="70" step="any"></div><div class="field"><label>Rangeability</label><select id="cvRange"><option value="50">50:1 equal %</option><option value="30">30:1</option><option value="10">10:1</option></select></div></div><div class="actions"><button class="btn primary" onclick="calcCv()">Calculate</button><button class="btn ghost" onclick="document.getElementById('cvFlow').value=fmtNum(S.flow_gpm,2)">Use global flow</button></div><div id="cvRes"></div></div></div>
+      <div class="card"><div class="card-head"><div class="ico">🔢</div><div><h2>Specific Speed</h2><div class="sub">Pump type indicator only.</div></div></div><div class="card-body"><div class="fields"><div class="field"><label>RPM</label><input id="nsRpm" type="number" value="1750" step="any"></div><div class="field"><label>BEP Flow GPM</label><input id="nsQ" type="number" value="300" step="any"></div><div class="field"><label>BEP Head ft</label><input id="nsH" type="number" value="150" step="any"></div><div class="field"><label>Stages</label><input id="nsStages" type="number" value="1" step="1"></div></div><div class="actions"><button class="btn primary" onclick="calcNs()">Calculate</button></div><div id="nsRes"></div></div></div>
+      <div class="card"><div class="card-head"><div class="ico">🛡️</div><div><h2>PC / Positive Displacement Pump Check</h2><div class="sub">Relief valve set pressure and drive load screen.</div></div></div><div class="card-body"><div class="fields"><div class="field"><label>Operating pressure</label><div class="inline"><input id="pcP" type="number" value="100" step="any"><select id="pcPUnit"><option value="psi">psi</option><option value="bar">bar</option><option value="kpa">kPa</option></select></div></div><div class="field"><label>Relief margin %</label><input id="pcMargin" type="number" value="10" step="any"></div><div class="field"><label>Volumetric efficiency %</label><input id="pcVE" type="number" value="85" step="any"></div><div class="field"><label>Drive efficiency %</label><input id="pcDE" type="number" value="75" step="any"></div></div><div class="actions"><button class="btn primary" onclick="calcPCPump()">Calculate</button><button class="btn ghost" onclick="document.getElementById('pcP').value=fmtNum(S.pressure_psi,2);document.getElementById('pcPUnit').value='psi';calcPCPump()">Use State Pressure</button></div><div id="pcRes"></div><div class="note">A progressing cavity or other positive-displacement pump needs a pressure-relief path on the discharge side. Size and set the valve using the pump OEM limits, piping pressure rating, and site operating envelope.</div></div></div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-electric">
+    <div class="grid">
+      <div class="card"><div class="card-head"><div class="ico">🔌</div><div><h2>Motor Current</h2><div class="sub">3-phase or single-phase FLA estimate.</div></div></div><div class="card-body"><div class="fields"><div class="field"><label>Motor HP</label><input id="mHp" type="number" value="25" step="any"></div><div class="field"><label>Voltage</label><select id="mV"><option value="480">480V 3φ</option><option value="460">460V 3φ</option><option value="208">208V 3φ</option><option value="4160">4160V 3φ</option><option value="230-1">230V 1φ</option></select></div><div class="field"><label>Efficiency %</label><input id="mEff" type="number" value="94" step="any"></div><div class="field"><label>Power factor</label><input id="mPf" type="number" value="0.88" step="any"></div></div><div class="actions"><button class="btn primary" onclick="calcMotor()">Calculate</button><button class="btn ghost" onclick="useMotorFromPump()">Use Pump HP</button></div><div id="motorRes"></div></div></div>
+      <div class="card"><div class="card-head"><div class="ico">🔧</div><div><h2>Torque</h2><div class="sub">HP and RPM to torque.</div></div></div><div class="card-body"><div class="fields"><div class="field"><label>Power HP</label><input id="tHp" type="number" value="25" step="any"></div><div class="field"><label>RPM</label><input id="tRpm" type="number" value="1750" step="any"></div></div><div class="actions"><button class="btn primary" onclick="calcTorque()">Calculate</button></div><div id="torqueRes"></div></div></div>
+      <div class="card full"><div class="card-head"><div class="ico">📋</div><div><h2>Motor Reference</h2><div class="sub">Approximate frame and current rules of thumb.</div></div></div><div class="card-body"><div id="motorRef"></div></div></div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-thermal">
+    <div class="grid">
+      <div class="card"><div class="card-head"><div class="ico">🔥</div><div><h2>Heat Load</h2><div class="sub">Q = mCpΔT.</div></div></div><div class="card-body"><div class="fields"><div class="field"><label>Flow</label><div class="inline"><input id="thFlow" type="number" value="300" step="any"><select id="thFlowUnit"><option value="gpm">GPM</option><option value="lpm">L/min</option><option value="m3h">m³/h</option></select></div></div><div class="field"><label>Density kg/m³</label><input id="thRho" type="number" value="998" step="any"></div><div class="field"><label>Cp J/kg-K</label><input id="thCp" type="number" value="4182" step="any"></div><div class="field"><label>ΔT</label><div class="inline"><input id="thDt" type="number" value="20" step="any"><select id="thDtUnit"><option value="c">°C/K</option><option value="f">°F</option></select></div></div></div><div class="actions"><button class="btn primary" onclick="calcHeat()">Calculate</button><button class="btn ghost" onclick="document.getElementById('thFlow').value=fmtNum(S.flow_gpm,2);document.getElementById('thFlowUnit').value='gpm'">Use global flow</button></div><div id="heatRes"></div></div></div>
+      <div class="card"><div class="card-head"><div class="ico">📐</div><div><h2>Pipe Thermal Expansion</h2><div class="sub">ΔL = αLΔT.</div></div></div><div class="card-body"><div class="fields"><div class="field"><label>Pipe length ft</label><input id="exL" type="number" value="200" step="any"></div><div class="field"><label>ΔT °F</label><input id="exDt" type="number" value="100" step="any"></div><div class="field"><label>Material</label><select id="exMat"><option value="0.0000065">Carbon steel</option><option value="0.0000096">304 stainless</option><option value="0.0000089">316 stainless</option><option value="0.0000094">Copper/brass</option><option value="0.00003">PVC</option><option value="0.000055">HDPE</option></select></div><div class="field"><label>Pipe OD in</label><input id="exOD" type="number" value="4.5" step="any"></div></div><div class="actions"><button class="btn primary" onclick="calcExpansion()">Calculate</button></div><div id="expRes"></div></div></div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-refs">
+    <div class="grid">
+      <div class="card"><div class="card-head"><div class="ico">📏</div><div><h2>Sch 40 Pipe IDs</h2><div class="sub">Common steel pipe internal diameters.</div></div></div><div class="card-body"><div id="pipeRef"></div></div></div>
+      <div class="card"><div class="card-head"><div class="ico">🔩</div><div><h2>Fitting K Values</h2><div class="sub">Typical Darcy K values.</div></div></div><div class="card-body"><div id="kRef"></div></div></div>
+      <div class="card full"><div class="card-head"><div class="ico">🧮</div><div><h2>Useful Pump Formulas</h2><div class="sub">Reference formulas used by the toolbox.</div></div></div><div class="card-body"><div id="formulaRef"></div><p class="footer-note">This is an engineering reference tool. Verify critical selections with OEM curves, certified test data, applicable standards, and site-specific operating conditions.</p></div></div>
+    </div>
+  </section>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const fmtNum=(n,d=2)=>Number.isFinite(n)?Number(n).toLocaleString(undefined,{maximumFractionDigits:d,minimumFractionDigits:0}):'—';
+const fmtFixed=(n,d=2)=>Number.isFinite(n)?Number(n).toFixed(d):'—';
+const S={flow_gpm:300,diam_in:4.026,sg:1,visc_cp:1.002,head_ft:150,pressure_psi:64.9,temp_c:20,atm_psia:14.696,vp_psia:.339,lastPumpHP:null};
+const conv={
+ flow:{label:'Flow',state:'flow',units:{gpm:1,gph:1/60,lpm:0.264172052,lps:15.8503231,m3h:4.4028675,m3d:0.1834528125,bpd:42/1440,bph:42/60,bpm:42,mgd:1000000/1440,mld:183.4528125,cfs:448.831168,cfm:7.48051948},names:{gpm:'GPM',gph:'GPH',lpm:'L/min',lps:'L/s',m3h:'m³/h',m3d:'m³/day',bpd:'barrels/day',bph:'barrels/hour',bpm:'barrels/min',mgd:'million gal/day',mld:'million L/day',cfs:'ft³/s',cfm:'ft³/min'}},
+ length:{label:'Length / Diameter',state:'diameter',units:{in:1,ft:12,yd:36,mm:0.0393700787,cm:0.393700787,m:39.3700787},names:{in:'in',ft:'ft',yd:'yd',mm:'mm',cm:'cm',m:'m'}},
+ pressure:{label:'Pressure',state:'pressure',units:{psi:1,psf:1/144,kpa:0.145037738,mpa:145.037738,bar:14.5037738,pa:0.000145037738,atm:14.6959488,inhg:.491154,mmhg:.0193368,inh2o:.0360912,ftwc:.4335275},names:{psi:'psi',psf:'psf',kpa:'kPa',mpa:'MPa',bar:'bar',pa:'Pa',atm:'atm',inhg:'inHg',mmhg:'mmHg',inh2o:'inH₂O',ftwc:'ft H₂O'}},
+ power:{label:'Power',state:null,units:{hp:1,kw:1.34102209,w:.00134102209,bhp:1,btuh:.000392856568,mbh:.392856568,ton:4.714278},names:{hp:'HP',kw:'kW',w:'W',bhp:'BHP',btuh:'BTU/h',mbh:'MBH',ton:'tons refrigeration'}},
+ viscosity:{label:'Viscosity',state:'viscosity',units:{cp:1,mpas:1,pas:1000,lbfts:1488.16394,reyn:6894757},names:{cp:'cP',mpas:'mPa·s',pas:'Pa·s',lbfts:'lb/(ft·s)',reyn:'reyn'}},
+ density:{label:'Density',state:null,units:{kgm3:1,lbft3:16.0184634,lbgal:119.826427,gcm3:1000,sg:1000,apioil:null},names:{kgm3:'kg/m³',lbft3:'lb/ft³',lbgal:'lb/gal',gcm3:'g/cm³',sg:'specific gravity',apioil:'API gravity'}},
+ volume:{label:'Volume',state:null,units:{gal:1,qt:.25,pt:.125,oz:.0078125,bbl:42,ft3:7.48051948,l:.264172052,m3:264.172052},names:{gal:'US gal',qt:'US qt',pt:'US pt',oz:'US fl oz',bbl:'barrel',ft3:'ft³',l:'L',m3:'m³'}},
+ area:{label:'Area',state:null,units:{in2:1,ft2:144,mm2:.0015500031,cm2:.15500031,m2:1550.0031},names:{in2:'in²',ft2:'ft²',mm2:'mm²',cm2:'cm²',m2:'m²'}},
+ torque:{label:'Torque',state:null,units:{ftlb:1,inlb:1/12,nm:.737562149},names:{ftlb:'ft-lbf',inlb:'in-lbf',nm:'N·m'}},
+ speed:{label:'Rotational Speed',state:null,units:{rpm:1,rps:60,radsec:9.549296596},names:{rpm:'RPM',rps:'rev/s',radsec:'rad/s'}}
+};
+const sch40=[['1/2',.622],['3/4',.824],['1',1.049],['1-1/4',1.380],['1-1/2',1.610],['2',2.067],['2-1/2',2.469],['3',3.068],['4',4.026],['6',6.065],['8',7.981],['10',10.020],['12',12.000]];
+function setPipePreset(v){if(v==='custom')return;S.diam_in=parseFloat(v);if($('diaUnit'))$('diaUnit').value='in';syncStateUI()}
+function syncPipePreset(){const match=sch40.find(p=>Math.abs(p[1]-S.diam_in)<0.001);if($('pipePreset'))$('pipePreset').value=match?String(match[1]):'custom';if($('hlPipePreset')){const d=$('hlDiaVal')?getHLPipeIn():S.diam_in;const m=sch40.find(p=>Math.abs(p[1]-d)<0.001);$('hlPipePreset').value=m?String(m[1]):'custom';}}
+const fits=[['90° elbow std',.30],['90° elbow long radius',.15],['45° elbow',.20],['Tee through run',.10],['Tee through branch',1.00],['Gate valve open',.10],['Ball valve open',.05],['Globe valve open',5.00],['Swing check valve',2.50],['Butterfly valve open',.80],['Sharp entrance',.50],['Rounded entrance',.04],['Pipe exit',1.00],['Foot valve + strainer',5.50]];
+const motorFrames=[[1,'143T'],[3,'145T'],[5,'182T'],[10,'213T'],[15,'215T'],[20,'256T'],[30,'286T'],[40,'324T'],[50,'326T'],[60,'364T'],[75,'365T'],[100,'405T'],[125,'444T'],[150,'445T'],[200,'447T'],[250,'449T'],[99999,'5000-series / consult mfr']];
+const stdHP=[.5,.75,1,1.5,2,3,5,7.5,10,15,20,25,30,40,50,60,75,100,125,150,200,250,300,350,400,450,500,600,700,800,900,1000,1250,1500,2000,2500,3000,4000,5000];
+function toGpm(v,u){return v*conv.flow.units[u]}
+function fromGpm(v,u){return v/conv.flow.units[u]}
+function lengthToIn(v,u){return v*conv.length.units[u]}
+function inToLength(v,u){return v/conv.length.units[u]}
+function pressToPsi(v,u){if(u==='ft')return v*S.sg*.4335275;if(u==='in')return v*S.sg*.0361273;if(u==='m')return v*S.sg*1.4219702;return v*conv.pressure.units[u]}
+function psiToPress(v,u){if(u==='ft')return v/(S.sg*.4335275);if(u==='in')return v/(S.sg*.0361273);if(u==='m')return v/(S.sg*1.4219702);return v/conv.pressure.units[u]}
+function tempToC(v,u){return u==='f'?(v-32)*5/9:u==='k'?v-273.15:v}
+function cToTemp(v,u){return u==='f'?v*9/5+32:u==='k'?v+273.15:v}
+function viscToCp(v,u){return v*(conv.viscosity.units[u]||1)}
+function cpToVisc(v,u){return v/(conv.viscosity.units[u]||1)}
+function psiaFrom(v,u){return u==='kpa'?v*.145037738:v}
+function psiaTo(v,u){return u==='kpa'?v/0.145037738:v}
+function velocityFpsFor(Qgpm,diamIn){const q=Qgpm*0.00222800926;const area=Math.PI*Math.pow(diamIn/12,2)/4;return area>0?q/area:0}
+function velocityFps(){return velocityFpsFor(S.flow_gpm,S.diam_in)}
+function reNumFor(diamIn){const Dm=diamIn*.0254;const Vm=velocityFpsFor(S.flow_gpm,diamIn)*.3048;const nu=S.visc_cp*1e-3/(S.sg*1000);return nu>0?Vm*Dm/nu:0}
+function reNum(){return reNumFor(S.diam_in)}
+function fDarcy(Re,eps_in=0.0018,diam_in=S.diam_in){const D=diam_in;if(Re<=0||D<=0)return 0;if(Re<2300)return 64/Re;const epsD=eps_in/D;const x=Math.log10(epsD/3.7+5.74/Math.pow(Re,.9));return .25/(x*x)}
+function regime(Re){return Re<2300?'Laminar':Re<4000?'Transitional':'Turbulent'}
+function headToPsi(ft){return ft*S.sg*.4335275}
+function psiToHead(psi){return psi/(S.sg*.4335275)}
+function readStateInputs(){
+ S.flow_gpm=toGpm(parseFloat($('flowVal').value)||0,$('flowUnit').value);
+ S.diam_in=lengthToIn(parseFloat($('diaVal').value)||0,$('diaUnit').value);
+ S.sg=parseFloat($('sgVal').value)||1;
+ S.visc_cp=viscToCp(parseFloat($('viscVal').value)||0,$('viscUnit').value);
+ S.head_ft=psiToPress(pressToPsi(parseFloat($('headVal').value)||0,$('headUnit').value),'ft');
+ S.pressure_psi=pressToPsi(parseFloat($('pressVal').value)||0,$('pressUnit').value);
+ if(document.activeElement&&['headVal','headUnit'].includes(document.activeElement.id))S.pressure_psi=headToPsi(S.head_ft);
+ if(document.activeElement&&['pressVal','pressUnit'].includes(document.activeElement.id))S.head_ft=psiToHead(S.pressure_psi);
+ S.temp_c=tempToC(parseFloat($('tempVal').value)||0,$('tempUnit').value);
+ S.atm_psia=psiaFrom(parseFloat($('atmVal').value)||0,$('atmUnit').value);
+ S.vp_psia=psiaFrom(parseFloat($('vpVal').value)||0,$('vpUnit').value);
+ syncStateUI();
 }
-.gsb-top {
-  display: flex;
-  align-items: stretch;
+function syncStateUI(){
+ $('flowVal').value=fmtFixed(fromGpm(S.flow_gpm,$('flowUnit').value),3).replace(/\.000$/,'');
+ $('diaVal').value=fmtFixed(inToLength(S.diam_in,$('diaUnit').value),4).replace(/0+$/,'').replace(/\.$/,'');syncPipePreset();
+ $('sgVal').value=fmtFixed(S.sg,3);
+ $('viscVal').value=fmtFixed(cpToVisc(S.visc_cp,$('viscUnit').value),4).replace(/0+$/,'').replace(/\.$/,'');
+ $('headVal').value=fmtFixed(psiToPress(headToPsi(S.head_ft),$('headUnit').value),3).replace(/0+$/,'').replace(/\.$/,'');
+ $('pressVal').value=fmtFixed(psiToPress(S.pressure_psi,$('pressUnit').value),3).replace(/0+$/,'').replace(/\.$/,'');
+ $('tempVal').value=fmtFixed(cToTemp(S.temp_c,$('tempUnit').value),2).replace(/0+$/,'').replace(/\.$/,'');
+ $('atmVal').value=fmtFixed(psiaTo(S.atm_psia,$('atmUnit').value),3).replace(/0+$/,'').replace(/\.$/,'');
+ $('vpVal').value=fmtFixed(psiaTo(S.vp_psia,$('vpUnit').value),4).replace(/0+$/,'').replace(/\.$/,'');
+ const V=velocityFps(), Re=reNum();
+ $('s-flow').textContent=fmtNum(S.flow_gpm,1);$('s-dia').textContent=fmtNum(S.diam_in,3);$('s-vel').textContent=fmtNum(V,2);$('s-psi').textContent=fmtNum(S.pressure_psi,1);$('s-head').textContent=fmtNum(S.head_ft,1);$('s-temp').textContent=fmtNum(cToTemp(S.temp_c,'f'),1);
+ $('q-flow').textContent=fmtNum(S.flow_gpm,1)+' GPM';$('q-flow-m').textContent=fmtNum(fromGpm(S.flow_gpm,'lpm'),1)+' L/min';$('q-hp').textContent=fmtNum(headToPsi(S.head_ft),1)+' psi';$('q-vel').textContent=fmtNum(V,2)+' ft/s';$('q-re').textContent=fmtRe(Re);if($('hlDiaVal')&&document.activeElement!==$('hlDiaVal')&&document.activeElement!==$('hlDiaUnit'))setHLPipeFromGlobal(false);
+ updateShortcuts();calcVelocity();loadCurrentSensitive();
+}
+function fmtRe(n){return n>=1e6?fmtNum(n/1e6,2)+'M':n>=1e3?fmtNum(n/1e3,1)+'k':fmtNum(n,0)}
+function waterPreset(){S.sg=1;S.visc_cp=1.002;S.vp_psia=.339;S.temp_c=20;syncStateUI()}
+function glycolPreset(){S.sg=1.085;S.visc_cp=4.5;S.vp_psia=.2;S.temp_c=20;syncStateUI()}
+['flowVal','flowUnit','diaVal','diaUnit','sgVal','viscVal','viscUnit','headVal','headUnit','pressVal','pressUnit','tempVal','tempUnit','atmVal','atmUnit','vpVal','vpUnit'].forEach(id=>document.addEventListener('input',e=>{if(e.target&&e.target.id===id)readStateInputs()},true));
+['flowUnit','diaUnit','viscUnit','headUnit','pressUnit','tempUnit','atmUnit','vpUnit','hlDiaUnit'].forEach(id=>document.addEventListener('change',e=>{if(e.target&&e.target.id===id){if(id==='hlDiaUnit')setHLPipeFromGlobal(false);else syncStateUI()}},true));
+document.querySelectorAll('#nav button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('tab-'+b.dataset.tab).classList.add('active');loadCurrentSensitive()}));
+function rows(title,arr){return `<div class="result"><div class="result-title"><span>${title}</span><span class="tag">live</span></div><table>${arr.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table></div>`}
+function loadConverter(){const cat=$('cvCat').value;let names,keys;if(cat==='temp'){names={f:'°F',c:'°C',k:'K'};keys=Object.keys(names)}else if(cat==='head'){names={ft:'ft fluid',in:'in fluid',m:'m fluid',psi:'psi',kpa:'kPa',bar:'bar'};keys=Object.keys(names)}else{names=conv[cat].names;keys=Object.keys(names)}$('cvFrom').innerHTML=keys.map(k=>`<option value="${k}">${names[k]}</option>`).join('');$('cvTo').innerHTML=keys.map(k=>`<option value="${k}">${names[k]}</option>`).join('');if(keys[1])$('cvTo').value=keys[1];convertNow()}
+function densityToKgM3(v,u){if(u==='apioil')return 141.5/(v+131.5)*999.016;if(u==='sg')return v*1000;return v*conv.density.units[u]}
+function kgM3ToDensity(v,u){if(u==='apioil')return 141.5/(v/999.016)-131.5;if(u==='sg')return v/1000;return v/conv.density.units[u]}
+function convForward(v,from,to,cat){if(cat==='temp')return cToTemp(tempToC(v,from),to);if(cat==='head')return psiToPress(pressToPsi(v,from),to);if(cat==='density')return kgM3ToDensity(densityToKgM3(v,from),to);const c=conv[cat];return v*c.units[from]/c.units[to]}
+function convertNow(){const v=parseFloat($('cvIn').value)||0,cat=$('cvCat').value;const out=convForward(v,$('cvFrom').value,$('cvTo').value,cat);$('cvOut').value=fmtFixed(out,6).replace(/0+$/,'').replace(/\.$/,'');allConversions(cat,v,$('cvFrom').value)}
+function convertBack(){const v=parseFloat($('cvOut').value)||0,cat=$('cvCat').value;const out=convForward(v,$('cvTo').value,$('cvFrom').value,cat);$('cvIn').value=fmtFixed(out,6).replace(/0+$/,'').replace(/\.$/,'');allConversions(cat,out,$('cvFrom').value)}
+function swapUnits(){const a=$('cvFrom').value;$('cvFrom').value=$('cvTo').value;$('cvTo').value=a;convertNow()}
+function allConversions(cat,v,from){let keys,names;if(cat==='temp'){keys=['f','c','k'];names={f:'°F',c:'°C',k:'K'}}else if(cat==='head'){keys=['ft','in','m','psi','kpa','bar'];names={ft:'ft fluid',in:'in fluid',m:'m fluid',psi:'psi',kpa:'kPa',bar:'bar'}}else{keys=Object.keys(conv[cat].units);names=conv[cat].names}const arr=keys.map(k=>[names[k],fmtNum(convForward(v,from,k,cat),5)]);$('convTable').innerHTML=rows('All '+$('cvCat').selectedOptions[0].text+' conversions',arr)}
+function pushConversion(){const cat=$('cvCat').value,v=parseFloat($('cvOut').value)||0,u=$('cvTo').value;if(cat==='flow')S.flow_gpm=toGpm(v,u);else if(cat==='length')S.diam_in=lengthToIn(v,u);else if(cat==='pressure'){S.pressure_psi=pressToPsi(v,u);S.head_ft=psiToHead(S.pressure_psi)}else if(cat==='head') {S.pressure_psi=pressToPsi(v,u);S.head_ft=psiToHead(S.pressure_psi)}else if(cat==='temp')S.temp_c=tempToC(v,u);else if(cat==='viscosity')S.visc_cp=viscToCp(v,u);syncStateUI()}
+function updateShortcuts(){
+ $('flowShortcut').innerHTML=rows('Flow equivalents', [['GPM',fmtNum(S.flow_gpm,3)],['GPH',fmtNum(fromGpm(S.flow_gpm,'gph'),2)],['L/min',fmtNum(fromGpm(S.flow_gpm,'lpm'),3)],['m³/h',fmtNum(fromGpm(S.flow_gpm,'m3h'),3)],['BPD',fmtNum(fromGpm(S.flow_gpm,'bpd'),2)],['MGD',fmtNum(fromGpm(S.flow_gpm,'mgd'),4)]]);
+ $('headShortcut').innerHTML=rows('Head / pressure equivalents', [['Head ft',fmtNum(S.head_ft,3)],['Head m',fmtNum(S.head_ft*.3048,3)],['psi',fmtNum(headToPsi(S.head_ft),3)],['kPa',fmtNum(headToPsi(S.head_ft)/.145037738,3)],['SG used',fmtNum(S.sg,3)]]);
+ $('tempShortcut').innerHTML=rows('Temperature equivalents', [['°F',fmtNum(cToTemp(S.temp_c,'f'),2)],['°C',fmtNum(S.temp_c,2)],['K',fmtNum(cToTemp(S.temp_c,'k'),2)]]);
+}
+function calcVelocity(){const V=velocityFps(),Re=reNum(),ff=fDarcy(Re),app=V<3?'Low':V<=8?'Typical':V<=12?'High but common':'Excessive';$('velRes').innerHTML=rows('Velocity / Reynolds',[['Flow',fmtNum(S.flow_gpm,2)+' GPM'],['Pipe ID',fmtNum(S.diam_in,3)+' in'],['Velocity','<span class="big">'+fmtNum(V,3)+' ft/s</span>'],['Velocity metric',fmtNum(V*.3048,3)+' m/s'],['Reynolds',fmtRe(Re)+' — '+regime(Re)],['Darcy f',fmtNum(ff,5)],['Velocity range',app]]);}
+function setHLPipePreset(v){if(v==='custom')return;if($('hlDiaUnit'))$('hlDiaUnit').value='in';if($('hlDiaVal'))$('hlDiaVal').value=parseFloat(v).toFixed(3);calcHeadLoss()}
+function setHLPipeFromGlobal(force=true){if(!$('hlDiaVal'))return;const u=$('hlDiaUnit')?$('hlDiaUnit').value:'in';$('hlDiaVal').value=fmtFixed(inToLength(S.diam_in,u),4).replace(/0+$/,'').replace(/\.$/,'');if(force)calcHeadLoss()}
+function getHLPipeIn(){return lengthToIn(parseFloat($('hlDiaVal').value)||S.diam_in,$('hlDiaUnit').value)}
+function applyHLPipeToState(){const d=getHLPipeIn();if(d>0){S.diam_in=d;syncStateUI();calcHeadLoss()}}
+function calcHeadLoss(){const L=(parseFloat($('hlLen').value)||0)*($('hlLenUnit').value==='m'?3.28084:1);const K=parseFloat($('hlK').value)||0;const elev=(parseFloat($('elevVal').value)||0)*($('elevUnit').value==='m'?3.28084:1);const eps=(parseFloat($('roughVal').value)||0)*($('roughUnit').value==='mm'?0.0393701:1);const D=getHLPipeIn();const V=velocityFpsFor(S.flow_gpm,D),Re=reNumFor(D),f=fDarcy(Re,eps,D),Dft=D/12;const hf=f*(L/Dft)*(V*V/(2*32.174));const hm=K*(V*V/(2*32.174));const total=hf+hm+elev;$('hlRes').innerHTML=rows('Darcy-Weisbach result',[['Flow',fmtNum(S.flow_gpm,2)+' GPM'],['Pipe ID',fmtNum(D,3)+' in'],['Velocity',fmtNum(V,3)+' ft/s'],['Reynolds',fmtRe(Re)],['Darcy f',fmtNum(f,5)],['Straight-pipe hf',fmtNum(hf,3)+' ft'],['Minor loss hm',fmtNum(hm,3)+' ft'],['Elevation',fmtNum(elev,3)+' ft'],['Total head','<span class="big">'+fmtNum(total,3)+' ft</span>'],['ΔP',fmtNum(headToPsi(total),3)+' psi']]);}
+function calcWH(){const V=velocityFps(),rho=S.sg*62.4,a=parseFloat($('whA').value)||4720,L=parseFloat($('whLen').value)||0,tc=parseFloat($('whTc').value)||0,P=parseFloat($('whP').value)||0;const inst=(rho/32.174)*a*V/144;const crit=2*L/a;const actual=tc<=crit?inst:inst*(crit/tc);const sev=actual<50?'Low':actual<150?'Moderate':actual<300?'High':'Severe';$('whRes').innerHTML=rows('Water hammer estimate',[['Velocity',fmtNum(V,3)+' ft/s'],['Critical closure',fmtNum(crit,3)+' s'],['Instant ΔP',fmtNum(inst,1)+' psi'],['Actual ΔP','<span class="big">'+fmtNum(actual,1)+' psi</span>'],['Peak pressure',fmtNum(P+actual,1)+' psi'],['Severity',sev]]);}
+function buildFittings(){let h='<table class="ref-table"><thead><tr><th>Fitting</th><th>K</th><th>Qty</th></tr></thead><tbody>';fits.forEach((f,i)=>h+=`<tr><td>${f[0]}</td><td>${f[1].toFixed(2)}</td><td><input id="fit${i}" type="number" value="0" min="0" step="1" style="width:70px;padding:7px;border:1px solid var(--line);border-radius:10px"></td></tr>`);$('fitRows').innerHTML=h+'</tbody></table>'}
+function sumFittings(){let K=0;fits.forEach((f,i)=>K+=f[1]*(parseFloat($('fit'+i).value)||0));$('hlK').value=fmtFixed(K,2);const V=velocityFpsFor(S.flow_gpm,(typeof getHLPipeIn==='function'?getHLPipeIn():S.diam_in)),hm=K*V*V/(2*32.174);$('fitRes').innerHTML=rows('Fitting loss',[['ΣK',fmtNum(K,2)],['Minor head at global flow',fmtNum(hm,3)+' ft'],['ΔP',fmtNum(headToPsi(hm),3)+' psi'],['Status','Sent to Head Loss ΣK']]);}
+function clearFittings(){fits.forEach((f,i)=>$('fit'+i).value=0);sumFittings()}
+function calcPumpPower(){const eff=(parseFloat($('pumpEff').value)||75)/100,sf=parseFloat($('pumpSF').value)||1.15;const whp=S.flow_gpm*S.head_ft*S.sg/3960;const bhp=eff>0?whp/eff:0;const req=bhp*sf;const motor=stdHP.find(h=>h>=req)||stdHP.at(-1);S.lastPumpHP=motor;$('pumpPowerRes').innerHTML=rows('Pump power',[['Flow',fmtNum(S.flow_gpm,1)+' GPM'],['Head',fmtNum(S.head_ft,2)+' ft'],['SG',fmtNum(S.sg,3)],['Water horsepower',fmtNum(whp,2)+' HP'],['Brake horsepower','<span class="big">'+fmtNum(bhp,2)+' HP</span>'],['With service factor',fmtNum(req,2)+' HP'],['Next standard motor',motor+' HP']]);}
+function calcNPSH(){const Hs=parseFloat($('npshHs').value)||0,hfs=parseFloat($('npshHfs').value)||0,npshr=parseFloat($('npshR').value)||0,margin=parseFloat($('npshMargin').value)||0;const pressHead=(S.atm_psia-S.vp_psia)*2.31/S.sg;const npsha=pressHead+Hs-hfs;const actual=npsha-npshr;const ok=actual>=margin;$('npshRes').innerHTML=rows('NPSH Available',[['Pressure head',fmtNum(pressHead,2)+' ft'],['Static suction',fmtNum(Hs,2)+' ft'],['Suction friction',fmtNum(hfs,2)+' ft'],['NPSHa','<span class="big">'+fmtNum(npsha,2)+' ft</span>'],['NPSHr',fmtNum(npshr,2)+' ft'],['Actual margin',`<span class="${ok?'ok':'bad'}">${fmtNum(actual,2)} ft</span>`],['Result',ok?'Acceptable by entered margin':'Not acceptable']]);}
+function calcCv(){const Q=parseFloat($('cvFlow').value)||0,dp=parseFloat($('cvDp').value)||0,open=(parseFloat($('cvOpen').value)||70)/100,R=parseFloat($('cvRange').value)||50;if(dp<=0)return;const Cv=Q*Math.sqrt(S.sg/dp);const CvMax=Cv/Math.pow(R,open-1);$('cvRes').innerHTML=rows('Liquid valve Cv',[['Required Cv','<span class="big">'+fmtNum(Cv,2)+'</span>'],['Select rated Cv near',fmtNum(CvMax,2)],['Design opening',fmtNum(open*100,0)+'%'],['SG used',fmtNum(S.sg,3)],['Formula','Cv = Q × √(SG/ΔP)']]);}
+function calcNs(){const N=parseFloat($('nsRpm').value)||0,Q=parseFloat($('nsQ').value)||0,H=parseFloat($('nsH').value)||0,st=parseFloat($('nsStages').value)||1;if(!N||!Q||!H)return;const Ns=N*Math.sqrt(Q)/Math.pow(H/st,.75);const type=Ns<500?'Low specific speed / radial':Ns<1500?'Radial centrifugal':Ns<4000?'Mixed-flow':Ns<10000?'Axial-flow':'Propeller / very high Ns';$('nsRes').innerHTML=rows('Specific speed',[['Ns','<span class="big">'+fmtNum(Ns,0)+'</span>'],['Likely hydraulic type',type],['Note','Use for screening only']]);}
+function calcPCPump(){const p=pressToPsi(parseFloat($('pcP').value)||0,$('pcPUnit').value);const margin=(parseFloat($('pcMargin').value)||10)/100;const ve=(parseFloat($('pcVE').value)||85)/100;const de=(parseFloat($('pcDE').value)||75)/100;const relief=p*(1+margin);const head=psiToHead(p);const reliefHead=psiToHead(relief);const hpAt=psi=>{const h=psiToHead(psi);const whp=S.flow_gpm*h*S.sg/3960;return de>0?whp/de:0};const bhp=hpAt(p),reliefBhp=hpAt(relief);const slipFlow=ve>0?S.flow_gpm/ve:S.flow_gpm;const rec=relief<=p?'Check set point':'Set above normal operating pressure and below the lowest rated component limit';$('pcRes').innerHTML=rows('PC / positive displacement pump screen',[['Global flow',fmtNum(S.flow_gpm,2)+' GPM'],['Required displacement flow',fmtNum(slipFlow,2)+' GPM at '+fmtNum(ve*100,0)+'% VE'],['Operating pressure',fmtNum(p,2)+' psi'],['Equivalent head',fmtNum(head,2)+' ft'],['Operating BHP','<span class="big">'+fmtNum(bhp,2)+' HP</span>'],['Suggested relief set','<span class="big">'+fmtNum(relief,1)+' psi</span>'],['Relief-set equivalent head',fmtNum(reliefHead,2)+' ft'],['BHP at relief set','<span class="big">'+fmtNum(reliefBhp,2)+' HP</span>'],['Basis','Operating pressure × '+fmtNum(1+margin,2)],['Check',rec]]);}
+function frame(hp){return motorFrames.find(x=>hp<=x[0])[1]}
+function calcMotor(){let v=$('mV').value,one=v.includes('-1'),vol=parseFloat(v);const hp=parseFloat($('mHp').value)||0,eff=(parseFloat($('mEff').value)||94)/100,pf=parseFloat($('mPf').value)||.88;const kwIn=hp*.7457/eff;const amps=one?kwIn*1000/(vol*pf):kwIn*1000/(Math.sqrt(3)*vol*pf);$('motorRes').innerHTML=rows('Motor current',[['Motor',hp+' HP'],['Input power',fmtNum(kwIn,2)+' kW'],['Estimated FLA','<span class="big">'+fmtNum(amps,1)+' A</span>'],['125% current',fmtNum(amps*1.25,1)+' A'],['Approx frame',frame(hp)]]);}
+function useMotorFromPump(){if(S.lastPumpHP){$('mHp').value=S.lastPumpHP;calcMotor()}}
+function calcTorque(){const hp=parseFloat($('tHp').value)||0,rpm=parseFloat($('tRpm').value)||0;if(!rpm)return;const tq=5252*hp/rpm;$('torqueRes').innerHTML=rows('Torque',[['HP',hp],['RPM',rpm],['Torque','<span class="big">'+fmtNum(tq,2)+' ft-lbf</span>'],['Metric',fmtNum(tq*1.35582,2)+' N·m']]);}
+function useMotorFromPump(){if(S.lastPumpHP){$('mHp').value=S.lastPumpHP;$('tHp').value=S.lastPumpHP;calcMotor();calcTorque()}}
+function calcHeat(){const flow=parseFloat($('thFlow').value)||0,unit=$('thFlowUnit').value,rho=parseFloat($('thRho').value)||998,cp=parseFloat($('thCp').value)||4182,dtRaw=parseFloat($('thDt').value)||0,dt=$('thDtUnit').value==='f'?dtRaw*5/9:dtRaw;const m3s=unit==='gpm'?flow*6.30902e-5:unit==='lpm'?flow/60000:flow/3600;const mdot=m3s*rho;const kw=mdot*cp*dt/1000;$('heatRes').innerHTML=rows('Heat load',[['Mass flow',fmtNum(mdot,3)+' kg/s'],['ΔT',fmtNum(dt,2)+' K'],['Heat load','<span class="big">'+fmtNum(kw,2)+' kW</span>'],['BTU/h',fmtNum(kw*3412.142,0)],['Tons refrigeration',fmtNum(kw/3.517,2)]]);}
+function calcExpansion(){const L=parseFloat($('exL').value)||0,dt=parseFloat($('exDt').value)||0,a=parseFloat($('exMat').value)||0,od=parseFloat($('exOD').value)||0;const dL=L*dt*a;const loop=Math.sqrt(3*(od/12)*Math.abs(dL));$('expRes').innerHTML=rows('Thermal expansion',[['Expansion','<span class="big">'+fmtNum(dL*12,3)+' in</span>'],['Expansion ft',fmtNum(dL,4)+' ft'],['Approx loop height',fmtNum(loop,2)+' ft'],['α used',a.toExponential(2)+' /°F']]);}
+function loadCurrentSensitive(){if($('tab-pump').classList.contains('active')){calcPumpPower();calcNPSH();calcCv();calcNs();calcPCPump()}if($('tab-hydraulic').classList.contains('active')){calcVelocity()}if($('tab-electric').classList.contains('active')){calcMotor();calcTorque()}}
+function buildRefs(){
+ $('pipeRef').innerHTML='<table class="ref-table"><thead><tr><th>NPS</th><th>ID in</th><th>Area in²</th><th>V @ state</th></tr></thead><tbody>'+sch40.map(p=>`<tr><td>${p[0]}</td><td>${p[1].toFixed(3)}</td><td>${(Math.PI*p[1]*p[1]/4).toFixed(3)}</td><td>${fmtNum((S.flow_gpm*.00222800926)/(Math.PI*Math.pow(p[1]/12,2)/4),2)} ft/s</td></tr>`).join('')+'</tbody></table>';
+ $('kRef').innerHTML='<table class="ref-table"><thead><tr><th>Fitting</th><th>K</th></tr></thead><tbody>'+fits.map(f=>`<tr><td>${f[0]}</td><td>${f[1].toFixed(2)}</td></tr>`).join('')+'</tbody></table>';
+ $('formulaRef').innerHTML='<div class="formula">Velocity: V = Q / A</div><div class="formula">Reynolds: Re = ρVD / μ</div><div class="formula">Darcy-Weisbach: h<sub>f</sub> = f(L/D)(V²/2g)</div><div class="formula">Minor loss: h<sub>m</sub> = ΣK(V²/2g)</div><div class="formula">Pressure/head: psi = ft × SG × 0.4335</div><div class="formula">Pump power: BHP = Q × H × SG / (3960 × η)</div><div class="formula">NPSHa = (P<sub>atm</sub> - P<sub>vap</sub>) × 2.31 / SG + H<sub>s</sub> - h<sub>fs</sub></div><div class="formula">Water hammer: ΔP ≈ (ρ/g<sub>c</sub>)aΔV / 144</div><div class="formula">PD / PC relief screen: set pressure ≈ operating pressure × selected margin, limited by pump and piping ratings</div>';
+ $('motorRef').innerHTML='<table class="ref-table"><thead><tr><th>HP up to</th><th>Approx NEMA frame</th></tr></thead><tbody>'+motorFrames.map(m=>`<tr><td>${m[0]>90000?'250+':m[0]}</td><td>${m[1]}</td></tr>`).join('')+'</tbody></table><div class="note">Rule of thumb: 480V 3φ FLA is often near 1.2–1.4 A per HP, depending on motor size and efficiency. Use nameplate data for final electrical work.</div>';
+}
+function init(){buildFittings();buildRefs();loadConverter();syncStateUI();calcHeadLoss();calcWH();calcPumpPower();calcNPSH();calcCv();calcNs();calcPCPump();calcMotor();calcTorque();calcHeat();calcExpansion()}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>  align-items: stretch;
   height: var(--gsh);
   overflow-x: auto;
   scrollbar-width: none;
