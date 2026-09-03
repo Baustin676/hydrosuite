@@ -628,6 +628,204 @@ input[type=number] { -moz-appearance: textfield; }
 .sched-tbl th:first-child { text-align: left; }
 .sched-tbl td { padding: 5px 8px; text-align: right; border-bottom: 1px solid rgba(255,255,255,.02); color: var(--t2); font-family: var(--mono); }
 .sched-tbl td:first-child { text-align: left; color: var(--t1); }
+
+/* ══════════════════════════════════════════════════════
+   READABILITY REDESIGN LAYER
+   Light, high-contrast theme with larger type and calmer
+   spacing. Overrides the dark "terminal" styling above
+   WITHOUT changing any markup, element IDs, event handlers,
+   or calculation logic. Chart canvases stay on dark panels
+   (their drawing code is untouched) for maximum legibility.
+════════════════════════════════════════════════════════ */
+:root {
+  --bg:    #eef2f7;
+  --bg2:   #e6ecf3;
+  --s1:    #ffffff;
+  --s2:    #ffffff;
+  --s3:    #f2f6fb;
+  --bd:    #d8e0ea;
+  --bd2:   #c6d2e0;
+  --amber: #b45309;
+  --amHi:  #92400e;
+  --amDim: rgba(180,83,9,.09);
+  --amGlow:rgba(180,83,9,.22);
+  --cyan:  #0e7490;
+  --cyDim: rgba(14,116,144,.08);
+  --cyGl:  rgba(14,116,144,.24);
+  --green: #047857;
+  --grDim: rgba(4,120,87,.08);
+  --grGl:  rgba(4,120,87,.24);
+  --red:   #b91c1c;
+  --rdDim: rgba(185,28,28,.07);
+  --orange:#c2410c;
+  --orDim: rgba(194,65,12,.09);
+  --violet:#6d28d9;
+  --viDim: rgba(109,40,217,.09);
+  --t1: #0f172a;
+  --t2: #334155;
+  --t3: #475569;
+  --t4: #64748b;
+  --r: 9px; --r2: 13px;
+}
+html { font-size: 16px; }
+body {
+  color: var(--t1);
+  background:
+    radial-gradient(1100px 480px at 100% -12%, rgba(14,116,144,.06), transparent 60%),
+    radial-gradient(950px 440px at -12% -6%, rgba(180,83,9,.05), transparent 55%),
+    var(--bg);
+}
+
+/* ── Global state bar ── */
+#gsb { box-shadow: 0 1px 0 var(--bd), 0 8px 22px rgba(15,23,42,.07); }
+.gsb-logo { border-right-color: var(--bd); }
+.gsb-logo .mark { font-size: 13px; }
+.gs-chip { border-right-color: var(--bd); }
+.gs-chip:hover { background: var(--amDim); }
+.gs-chip .ckey { font-size: 9.5px; color: var(--t4); }
+.gs-chip .cval { font-size: 13.5px; }
+.gsb-edit-btn { font-size: 11px; border-left-color: var(--bd); }
+#gs-editor.open { max-height: 1100px; }
+.gs-editor-inner { padding: 16px; gap: 12px; }
+.gf label { font-size: 11px; color: var(--t3); letter-spacing: .4px; }
+.gf input, .gf select { font-size: 14px; padding: 9px 11px; background: #fff; color: var(--t1); border-color: var(--bd2); }
+.gs-derived { border-top-color: var(--bd); }
+.gs-kpi { background: var(--s3); border-color: var(--bd); }
+.gs-kpi .kv { font-size: 19px; }
+.gs-kpi .kl { font-size: 10.5px; color: var(--t3); }
+
+/* ── Nav ── */
+#nav { background: var(--s1); box-shadow: inset 0 -1px 0 var(--bd); padding: 0 8px; }
+.ntab { font-size: 12.5px; text-transform: none; letter-spacing: .2px; color: var(--t3); padding: 14px 16px; gap: 7px; }
+.ntab:hover { color: var(--t1); }
+.ntab.active { color: var(--amber); border-bottom-color: var(--amber); }
+.ntab .ico { font-size: 15px; }
+
+/* ── Content + intro guidance ── */
+#content { padding: 18px; padding-bottom: 40px; }
+.intro { background: linear-gradient(135deg,#ffffff,#f3f8fc); border: 1px solid var(--bd); border-left: 4px solid var(--amber); border-radius: var(--r2); padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+.intro h1 { font-size: 20px; font-weight: 800; letter-spacing: -.3px; color: var(--t1); margin-bottom: 4px; }
+.intro p { font-size: 14px; line-height: 1.55; color: var(--t2); max-width: 900px; }
+.intro .steps-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.intro .step { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--bd); border-radius: 999px; padding: 7px 13px; font-size: 12.5px; color: var(--t2); }
+.intro .step b { color: var(--amber); }
+
+/* ── Cards ── */
+.card { background: var(--s1); border-color: var(--bd); box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 8px 20px rgba(15,23,42,.05); margin-bottom: 14px; }
+.card-h { background: var(--s3); border-bottom-color: var(--bd); padding: 12px 16px; }
+.card-h .ico { width: 30px; height: 30px; background: #fff; border-color: var(--bd2); font-size: 14px; }
+.card-h h2 { font-size: 15px; font-family: var(--sans); text-transform: none; letter-spacing: -.1px; font-weight: 700; color: var(--t1); }
+.card-b { padding: 16px; }
+
+/* ── Form fields ── */
+.fg { margin-bottom: 12px; }
+.fg label { font-size: 11px; color: var(--t3); letter-spacing: .4px; margin-bottom: 5px; }
+.fg label .opt { font-size: 11px; }
+.fg input, .fg select { font-size: 14px; padding: 10px 12px; background: #fff; color: var(--t1); border-color: var(--bd2); }
+.g2, .g3 { gap: 14px; }
+.g4 { gap: 12px; }
+
+/* ── Buttons ── */
+.btn { font-size: 12px; letter-spacing: .5px; padding: 11px 20px; }
+.btn-p { background: var(--amber); color: #fff; }
+.btn-p:hover { background: var(--amHi); box-shadow: 0 6px 18px var(--amGlow); }
+.btn-g { background: #fff; color: var(--t2); border: 1px solid var(--bd2); }
+.btn-g:hover { background: var(--s3); color: var(--t1); }
+.btn-c { background: var(--cyDim); color: var(--cyan); border: 1px solid var(--cyGl); }
+.btn-c:hover { background: rgba(14,116,144,.15); }
+.btn-a { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; font-size: 12px; font-weight: 800; font-family: var(--mono); text-transform: uppercase; letter-spacing: .5px; cursor: pointer; border-radius: var(--r); background: var(--viDim); color: var(--violet); border: 1px solid rgba(109,40,217,.28); }
+.btn-a:hover { background: rgba(109,40,217,.16); }
+.btn-sm { font-size: 11px; padding: 7px 14px; }
+.btn-xs { font-size: 10.5px; padding: 4px 10px; }
+
+/* ── Results ── */
+.res { background: var(--grDim); border-color: var(--grGl); padding: 14px 16px; }
+.res h3 { font-size: 11px; letter-spacing: .6px; }
+.rtbl { font-size: 13px; }
+.rtbl th { font-size: 10.5px; background: rgba(4,120,87,.09); border-bottom-color: var(--grGl); }
+.rtbl td { color: var(--t2); font-size: 13px; border-bottom: 1px solid var(--bd); }
+.rtbl td:last-child { color: var(--green); font-size: 13px; }
+.rtbl tr:hover td { background: rgba(4,120,87,.03); }
+.rtbl .sep td { background: var(--s3); color: var(--t3); border-top-color: var(--bd2); }
+.steps { background: rgba(180,83,9,.06); border-color: rgba(180,83,9,.2); color: #92400e; font-size: 12px; }
+.err { font-size: 11.5px; }
+
+/* ── Section labels / toggles ── */
+.slbl { font-size: 11px; color: var(--t3); letter-spacing: .8px; border-bottom-color: var(--bd); }
+.trow { font-size: 12.5px; color: var(--t3); }
+
+/* ── Overview KPIs ── */
+.kpi { background: var(--s1); border-color: var(--bd); box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+.kpi .kv { font-size: 22px; }
+.kpi .kl { font-size: 10.5px; color: var(--t3); }
+
+/* ── Velocity gauge (repair dark-only fills) ── */
+.vgauge { background: var(--s3); border-color: var(--bd2); }
+.vtop .vnum { font-size: 26px; }
+.vtrack { background: #e2e8f0; box-shadow: inset 0 1px 3px rgba(15,23,42,.16); }
+.vlblrow { font-size: 9.5px; color: var(--t4); }
+.vstat { background: #fff; border-color: var(--bd); }
+.vstat .vv { font-size: 17px; }
+.vstat .vl { font-size: 9.5px; color: var(--t3); }
+.vstatus { font-size: 12px; }
+
+/* ── Data tables ── */
+.ptbl { font-size: 12px; }
+.ptbl th { background: var(--s3); color: var(--t3); border-bottom-color: var(--bd2); }
+.ptbl td { color: var(--t2); border-bottom: 1px solid var(--bd); }
+.ptbl td:first-child { color: var(--t1); }
+.sched-tbl { font-size: 12px; }
+.sched-tbl th { background: var(--s3); color: var(--t3); border-bottom-color: var(--bd2); }
+.sched-tbl td { color: var(--t2); border-bottom: 1px solid var(--bd); }
+.ftbl th { color: var(--t4); border-bottom-color: var(--bd); }
+.ftbl td { color: var(--t2); font-size: 12px; border-bottom: 1px solid var(--bd); }
+.ftbl td input { width: 56px; font-size: 12px; background: #fff; color: var(--t1); border-color: var(--bd2); }
+
+/* ── Dark chart panels stay dark; keep captions legible ── */
+.cw { background: #0b1220; border-color: #223049; }
+.ccap { color: #94a3b8; font-size: 10.5px; }
+.pipe-wrap { background: linear-gradient(135deg,#0b1220,#0d1526); border-color: #223049; }
+
+/* ── Operating-point / legends ── */
+.op-stat { background: var(--s3); border-color: var(--bd); }
+.op-stat .ov { font-size: 18px; }
+.op-stat .ol { font-size: 9.5px; color: var(--t3); }
+.scleg { background: var(--s3); border-color: var(--bd); }
+.scleg-item { color: var(--t2); font-size: 11px; }
+
+/* ── Fluid cards ── */
+.fl-card { background: var(--s1); border-color: var(--bd); }
+.fl-card:hover { border-color: var(--cyan); background: var(--cyDim); }
+.fl-card.sel { border-color: var(--amber); background: var(--amDim); }
+.fl-card .fn { font-size: 13px; color: var(--t1); }
+.fl-card .fp { font-size: 11px; color: var(--t3); }
+.fl-card .fnote { color: var(--t4); }
+
+/* ── Info boxes / banners ── */
+.ibox, .wbox, .gbox { font-size: 12px; }
+.gl-banner { font-size: 11.5px; }
+
+/* ── Waterfall ── */
+.wf .wfb { background: #e2e8f0; }
+.wf .wfl, .wf .wfv { color: var(--t2); font-size: 12px; }
+
+/* ── Mode toggles ── */
+.mtog { background: var(--s3); border-color: var(--bd2); }
+.mb { color: var(--t4); font-size: 11.5px; }
+.mb.on { background: var(--amDim); color: var(--amber); }
+.mb:hover:not(.on) { color: var(--t2); }
+
+/* ── Wizard ── */
+.wiz-step { background: var(--s3); border-color: var(--bd2); }
+.wiz-title { font-size: 12px; color: var(--cyan); }
+
+/* ── Toast ── */
+#toast { background: var(--green); color: #fff; font-size: 12px; }
+
+/* ── Scrollbars (larger for usability) ── */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #c6d2e0; border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: #aab8c8; }
 </style>
 </head>
 <body>
@@ -812,9 +1010,9 @@ input[type=number] { -moz-appearance: textfield; }
   <div class="ntab" id="nt-pipe" onclick="tab('pipe')"><span class="ico">📉</span>Pipe &amp; Flow</div>
   <div class="ntab" id="nt-pump" onclick="tab('pump')"><span class="ico">🌀</span>Pump Suite</div>
   <div class="ntab" id="nt-therm" onclick="tab('therm')"><span class="ico">🔥</span>Thermal</div>
-  <div class="ntab" id="nt-fl"   onclick="tab('fl')"><span class="ico">💧</span>Fluid DB</div>
-  <div class="ntab" id="nt-mdy"  onclick="tab('mdy')"><span class="ico">📊</span>Moody</div>
-  <div class="ntab" id="nt-uc"   onclick="tab('uc')"><span class="ico">🔄</span>Units</div>
+  <div class="ntab" id="nt-fl"   onclick="tab('fl')"><span class="ico">💧</span>Fluids</div>
+  <div class="ntab" id="nt-mdy"  onclick="tab('mdy')"><span class="ico">📊</span>Moody Chart</div>
+  <div class="ntab" id="nt-uc"   onclick="tab('uc')"><span class="ico">🔄</span>Units &amp; Ref</div>
   <div class="ntab" id="nt-wiz"  onclick="tab('wiz')"><span class="ico">🧙</span>Wizard</div>
 </div>
 
@@ -825,6 +1023,15 @@ input[type=number] { -moz-appearance: textfield; }
 
 <!-- ── OVERVIEW ── -->
 <div class="tab-pane active" id="tp-ov">
+  <div class="intro">
+    <h1>HydroSuite PRO — Pump &amp; Piping Calculators</h1>
+    <p>Set your fluid, flow rate, and pipe size once — every calculator on every tab reads from that shared state automatically, so you never re-enter the same numbers. Pick a category from the tabs above, or follow the three steps below.</p>
+    <div class="steps-row">
+      <div class="step"><b>1.</b> Tap <b>⚙&nbsp;Edit</b> in the top bar to set fluid, flow &amp; pipe</div>
+      <div class="step"><b>2.</b> Choose a tab — Pipe &amp; Flow, Pump Suite, Thermal…</div>
+      <div class="step"><b>3.</b> Read live results, or open the <b>Wizard</b> for guided sizing</div>
+    </div>
+  </div>
   <div class="card">
     <div class="card-h"><div class="ico">🗺</div><h2>Live System Schematic</h2><div class="badges"><div class="dot-live"></div></div></div>
     <div class="pipe-wrap"><canvas id="pipe-canvas" width="1000" height="190"></canvas></div>
