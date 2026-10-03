@@ -138,12 +138,12 @@
             },
             {
               "q_gpm": 120,
-              "h_ft": 82,
+              "h_ft": 83,
               "inferred": true
             },
             {
               "q_gpm": 140,
-              "h_ft": 85,
+              "h_ft": 83,
               "inferred": false
             }
           ]
@@ -242,17 +242,17 @@
             },
             {
               "q_gpm": 40,
-              "h_ft": 290,
+              "h_ft": 293,
               "inferred": false
             },
             {
               "q_gpm": 60,
-              "h_ft": 295,
+              "h_ft": 293,
               "inferred": true
             },
             {
               "q_gpm": 80,
-              "h_ft": 294,
+              "h_ft": 293,
               "inferred": true
             },
             {
@@ -287,17 +287,17 @@
             },
             {
               "q_gpm": 40,
-              "h_ft": 218,
+              "h_ft": 221,
               "inferred": false
             },
             {
               "q_gpm": 60,
-              "h_ft": 222,
+              "h_ft": 221,
               "inferred": true
             },
             {
               "q_gpm": 80,
-              "h_ft": 222,
+              "h_ft": 221,
               "inferred": true
             },
             {
@@ -332,12 +332,12 @@
           "points": [
             {
               "q_gpm": 25,
-              "h_ft": 158,
+              "h_ft": 159,
               "inferred": false
             },
             {
               "q_gpm": 40,
-              "h_ft": 160,
+              "h_ft": 159,
               "inferred": false
             },
             {
@@ -357,7 +357,7 @@
             },
             {
               "q_gpm": 120,
-              "h_ft": 146,
+              "h_ft": 145,
               "inferred": true
             }
           ]
@@ -367,12 +367,12 @@
           "points": [
             {
               "q_gpm": 25,
-              "h_ft": 108,
+              "h_ft": 110,
               "inferred": false
             },
             {
               "q_gpm": 40,
-              "h_ft": 112,
+              "h_ft": 110,
               "inferred": false
             },
             {
@@ -665,7 +665,7 @@
             },
             {
               "q_gpm": 160,
-              "h_ft": 72,
+              "h_ft": 71,
               "inferred": false
             }
           ]
@@ -695,7 +695,7 @@
             },
             {
               "q_gpm": 160,
-              "h_ft": 52,
+              "h_ft": 51,
               "inferred": false
             }
           ]
@@ -744,12 +744,12 @@
           "points": [
             {
               "q_gpm": 30,
-              "h_ft": 292,
+              "h_ft": 293,
               "inferred": false
             },
             {
               "q_gpm": 80,
-              "h_ft": 295,
+              "h_ft": 293,
               "inferred": false
             },
             {
@@ -779,12 +779,12 @@
             },
             {
               "q_gpm": 80,
-              "h_ft": 213,
+              "h_ft": 214,
               "inferred": false
             },
             {
               "q_gpm": 100,
-              "h_ft": 215,
+              "h_ft": 214,
               "inferred": false
             },
             {
@@ -998,12 +998,12 @@
             },
             {
               "q_gpm": 80,
-              "h_ft": 195,
+              "h_ft": 196,
               "inferred": false
             },
             {
               "q_gpm": 100,
-              "h_ft": 198,
+              "h_ft": 196,
               "inferred": true
             },
             {
@@ -1471,12 +1471,12 @@
           "points": [
             {
               "q_gpm": 50,
-              "h_ft": 275,
+              "h_ft": 276,
               "inferred": false
             },
             {
               "q_gpm": 150,
-              "h_ft": 277,
+              "h_ft": 276,
               "inferred": false
             },
             {
@@ -1723,12 +1723,12 @@
             },
             {
               "q_gpm": 700,
-              "h_ft": 46,
+              "h_ft": 47,
               "inferred": true
             },
             {
               "q_gpm": 900,
-              "h_ft": 48,
+              "h_ft": 47,
               "inferred": true
             }
           ]
@@ -1850,5 +1850,5 @@
       ]
     }
   ],
-  "verification": "Pages other than 11 and 22 matched the sheets within about 5 ft and were left unchanged. Page 22 (R40100-A1, 4 x 6 x 10 #1, RA3186, 3500 rpm) was read on a 50-to-450 ft scale. The sheet runs from 0 to 450 ft, so those heads were replaced and the clear versus inferred flags were kept. 1800 gpm stays blank. 10 in: 100 gpm 411 to 406, 300 gpm 410 to 405, 600 gpm 410 to 405, 1000 gpm 400 to 394, 1400 gpm 359 to 348. 9 in: 100 gpm 327 to 312, 300 gpm 327 to 312, 600 gpm 323 inferred to 307 inferred, 1000 gpm 297 to 278, 1400 gpm 248 to 223. 8 in: 100 gpm 241 to 215, 300 gpm 240 to 214, 600 gpm 237 to 210, 1000 gpm 214 inferred to 185 inferred, 1400 gpm 207 to 177. Page 11 (RA1080-A2, 1 x 1.5 x 8, 3500 rpm) heads were corrected to the drawn lines. 8 in: 25 gpm 300 to 294, 60 gpm 285 to 295, 80 gpm 280 to 294, 100 gpm 275 to 293, 120 gpm 266 to 290, 140 gpm 258 to 282, 160 gpm 245 to 268; 180 gpm 228 was dropped because the stroke does not come down there. 7 in: 25 gpm 230 to 221, 60 gpm 216 to 222, 80 gpm 214 to 222. 6 in: 120 gpm 138 to 146; 140 gpm and 160 gpm were dropped because the stroke has ended. 5 in: 120, 140, and 160 gpm were dropped. At 120 gpm the nearest separable strokes are about 101 and 107 ft and were not kept as this impeller. Unchanged on this sheet: 8 in at 40 gpm, the rest of the 7 in line, and 6 in and 5 in through 100 gpm. Inferred flags on kept points were not changed. pump_types lists the pump-type line printed on each sheet. frame was filled only where the JSON had none and the sheet prints an RA frame."
+  "verification": "Pages other than 11 and 22 matched the sheets within about 5 ft and were left unchanged. Page 22 (R40100-A1, 4 x 6 x 10 #1, RA3186, 3500 rpm) was read on a 50-to-450 ft scale. The sheet runs from 0 to 450 ft, so those heads were replaced and the clear versus inferred flags were kept. 1800 gpm stays blank. 10 in: 100 gpm 411 to 406, 300 gpm 410 to 405, 600 gpm 410 to 405, 1000 gpm 400 to 394, 1400 gpm 359 to 348. 9 in: 100 gpm 327 to 312, 300 gpm 327 to 312, 600 gpm 323 inferred to 307 inferred, 1000 gpm 297 to 278, 1400 gpm 248 to 223. 8 in: 100 gpm 241 to 215, 300 gpm 240 to 214, 600 gpm 237 to 210, 1000 gpm 214 inferred to 185 inferred, 1400 gpm 207 to 177. Page 11 (RA1080-A2, 1 x 1.5 x 8, 3500 rpm) heads were corrected to the drawn lines. 8 in: 25 gpm 300 to 294, 60 gpm 285 to 295, 80 gpm 280 to 294, 100 gpm 275 to 293, 120 gpm 266 to 290, 140 gpm 258 to 282, 160 gpm 245 to 268; 180 gpm 228 was dropped because the stroke does not come down there. 7 in: 25 gpm 230 to 221, 60 gpm 216 to 222, 80 gpm 214 to 222. 6 in: 120 gpm 138 to 146; 140 gpm and 160 gpm were dropped because the stroke has ended. 5 in: 120, 140, and 160 gpm were dropped. At 120 gpm the nearest separable strokes are about 101 and 107 ft and were not kept as this impeller. Unchanged on this sheet: 8 in at 40 gpm, the rest of the 7 in line, and 6 in and 5 in through 100 gpm. Inferred flags on kept points were not changed. pump_types lists the pump-type line printed on each sheet. frame was filled only where the JSON had none and the sheet prints an RA frame. After those sheet corrections, a digitized head that rose as flow increased was moved by at most 3 ft so the line falls or stays level, following the neighboring points on that line. Page 22 did not rise, so those heads are unchanged. No point was added past the end of a line."
 }

@@ -149,16 +149,18 @@ function assertCovered(result, q, h) {
   }
   function at(dia, q) { return DeanRA.headAt(line(dia), q); }
   assert.strictEqual(at(8, 25).h, 294);
-  assert.strictEqual(at(8, 40).h, 290);
+  assert.strictEqual(at(8, 40).h, 293);
+  assert.strictEqual(at(8, 60).h, 293);
+  assert.strictEqual(at(8, 80).h, 293);
   assert.strictEqual(at(8, 100).h, 293);
   assert.strictEqual(at(8, 100).inferred, false);
   assert.strictEqual(at(8, 160).h, 268);
   assert.strictEqual(at(8, 180), null);
   assert.strictEqual(at(7, 25).h, 221);
-  assert.strictEqual(at(7, 60).h, 222);
-  assert.strictEqual(at(7, 80).h, 222);
+  assert.strictEqual(at(7, 60).h, 221);
+  assert.strictEqual(at(7, 80).h, 221);
   assert.strictEqual(at(7, 100).h, 215);
-  assert.strictEqual(at(6, 120).h, 146);
+  assert.strictEqual(at(6, 120).h, 145);
   assert.strictEqual(at(6, 120).inferred, true);
   assert.strictEqual(at(6, 140), null);
   assert.strictEqual(at(6, 160), null);
@@ -267,6 +269,50 @@ function assertCovered(result, q, h) {
   assert.ok(DeanRA.fluidNote('water').indexOf('No viscosity correction') >= 0);
   assert.ok(DeanRA.fluidNote('eg').indexOf('No viscosity correction') >= 0);
   assert.ok(DeanRA.fluidNote('other').indexOf('not viscosity-corrected') >= 0);
+}
+
+// Every impeller line falls or stays level as flow rises, and a trim stays between its neighbors.
+{
+  catalog.curves.forEach(function (curve) {
+    const imps = curve.impellers.slice().sort(function (a, b) { return b.diameter_in - a.diameter_in; });
+    imps.forEach(function (imp) {
+      const pts = imp.points.slice().sort(function (a, b) { return a.q_gpm - b.q_gpm; });
+      for (let i = 1; i < pts.length; i++) {
+        assert.ok(pts[i].h_ft <= pts[i - 1].h_ft + 1e-6, curve.model + ' ' + imp.diameter_in + ' rises at ' + pts[i].q_gpm);
+      }
+    });
+    for (let i = 0; i < imps.length - 1; i++) {
+      const hi = imps[i], lo = imps[i + 1];
+      const q0 = Math.max(hi.points[0].q_gpm, lo.points[0].q_gpm);
+      const q1 = Math.min(hi.points[hi.points.length - 1].q_gpm, lo.points[lo.points.length - 1].q_gpm);
+      if (q1 <= q0) continue;
+      const steps = DeanRA.offeredDiameters(curve).filter(function (d) {
+        return d > lo.diameter_in + 1e-6 && d < hi.diameter_in - 1e-6;
+      });
+      const prevH = {};
+      for (let s = 0; s <= 20; s++) {
+        const q = q0 + (q1 - q0) * s / 20;
+        const a = DeanRA.headAt(hi.points, q);
+        const b = DeanRA.headAt(lo.points, q);
+        if (!a || !b) continue;
+        assert.ok(a.h + 1e-6 >= b.h, curve.model + ' lines cross at ' + q);
+        steps.forEach(function (d) {
+          const h = DeanRA.affinityHead(b.h, a.h, lo.diameter_in, hi.diameter_in, d);
+          assert.ok(h <= a.h + 1e-4 && h >= b.h - 1e-4, 'trim left the catalog pair');
+          if (prevH[d] != null) {
+            assert.ok(h <= prevH[d] + 1e-4, curve.model + ' trim ' + d + ' rises at ' + q);
+          }
+          prevH[d] = h;
+        });
+      }
+    }
+  });
+  const bump = pick(80, 250);
+  assertCovered(bump, 80, 250);
+  assert.strictEqual(bump.pick.curve.model, 'RA1080-A2');
+  assert.strictEqual(bump.pick.kind, 'trim');
+  assert.strictEqual(bump.pick.diameter_in, 7.5);
+  assert.deepStrictEqual(bump.pick.between, [7, 8]);
 }
 
 // One recommendation, and every stored point still carries an inferred flag.
