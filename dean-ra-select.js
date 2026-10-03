@@ -196,6 +196,20 @@
     return (Math.abs(n - Math.round(n)) < 1e-6) ? String(Math.round(n)) : String(n);
   }
 
+  var POWER_FRAMES = { RA2096: true, RA3146: true, RA3186: true };
+
+  // The model on screen is the RA power frame printed on the sheet.
+  // Curve-sheet ids stay in the data and are not this name.
+  function powerFrame(curve) {
+    if (!curve) return '';
+    if (POWER_FRAMES[curve.frame]) return curve.frame;
+    var types = curve.pump_types || [];
+    for (var i = 0; i < types.length; i++) {
+      if (POWER_FRAMES[types[i]]) return types[i];
+    }
+    return '';
+  }
+
   function frameLine(curve) {
     var types = curve.pump_types || [];
     var frame = curve.frame || '';
@@ -217,6 +231,7 @@
     fluidNote: fluidNote,
     impellerLabel: impellerLabel,
     formatDia: formatDia,
+    powerFrame: powerFrame,
     frameLine: frameLine
   };
 });

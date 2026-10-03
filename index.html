@@ -827,6 +827,10 @@ body {
 ::-webkit-scrollbar-thumb { background: #c6d2e0; border-radius: 5px; }
 ::-webkit-scrollbar-thumb:hover { background: #aab8c8; }
 
+/* The pump select screen is the front door. The shared pipe bar belongs on the other helpers. */
+body.selector-front { --gsh: 0px; }
+body.selector-front #gsb { display: none; }
+
 /* ── Dean RA selector ── */
 .sel-grid { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 14px; align-items: start; }
 .sel-chart-wrap { background: #fff; border: 1px solid var(--bd); border-radius: var(--r); overflow: hidden; }
@@ -847,7 +851,7 @@ body {
 }
 </style>
 </head>
-<body>
+<body class="selector-front">
 
 <!-- ════════════════════════════════════════
   GLOBAL STATE BAR — Sticky, always visible
@@ -1077,7 +1081,7 @@ body {
       </div>
     </div>
     <div class="card" style="margin-bottom:0">
-      <div class="card-h"><div class="ico">📈</div><h2>Recommendation</h2><div class="badges"><span class="bdg ba" id="sel-badge">Dean RA</span></div></div>
+      <div class="card-h"><div class="ico">📈</div><h2>Recommendation</h2></div>
       <div class="card-b">
         <div id="sel-result">
           <div class="sel-note">Enter a duty. HydroSuite searches the digitized Dean RA curves and recommends one size when a real curve covers that point.</div>
@@ -2461,6 +2465,7 @@ function tab(id){
   if(id==='pipe'){buildFitTbl();liveVel();}
   if(id==='pump'){buildSCFitTbl();seedSCRows();seedPSRows();}
   if(id==='ov')  drawPipeline();
+  document.body.classList.toggle('selector-front', id==='sel');
   if(id==='sel' && typeof drawDeanSelection==='function') drawDeanSelection();
 }
 
@@ -4385,11 +4390,9 @@ function renderDeanSelection(){
   var box=document.getElementById('sel-result');
   var points=document.getElementById('sel-points');
   var wrap=document.getElementById('sel-chart-wrap');
-  var badge=document.getElementById('sel-badge');
   var result=DEAN_LAST.result, q=DEAN_LAST.q, h=DEAN_LAST.h, t=DEAN_LAST.t, fluid=DEAN_LAST.fluid;
   var fluidName=document.getElementById('sel-fluid').selectedOptions[0].textContent;
   if(!result.covered){
-    badge.textContent='No cover';
     wrap.style.display='none';
     points.innerHTML='';
     box.innerHTML='<div class="sel-note bad"><strong>None of these curves cover this duty.</strong> '+
@@ -4400,7 +4403,6 @@ function renderDeanSelection(){
   }
   var hit=result.pick;
   var curve=hit.curve;
-  badge.textContent=curve.rpm+' rpm';
   wrap.style.display='block';
   var impText=DeanRA.impellerLabel(hit);
   var inferredNote=hit.inferred
@@ -4409,9 +4411,8 @@ function renderDeanSelection(){
   var rpmNote=curve.rpm_note ? '<div class="sel-note">'+esc(curve.rpm_note)+'</div>' : '';
   box.innerHTML=
     '<div class="sel-kpis">'+
-      '<div class="sel-kpi"><div class="k">Model</div><div class="v">'+esc(curve.model)+'</div></div>'+
+      '<div class="sel-kpi"><div class="k">Model</div><div class="v">'+esc(DeanRA.powerFrame(curve))+'</div></div>'+
       '<div class="sel-kpi"><div class="k">Size</div><div class="v">'+esc(curve.size)+'</div></div>'+
-      '<div class="sel-kpi"><div class="k">Frame</div><div class="v">'+esc(DeanRA.frameLine(curve))+'</div></div>'+
       '<div class="sel-kpi"><div class="k">Speed</div><div class="v">'+esc(curve.rpm)+' rpm</div></div>'+
       '<div class="sel-kpi"><div class="k">Impeller</div><div class="v">'+esc(impText)+'</div></div>'+
       '<div class="sel-kpi"><div class="k">Duty</div><div class="v">'+esc(q)+' gpm · '+esc(h)+' ft</div></div>'+

@@ -146,6 +146,34 @@ function assertCovered(result, q, h) {
   assert.strictEqual(onEight.pick.curve.model, 'RA1080-A2');
   assert.strictEqual(onEight.pick.kind, 'catalog');
   assert.strictEqual(onEight.pick.upperDiameter, 8);
+  assert.strictEqual(DeanRA.powerFrame(onEight.pick.curve), 'RA2096');
+}
+
+// The name on screen is the RA power frame printed on the sheet, not the curve-sheet id.
+{
+  var shown = {
+    'RA1060-A2': 'RA2096',
+    'RA1080-A2': 'RA2096',
+    'R1085-A2': 'RA3146',
+    'RA1560-A2': 'RA2096',
+    'R1585-A2': 'RA3146',
+    'R15100-A2': 'RA3146',
+    'R2085-A2': 'RA3146',
+    'R20100-A2': 'RA3146',
+    'R3085-A1': 'RA3146',
+    'R30100-A1': 'RA3146',
+    'R4085-A1': 'RA3146',
+    'R40100-B2': 'RA3146',
+    'R40100-A1': 'RA3186'
+  };
+  catalog.curves.forEach(function (c) {
+    assert.strictEqual(DeanRA.powerFrame(c), shown[c.model]);
+    assert.notStrictEqual(DeanRA.powerFrame(c), c.model);
+    assert.ok(shown[c.model] === 'RA2096' || shown[c.model] === 'RA3146' || shown[c.model] === 'RA3186');
+  });
+  var page21 = catalog.curves.find(function (c) { return c.model === 'R40100-B2'; });
+  assert.strictEqual(page21.frame, 'RWA4166');
+  assert.strictEqual(DeanRA.powerFrame(page21), 'RA3146');
 }
 
 // Do not extrapolate past the last real point of a line.
