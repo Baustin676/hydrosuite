@@ -78,6 +78,103 @@
     return hLo + (hHi - hLo) * (d * d - dLo * dLo) / denom;
   }
 
+  // Fritsch–Carlson / PCHIP endpoint slope. Keeps a monotone interpolant from leaving the interval.
+  function edgeSlope(h0, h1, d0, d1) {
+    var d = ((2 * h0 + h1) * d0 - h0 * d1) / (h0 + h1);
+    if (d * d0 <= 0) return 0;
+    if (d0 * d1 < 0 && Math.abs(d) > Math.abs(3 * d0)) return 3 * d0;
+    return d;
+  }
+
+  function pchipSlopes(pts) {
+    var n = pts.length;
+    var m = new Array(n);
+    if (n < 2) {
+      if (n === 1) m[0] = 0;
+      return m;
+    }
+    var h = [];
+    var d = [];
+    for (var i = 0; i < n - 1; i++) {
+      var dq = pts[i + 1].q_gpm - pts[i].q_gpm;
+      h.push(dq);
+      d.push(dq === 0 ? 0 : (pts[i + 1].h_ft - pts[i].h_ft) / dq);
+    }
+    if (n === 2) {
+      m[0] = d[0];
+      m[1] = d[0];
+      return m;
+    }
+    for (var k = 1; k < n - 1; k++) {
+      if (d[k - 1] * d[k] <= 0) m[k] = 0;
+      else {
+        var w1 = 2 * h[k] + h[k - 1];
+        var w2 = h[k] + 2 * h[k - 1];
+        m[k] = (w1 + w2) / (w1 / d[k - 1] + w2 / d[k]);
+      }
+    }
+    m[0] = edgeSlope(h[0], h[1], d[0], d[1]);
+    m[n - 1] = edgeSlope(h[n - 2], h[n - 3], d[n - 2], d[n - 3]);
+    return m;
+  }
+
+  function hermite(a, b, m0, m1, q) {
+    var dx = b.q_gpm - a.q_gpm;
+    var t = (q - a.q_gpm) / dx;
+    var t2 = t * t;
+    var t3 = t2 * t;
+    return (2 * t3 - 3 * t2 + 1) * a.h_ft +
+      (t3 - 2 * t2 + t) * dx * m0 +
+      (-2 * t3 + 3 * t2) * b.h_ft +
+      (t3 - t2) * dx * m1;
+  }
+
+  /** Head on the smooth monotone curve through one impeller. Null outside the real points. */
+  function smoothHead(points, q) {
+    var pts = sortedPoints(points);
+    if (!pts.length) return null;
+    var qMin = pts[0].q_gpm;
+    var qMax = pts[pts.length - 1].q_gpm;
+    if (q < qMin - 1e-9 || q > qMax + 1e-9) return null;
+    for (var i = 0; i < pts.length; i++) {
+      if (Math.abs(q - pts[i].q_gpm) <= 1e-6) {
+        return { h: pts[i].h_ft, qMin: qMin, qMax: qMax };
+      }
+    }
+    if (pts.length < 2) return null;
+    var slopes = pchipSlopes(pts);
+    for (var j = 0; j < pts.length - 1; j++) {
+      if (q > pts[j].q_gpm && q < pts[j + 1].q_gpm) {
+        return {
+          h: hermite(pts[j], pts[j + 1], slopes[j], slopes[j + 1], q),
+          qMin: qMin,
+          qMax: qMax
+        };
+      }
+    }
+    return null;
+  }
+
+  /** Cubic pieces of that curve, from the first real point to the last. No extension. */
+  function smoothPieces(points) {
+    var pts = sortedPoints(points);
+    if (pts.length < 2) return [];
+    var slopes = pchipSlopes(pts);
+    var out = [];
+    for (var i = 0; i < pts.length - 1; i++) {
+      if (pts[i + 1].q_gpm <= pts[i].q_gpm) continue;
+      out.push({
+        q0: pts[i].q_gpm,
+        h0: pts[i].h_ft,
+        m0: slopes[i],
+        q1: pts[i + 1].q_gpm,
+        h1: pts[i + 1].h_ft,
+        m1: slopes[i + 1]
+      });
+    }
+    return out;
+  }
+
   function offeredDiameters(curve) {
     var spec = OFFERED[curve.model];
     if (!spec || !curve.impellers.length) return [];
@@ -301,6 +398,8 @@
     impellerLabel: impellerLabel,
     formatDia: formatDia,
     affinityHead: affinityHead,
+    smoothHead: smoothHead,
+    smoothPieces: smoothPieces,
     offeredDiameters: offeredDiameters,
     powerFrame: powerFrame,
     frameLine: frameLine

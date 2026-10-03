@@ -499,20 +499,15 @@ function drawDeanSelection() {
     ctx.lineWidth = hot ? 2.25 : 1.15;
     ctx.strokeStyle = hot ? '#141414' : '#8a8a8a';
     ctx.globalAlpha = 1;
-    for (var s = 0; s < pts.length - 1; s++) {
-      ctx.beginPath();
-      ctx.setLineDash((pts[s].inferred || pts[s + 1].inferred) ? [5, 4] : []);
-      ctx.moveTo(X(pts[s].q_gpm), Y(pts[s].h_ft));
-      ctx.lineTo(X(pts[s + 1].q_gpm), Y(pts[s + 1].h_ft));
-      ctx.stroke();
-    }
     ctx.setLineDash([]);
+    strokeSmooth(ctx, X, Y, DeanRA.smoothPieces(imp.points));
     pts.forEach(function (p) {
+      if (!p.inferred) return;
       ctx.beginPath();
-      ctx.fillStyle = p.inferred ? '#ffffff' : (hot ? '#141414' : '#8a8a8a');
+      ctx.fillStyle = '#ffffff';
       ctx.strokeStyle = hot ? '#141414' : '#8a8a8a';
       ctx.lineWidth = 1.25;
-      ctx.arc(X(p.q_gpm), Y(p.h_ft), p.inferred ? 4 : 2.5, 0, Math.PI * 2);
+      ctx.arc(X(p.q_gpm), Y(p.h_ft), 4, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     });
@@ -549,6 +544,20 @@ function drawDeanSelection() {
   ctx.fillStyle = '#5c5c5c';
   ctx.fillText('Open circles are inferred points (±3 ft).', pad.l, 16);
 }
+function strokeSmooth(ctx, X, Y, pieces) {
+  if (!pieces.length) return;
+  ctx.beginPath();
+  ctx.moveTo(X(pieces[0].q0), Y(pieces[0].h0));
+  pieces.forEach(function (p) {
+    var dx = p.q1 - p.q0;
+    ctx.bezierCurveTo(
+      X(p.q0 + dx / 3), Y(p.h0 + p.m0 * dx / 3),
+      X(p.q1 - dx / 3), Y(p.h1 - p.m1 * dx / 3),
+      X(p.q1), Y(p.h1)
+    );
+  });
+  ctx.stroke();
+}
 function betweenSamples(hit) {
   if (hit.kind !== 'trim') return [];
   var upper = null, lower = null;
@@ -558,11 +567,11 @@ function betweenSamples(hit) {
   });
   if (!upper || !lower) return [];
   var out = [];
-  var steps = 24;
+  var steps = 96;
   for (var i = 0; i <= steps; i++) {
     var q = hit.qMin + (hit.qMax - hit.qMin) * i / steps;
-    var a = DeanRA.headAt(upper.points, q);
-    var b = DeanRA.headAt(lower.points, q);
+    var a = DeanRA.smoothHead(upper.points, q);
+    var b = DeanRA.smoothHead(lower.points, q);
     if (!a || !b) continue;
     out.push({
       q: q,
