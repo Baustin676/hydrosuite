@@ -1,11 +1,30 @@
 /* Dean RA catalog selector.
    Uses only digitized head-capacity points. Interpolates along one impeller
-   line and between adjacent catalog diameters. Does not extrapolate. */
+   line. A duty between two lines is an eighth-inch trim from diameter-squared
+   affinity, not a linear diameter. Does not extrapolate or speed-scale. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.DeanRA = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
-  var ON_LINE_FT = 0.75;
+  var CATALOG_FT = 3;
+  var ON_LINE_FT = CATALOG_FT;
+  var EIGHTH = 0.125;
+  // Store limits. A trim never goes below the smallest digitized line.
+  var OFFERED = {
+    'RA1060-A2': [4, 6],
+    'RA1560-A2': [4, 6],
+    'RA1080-A2': [5, 8],
+    'R1085-A2': [5.5, 8.5],
+    'R1585-A2': [5.5, 8.5],
+    'R2085-A2': [5.5, 8.5],
+    'R3085-A1': [5.5, 8.5],
+    'R4085-A1': [5.5, 8.5],
+    'R15100-A2': [7, 10],
+    'R20100-A2': [7, 10],
+    'R30100-A1': [7, 10],
+    'R40100-B2': [7, 10],
+    'R40100-A1': [8, 10]
+  };
 
   function sortedPoints(points) {
     return points.slice().sort(function (a, b) { return a.q_gpm - b.q_gpm; });
@@ -49,38 +68,61 @@
     });
   }
 
-  function makeHit(curve, q, h, upper, lower) {
+  function cleanDia(d) {
+    return Math.round(d * 1000) / 1000;
+  }
+
+  function affinityHead(hLo, hHi, dLo, dHi, d) {
+    var denom = dHi * dHi - dLo * dLo;
+    if (Math.abs(denom) < 1e-9) return hLo;
+    return hLo + (hHi - hLo) * (d * d - dLo * dLo) / denom;
+  }
+
+  function offeredDiameters(curve) {
+    var spec = OFFERED[curve.model];
+    if (!spec || !curve.impellers.length) return [];
+    var digitizedMin = curve.impellers[0].diameter_in;
+    var digitizedMax = curve.impellers[0].diameter_in;
+    curve.impellers.forEach(function (imp) {
+      if (imp.diameter_in < digitizedMin) digitizedMin = imp.diameter_in;
+      if (imp.diameter_in > digitizedMax) digitizedMax = imp.diameter_in;
+    });
+    var minD = Math.max(spec[0], digitizedMin);
+    var maxD = Math.min(spec[1], digitizedMax);
+    var out = [];
+    var i0 = Math.round(minD / EIGHTH);
+    var i1 = Math.round(maxD / EIGHTH);
+    for (var i = i0; i <= i1; i++) out.push(cleanDia(i * EIGHTH));
+    return out;
+  }
+
+  function makeHit(curve, q, h, upper, lower, trimD) {
     var qMax = upper.at.qMax;
     var qMin = upper.at.qMin;
     var inferred = !!upper.at.inferred;
     var kind = 'catalog';
     var diameter = upper.imp.diameter_in;
     var between = null;
-    var fraction = null;
     var gap = 0;
     var hUpper = upper.at.h;
     var hLower = null;
+    var lowerDiameter = null;
     if (lower) {
       qMax = Math.min(qMax, lower.at.qMax);
       qMin = Math.max(qMin, lower.at.qMin);
       inferred = inferred || !!lower.at.inferred;
-      kind = 'between';
-      var top = Math.max(upper.at.h, lower.at.h);
-      var bot = Math.min(upper.at.h, lower.at.h);
-      gap = top - bot;
-      fraction = gap === 0 ? 0 : (h - bot) / gap;
-      var dTop = upper.at.h >= lower.at.h ? upper.imp.diameter_in : lower.imp.diameter_in;
-      var dBot = upper.at.h >= lower.at.h ? lower.imp.diameter_in : upper.imp.diameter_in;
-      diameter = dBot + fraction * (dTop - dBot);
-      between = [Math.min(upper.imp.diameter_in, lower.imp.diameter_in), Math.max(upper.imp.diameter_in, lower.imp.diameter_in)];
+      kind = 'trim';
+      diameter = trimD;
+      between = [lower.imp.diameter_in, upper.imp.diameter_in];
+      gap = Math.abs(upper.at.h - lower.at.h);
       hLower = lower.at.h;
+      lowerDiameter = lower.imp.diameter_in;
     }
     return {
       curve: curve,
       kind: kind,
       diameter_in: diameter,
       between: between,
-      fraction: fraction,
       inferred: inferred,
       endMargin: qMax - q,
       qMax: qMax,
@@ -89,8 +131,25 @@
       hUpper: hUpper,
       hLower: hLower,
       upperDiameter: upper.imp.diameter_in,
-      lowerDiameter: lower ? lower.imp.diameter_in : null
+      lowerDiameter: lowerDiameter
     };
+  }
+
+  function solveTrim(curve, q, h, hi, lo) {
+    var dHi = hi.imp.diameter_in;
+    var dLo = lo.imp.diameter_in;
+    var steps = offeredDiameters(curve).filter(function (d) {
+      return d >= dLo - 1e-6 && d <= dHi + 1e-6;
+    });
+    var chosen = null;
+    steps.forEach(function (d) {
+      var hd = affinityHead(lo.at.h, hi.at.h, dLo, dHi, d);
+      if (hd + 1e-4 >= h && (chosen === null || d < chosen)) chosen = d;
+    });
+    if (chosen === null) return null;
+    if (Math.abs(chosen - dHi) <= 1e-6) return makeHit(curve, q, h, hi, null);
+    if (Math.abs(chosen - dLo) <= 1e-6) return makeHit(curve, q, h, lo, null);
+    return makeHit(curve, q, h, hi, lo, chosen);
   }
 
   function coversHead(h, ha, hb) {
@@ -101,23 +160,30 @@
 
   function evaluateCurve(curve, q, h) {
     var imps = byDiameterDesc(curve);
-    var best = null;
-    function consider(hit) {
-      if (!hit) return;
-      if (!best || compareHits(hit, best) < 0) best = hit;
-    }
+    var readings = [];
     for (var i = 0; i < imps.length; i++) {
-      var at = headAt(imps[i].points, q);
-      if (!at) continue;
-      if (Math.abs(at.h - h) <= ON_LINE_FT) {
-        consider(makeHit(curve, q, h, { imp: imps[i], at: at }, null));
+      readings.push({ imp: imps[i], at: headAt(imps[i].points, q) });
+    }
+    var nearest = null;
+    readings.forEach(function (reading) {
+      if (!reading.at) return;
+      var dist = Math.abs(reading.at.h - h);
+      if (dist > CATALOG_FT + 1e-9) return;
+      if (!nearest || dist < nearest.dist - 1e-6 || (Math.abs(dist - nearest.dist) <= 1e-6 && reading.at.h > nearest.reading.at.h)) {
+        nearest = { dist: dist, reading: reading };
       }
-      if (i + 1 >= imps.length) continue;
-      var atNext = headAt(imps[i + 1].points, q);
-      if (!atNext) continue;
-      if (!coversHead(h, at.h, atNext.h)) continue;
-      if (Math.abs(at.h - h) <= ON_LINE_FT || Math.abs(atNext.h - h) <= ON_LINE_FT) continue;
-      consider(makeHit(curve, q, h, { imp: imps[i], at: at }, { imp: imps[i + 1], at: atNext }));
+    });
+    if (nearest) return makeHit(curve, q, h, nearest.reading, null);
+
+    var best = null;
+    for (var j = 0; j < imps.length - 1; j++) {
+      var hi = readings[j];
+      var lo = readings[j + 1];
+      if (!hi.at || !lo.at) continue;
+      if (!coversHead(h, hi.at.h, lo.at.h)) continue;
+      var hit = solveTrim(curve, q, h, hi, lo);
+      if (!hit) continue;
+      if (!best || compareHits(hit, best) < 0) best = hit;
     }
     return best;
   }
@@ -186,12 +252,13 @@
     }
     var lo = formatDia(hit.between[0]);
     var hi = formatDia(hit.between[1]);
-    return 'between catalog diameters ' + lo + ' in and ' + hi + ' in (not a published curve)';
+    return formatDia(hit.diameter_in) + ' in, calculated between the ' + lo + ' in and ' + hi + ' in catalog diameters, not a published curve';
   }
 
   function formatDia(d) {
-    var n = Math.round(d * 100) / 100;
-    return (Math.abs(n - Math.round(n)) < 1e-6) ? String(Math.round(n)) : String(n);
+    var eighths = Math.round(d / EIGHTH);
+    var millis = Math.round(eighths * EIGHTH * 1000);
+    return (millis / 1000).toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
   }
 
   var POWER_FRAMES = { RA2096: true, RA3146: true, RA3186: true };
@@ -229,6 +296,8 @@
     fluidNote: fluidNote,
     impellerLabel: impellerLabel,
     formatDia: formatDia,
+    affinityHead: affinityHead,
+    offeredDiameters: offeredDiameters,
     powerFrame: powerFrame,
     frameLine: frameLine
   };

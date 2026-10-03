@@ -4537,7 +4537,8 @@ function drawDeanSelection(){
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle='#0f172a';
-    ctx.fillText('between catalog diameters', X(samples[0].q)+8, Y(samples[0].h)-8);
+    var mid = samples[Math.floor(samples.length / 2)];
+    ctx.fillText(DeanRA.formatDia(hit.diameter_in) + ' in', X(mid.q) + 8, Y(mid.h) - 8);
   }
 
   ctx.beginPath();
@@ -4557,7 +4558,7 @@ function drawDeanSelection(){
   ctx.fillText('Open circles are inferred points (±3 ft). No efficiency or power curve.', pad.l, 16);
 }
 function betweenSamples(hit){
-  if(hit.kind!=='between') return [];
+  if(hit.kind!=='trim') return [];
   var upper=null, lower=null;
   hit.curve.impellers.forEach(function(imp){
     if(imp.diameter_in===hit.upperDiameter) upper=imp;
@@ -4572,8 +4573,7 @@ function betweenSamples(hit){
     var a=DeanRA.headAt(upper.points, q);
     var b=DeanRA.headAt(lower.points, q);
     if(!a||!b) continue;
-    var top=Math.max(a.h,b.h), bot=Math.min(a.h,b.h);
-    out.push({q:q, h:bot+hit.fraction*(top-bot)});
+    out.push({q:q, h:DeanRA.affinityHead(b.h, a.h, hit.lowerDiameter, hit.upperDiameter, hit.diameter_in)});
   }
   return out;
 }

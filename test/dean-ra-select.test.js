@@ -21,10 +21,14 @@ function assertCovered(result, q, h) {
     );
     assert.ok(Math.abs(on.h - h) <= DeanRA.ON_LINE_FT + 1e-6);
   } else {
+    assert.strictEqual(hit.kind, 'trim');
     const top = Math.max(hit.hUpper, hit.hLower);
     const bot = Math.min(hit.hUpper, hit.hLower);
     assert.ok(h <= top + 1e-6 && h >= bot - 1e-6, 'head left the adjacent-diameter envelope');
     assert.ok(hit.between[1] - hit.between[0] > 0);
+    const hd = DeanRA.affinityHead(hit.hLower, hit.hUpper, hit.lowerDiameter, hit.upperDiameter, hit.diameter_in);
+    assert.ok(hd + 1e-4 >= h, 'trim head is below the duty');
+    assert.ok(hit.diameter_in > hit.lowerDiameter - 1e-6 && hit.diameter_in < hit.upperDiameter + 1e-6);
   }
   assert.notStrictEqual(hit.curve.rpm, 1150);
 }
@@ -40,16 +44,27 @@ function assertCovered(result, q, h) {
   assert.strictEqual(r.pick.curve.frame, 'RA2096');
 }
 
-// Between the 6 in and 5.5 in lines on the same pump.
+// Between the 6 in and 5.5 in lines: eighth-inch trim, not a linear diameter.
 {
   const r = pick(80, 130);
   assertCovered(r, 80, 130);
   assert.strictEqual(r.pick.curve.model, 'RA1060-A2');
-  assert.strictEqual(r.pick.kind, 'between');
+  assert.strictEqual(r.pick.kind, 'trim');
+  assert.strictEqual(r.pick.diameter_in, 5.75);
   assert.deepStrictEqual(r.pick.between, [5.5, 6]);
-  assert.ok(r.pick.impellerLabel || true);
-  assert.ok(DeanRA.impellerLabel(r.pick).indexOf('between catalog diameters') >= 0);
-  assert.ok(DeanRA.impellerLabel(r.pick).indexOf('not a published curve') >= 0);
+  const label = DeanRA.impellerLabel(r.pick);
+  assert.ok(label.indexOf('5.75 in') === 0);
+  assert.ok(label.indexOf('calculated between the 5.5 in and 6 in catalog diameters') >= 0);
+  assert.ok(label.indexOf('not a published curve') >= 0);
+}
+
+// Within 3 ft of a catalog line, keep that diameter instead of solving a trim.
+{
+  const r = pick(80, 145);
+  assertCovered(r, 80, 145);
+  assert.strictEqual(r.pick.curve.model, 'RA1060-A2');
+  assert.strictEqual(r.pick.kind, 'catalog');
+  assert.strictEqual(r.pick.diameter_in, 6);
 }
 
 // Above every published line.
@@ -74,7 +89,17 @@ function assertCovered(result, q, h) {
   assertCovered(r, 500, 90);
   assert.strictEqual(r.pick.curve.model, 'R40100-B2');
   assert.strictEqual(r.pick.curve.rpm, 1750);
-  assert.strictEqual(r.pick.kind, 'between');
+  assert.strictEqual(DeanRA.powerFrame(r.pick.curve), 'RA3146');
+  assert.strictEqual(r.pick.curve.size, '4 x 6 x 10 #2');
+  assert.strictEqual(r.pick.kind, 'trim');
+  assert.strictEqual(r.pick.diameter_in, 9.375);
+  assert.deepStrictEqual(r.pick.between, [9, 10]);
+  const label = DeanRA.impellerLabel(r.pick);
+  assert.ok(label.indexOf('9.375 in') === 0);
+  assert.ok(label.indexOf('calculated between the 9 in and 10 in catalog diameters') >= 0);
+  assert.ok(label.indexOf('not a published curve') >= 0);
+  const next = DeanRA.affinityHead(r.pick.hLower, r.pick.hUpper, 9, 10, 9.25);
+  assert.ok(next < 90);
 }
 
 // High head at the same flow stays on the 3500 rpm #1 curve.
@@ -174,6 +199,25 @@ function assertCovered(result, q, h) {
   var page21 = catalog.curves.find(function (c) { return c.model === 'R40100-B2'; });
   assert.strictEqual(page21.frame, 'RWA4166');
   assert.strictEqual(DeanRA.powerFrame(page21), 'RA3146');
+}
+
+// Offered trims stop at the smallest digitized line. Page 20 does not use 6.375 to 5.500.
+{
+  function dias(model) {
+    return DeanRA.offeredDiameters(catalog.curves.find(function (c) { return c.model === model; }));
+  }
+  const page20 = dias('R4085-A1');
+  assert.strictEqual(page20[0], 6.5);
+  assert.strictEqual(page20[page20.length - 1], 8.5);
+  assert.ok(page20.indexOf(6.375) < 0);
+  assert.ok(page20.indexOf(5.5) < 0);
+  assert.strictEqual(dias('RA1060-A2')[0], 4);
+  assert.strictEqual(dias('RA1080-A2')[0], 5);
+  assert.strictEqual(dias('R40100-B2')[0], 7);
+  const page22 = dias('R40100-A1');
+  assert.strictEqual(page22[0], 8);
+  assert.ok(page22.indexOf(7.875) < 0);
+  assert.strictEqual(page22[page22.length - 1], 10);
 }
 
 // Do not extrapolate past the last real point of a line.
