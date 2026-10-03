@@ -255,20 +255,23 @@ function assertCovered(result, q, h) {
   assert.strictEqual(DeanRA.headAt(six.points, 0), null);
 }
 
-// RA and RWA share these curves. Water and glycol are not sent to a different line.
+// Water at ambient is the reference. Any other fluid still plots that catalog water curve.
 {
-  ['water', 'eg', 'pg', 'hto', 'other'].forEach(function (fluid) {
+  ['water', 'water60', 'water180', 'eg50', 'therminol66', 'dowthermA', 'seawater', 'custom'].forEach(function (fluid) {
     var note = DeanRA.fluidNote(fluid);
-    assert.ok(note.indexOf('not the RWA') < 0, fluid);
+    assert.ok(note.indexOf('Water at ambient is the reference these curves were drawn for.') >= 0, fluid);
+    assert.ok(note.toLowerCase().indexOf('not the rwa') < 0, fluid);
     assert.ok(note.toLowerCase().indexOf('not rwa') < 0, fluid);
-    assert.ok(note.indexOf('shared Dean RA / RWA hydraulics') >= 0, fluid);
-    assert.ok(note.indexOf('hot-oil build') >= 0, fluid);
-    assert.ok(note.indexOf('hot-water build') >= 0, fluid);
-    assert.ok(note.indexOf('not a different head-capacity curve') >= 0, fluid);
+    assert.ok(note.toLowerCase().indexOf('viscosity') < 0, fluid);
   });
-  assert.ok(DeanRA.fluidNote('water').indexOf('No viscosity correction') >= 0);
-  assert.ok(DeanRA.fluidNote('eg').indexOf('No viscosity correction') >= 0);
-  assert.ok(DeanRA.fluidNote('other').indexOf('not viscosity-corrected') >= 0);
+  assert.ok(DeanRA.fluidNote('water').indexOf('still the catalog water curve') < 0);
+  assert.ok(DeanRA.fluidNote('water60').indexOf('still the catalog water curve') < 0);
+  ['eg50', 'therminol66', 'dowthermA', 'seawater', 'pg50', 'custom', 'hto'].forEach(function (fluid) {
+    assert.ok(
+      DeanRA.fluidNote(fluid).indexOf('The plotted curve is still the catalog water curve.') >= 0,
+      fluid
+    );
+  });
 }
 
 // Every impeller line falls or stays level as flow rises, and a trim stays between its neighbors.

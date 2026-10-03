@@ -236,13 +236,17 @@
     return 'other';
   }
 
+  function isWaterFluid(fluid) {
+    var f = String(fluid || '').toLowerCase().trim();
+    return f === 'water' || /^water\d+$/.test(f);
+  }
+
+  // Ambient water is the reference the curves were drawn for.
+  // Any other fluid still plots that catalog water curve. No viscosity correction.
   function fluidNote(fluid) {
-    var kind = fluidClass(fluid);
-    var build = 'These catalog curves are the shared Dean RA / RWA hydraulics. The RA frame is the hot-oil build and the RWA is the hot-water build: a materials and temperature distinction, not a different head-capacity curve.';
-    if (kind === 'other') {
-      return build + ' The curve is plotted as drawn. It is not viscosity-corrected.';
-    }
-    return build + ' The curve is catalog water performance as drawn. No viscosity correction is applied.';
+    var ambient = 'Water at ambient is the reference these curves were drawn for.';
+    if (isWaterFluid(fluid)) return ambient;
+    return ambient + ' The plotted curve is still the catalog water curve.';
   }
 
   function impellerLabel(hit) {
