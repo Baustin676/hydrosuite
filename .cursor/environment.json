@@ -7,7 +7,7 @@
     {
       "name": "static-server",
       "command": "cd /workspace && python3 -m http.server 8000 --bind 0.0.0.0",
-      "description": "Serves the Hydrosuite static HTML site (index.html and engineering-calculators-5.html) at http://localhost:8000"
+      "description": "Serves the Dean RA pump selector (index.html) at http://localhost:8000"
     }
   ]
 }

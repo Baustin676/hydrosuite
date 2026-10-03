@@ -1,5 +1,7 @@
-# hydrosuite
+# Dean RA Pump Selector
 
-HydroSuite selects a Dean RA pump from the duty you enter: flow, head, fluid, and temperature. It returns a size from the Dean RA line, for heat-transfer oil. It is a pump selector for that series, not a general engineering conversion tool.
+Enter flow, head, fluid, and temperature. The page recommends one Dean RA power frame, size, and eighth-inch impeller trim when a catalog curve covers the duty.
 
-The catalog points live in `data/dean-ra-curves.json`. Points marked `inferred` were read through a label or a crossing, about ±3 ft. The unit converter and the other calculators stay on the later tabs.
+Water at ambient is the reference the curves were drawn for. Choosing another fluid does not change the plot: the curve on screen is still the catalog water curve. There is no viscosity correction.
+
+The catalog points live in `data/dean-ra-curves.json`. Points marked `inferred` were read through a label or a crossing, about ±3 ft. This catalog does not include pumps larger than 10 in, so a better Dean size may exist above that.

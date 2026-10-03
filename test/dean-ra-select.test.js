@@ -255,20 +255,23 @@ function assertCovered(result, q, h) {
   assert.strictEqual(DeanRA.headAt(six.points, 0), null);
 }
 
-// RA and RWA share these curves. Water and glycol are not sent to a different line.
+// Water at ambient is the reference. Any other fluid still plots that catalog water curve.
 {
-  ['water', 'eg', 'pg', 'hto', 'other'].forEach(function (fluid) {
+  ['water', 'water60', 'water180', 'eg50', 'therminol66', 'dowthermA', 'seawater', 'custom'].forEach(function (fluid) {
     var note = DeanRA.fluidNote(fluid);
-    assert.ok(note.indexOf('not the RWA') < 0, fluid);
+    assert.ok(note.indexOf('Water at ambient is the reference these curves were drawn for.') >= 0, fluid);
+    assert.ok(note.toLowerCase().indexOf('not the rwa') < 0, fluid);
     assert.ok(note.toLowerCase().indexOf('not rwa') < 0, fluid);
-    assert.ok(note.indexOf('shared Dean RA / RWA hydraulics') >= 0, fluid);
-    assert.ok(note.indexOf('hot-oil build') >= 0, fluid);
-    assert.ok(note.indexOf('hot-water build') >= 0, fluid);
-    assert.ok(note.indexOf('not a different head-capacity curve') >= 0, fluid);
+    assert.ok(note.toLowerCase().indexOf('viscosity') < 0, fluid);
   });
-  assert.ok(DeanRA.fluidNote('water').indexOf('No viscosity correction') >= 0);
-  assert.ok(DeanRA.fluidNote('eg').indexOf('No viscosity correction') >= 0);
-  assert.ok(DeanRA.fluidNote('other').indexOf('not viscosity-corrected') >= 0);
+  assert.ok(DeanRA.fluidNote('water').indexOf('still the catalog water curve') < 0);
+  assert.ok(DeanRA.fluidNote('water60').indexOf('still the catalog water curve') < 0);
+  ['eg50', 'therminol66', 'dowthermA', 'seawater', 'pg50', 'custom', 'hto'].forEach(function (fluid) {
+    assert.ok(
+      DeanRA.fluidNote(fluid).indexOf('The plotted curve is still the catalog water curve.') >= 0,
+      fluid
+    );
+  });
 }
 
 // Every impeller line falls or stays level as flow rises, and a trim stays between its neighbors.
@@ -313,6 +316,68 @@ function assertCovered(result, q, h) {
   assert.strictEqual(bump.pick.kind, 'trim');
   assert.strictEqual(bump.pick.diameter_in, 7.5);
   assert.deepStrictEqual(bump.pick.between, [7, 8]);
+}
+
+// The plotted curve is a smooth monotone fit through the points, not a chord past the last point.
+{
+  catalog.curves.forEach(function (curve) {
+    const imps = curve.impellers.slice().sort(function (a, b) { return b.diameter_in - a.diameter_in; });
+    imps.forEach(function (imp) {
+      const pts = imp.points.slice().sort(function (a, b) { return a.q_gpm - b.q_gpm; });
+      pts.forEach(function (p) {
+        const on = DeanRA.smoothHead(imp.points, p.q_gpm);
+        assert.ok(Math.abs(on.h - p.h_ft) < 1e-6, curve.model + ' fit missed ' + p.q_gpm);
+      });
+      assert.strictEqual(DeanRA.smoothHead(imp.points, pts[0].q_gpm - 1), null);
+      assert.strictEqual(DeanRA.smoothHead(imp.points, pts[pts.length - 1].q_gpm + 1), null);
+      const pieces = DeanRA.smoothPieces(imp.points);
+      assert.strictEqual(pieces.length, Math.max(0, pts.length - 1));
+      if (pieces.length) {
+        assert.strictEqual(pieces[0].q0, pts[0].q_gpm);
+        assert.strictEqual(pieces[pieces.length - 1].q1, pts[pts.length - 1].q_gpm);
+      }
+      let prev = pts[0].h_ft;
+      for (let i = 0; i < pts.length - 1; i++) {
+        for (let s = 1; s <= 16; s++) {
+          const q = pts[i].q_gpm + (pts[i + 1].q_gpm - pts[i].q_gpm) * s / 16;
+          const h = DeanRA.smoothHead(imp.points, q).h;
+          assert.ok(h <= prev + 1e-4, curve.model + ' ' + imp.diameter_in + ' smooth curve rises at ' + q);
+          prev = h;
+        }
+      }
+    });
+    for (let i = 0; i < imps.length - 1; i++) {
+      const hi = imps[i], lo = imps[i + 1];
+      const q0 = Math.max(hi.points[0].q_gpm, lo.points[0].q_gpm);
+      const q1 = Math.min(hi.points[hi.points.length - 1].q_gpm, lo.points[lo.points.length - 1].q_gpm);
+      if (q1 <= q0) continue;
+      const diameters = DeanRA.offeredDiameters(curve).filter(function (d) {
+        return d > lo.diameter_in + 1e-6 && d < hi.diameter_in - 1e-6;
+      });
+      const prevH = {};
+      for (let s = 0; s <= 24; s++) {
+        const q = q0 + (q1 - q0) * s / 24;
+        const a = DeanRA.smoothHead(hi.points, q);
+        const b = DeanRA.smoothHead(lo.points, q);
+        if (!a || !b) continue;
+        assert.ok(a.h + 1e-3 >= b.h, curve.model + ' smooth lines cross at ' + q);
+        diameters.forEach(function (d) {
+          const h = DeanRA.affinityHead(b.h, a.h, lo.diameter_in, hi.diameter_in, d);
+          assert.ok(h <= a.h + 1e-3 && h >= b.h - 1e-3, 'smooth trim left the catalog pair');
+          if (prevH[d] != null) {
+            assert.ok(h <= prevH[d] + 1e-3, curve.model + ' smooth trim ' + d + ' rises at ' + q);
+          }
+          prevH[d] = h;
+        });
+      }
+    }
+  });
+  const seven = catalog.curves.find(function (c) { return c.model === 'R20100-A2'; })
+    .impellers.find(function (imp) { return imp.diameter_in === 7; });
+  const mid = DeanRA.smoothHead(seven.points, 150);
+  const chord = 200 + (122 - 200) * (150 - 100) / 100;
+  assert.ok(Math.abs(mid.h - chord) > 1, 'expected a curve, not the straight chord');
+  assert.ok(mid.h < 200 && mid.h > 122);
 }
 
 // One recommendation, and every stored point still carries an inferred flag.
