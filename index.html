@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self' https://pumpresource.us https://www.pumpresource.us">
-<title>HydroSuite PRO</title>
+<title>HydroSuite — Dean RA Pump Selector</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -826,6 +826,25 @@ body {
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: #c6d2e0; border-radius: 5px; }
 ::-webkit-scrollbar-thumb:hover { background: #aab8c8; }
+
+/* ── Dean RA selector ── */
+.sel-grid { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 14px; align-items: start; }
+.sel-chart-wrap { background: #fff; border: 1px solid var(--bd); border-radius: var(--r); overflow: hidden; }
+.sel-chart-wrap canvas { display: block; width: 100%; }
+.sel-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; }
+.sel-kpi { background: var(--s3); border: 1px solid var(--bd); border-radius: var(--r); padding: 8px 10px; }
+.sel-kpi .k { font-family: var(--mono); font-size: 10px; letter-spacing: .4px; text-transform: uppercase; color: var(--t4); }
+.sel-kpi .v { font-size: 16px; font-weight: 700; color: var(--t1); margin-top: 2px; }
+.sel-note { font-size: 13px; line-height: 1.5; color: var(--t2); background: var(--s3); border: 1px solid var(--bd); border-radius: var(--r); padding: 10px 12px; margin-top: 8px; }
+.sel-note.warn { border-color: #f0c36a; background: #fff8eb; }
+.sel-note.bad { border-color: #f0b4b4; background: #fff5f5; color: var(--red); }
+.sel-examples { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.sel-examples button { font-size: 12px; }
+.inf-mark { color: var(--amber); font-weight: 700; }
+@media (max-width: 860px) {
+  .sel-grid { grid-template-columns: 1fr; }
+  .sel-kpis { grid-template-columns: 1fr 1fr; }
+}
 </style>
 </head>
 <body>
@@ -1006,7 +1025,8 @@ body {
 
 <!-- NAV -->
 <div id="nav">
-  <div class="ntab active" id="nt-ov"  onclick="tab('ov')"><span class="ico">🗺</span>Overview</div>
+  <div class="ntab active" id="nt-sel" onclick="tab('sel')"><span class="ico">🌀</span>Pump select</div>
+  <div class="ntab" id="nt-ov"  onclick="tab('ov')"><span class="ico">🗺</span>Overview</div>
   <div class="ntab" id="nt-pipe" onclick="tab('pipe')"><span class="ico">📉</span>Pipe &amp; Flow</div>
   <div class="ntab" id="nt-pump" onclick="tab('pump')"><span class="ico">🌀</span>Pump Suite</div>
   <div class="ntab" id="nt-therm" onclick="tab('therm')"><span class="ico">🔥</span>Thermal</div>
@@ -1021,8 +1041,58 @@ body {
 ════════════════════════════════════════ -->
 <div id="content">
 
+<!-- ── DEAN RA SELECTOR (front door) ── -->
+<div class="tab-pane active" id="tp-sel">
+  <div class="intro">
+    <h1>Dean RA pump selector</h1>
+    <p>HydroSuite selects a Dean RA pump from the duty you enter: flow, head, fluid, and temperature. It returns a size from the Dean RA line, for heat-transfer oil. It is a pump selector for that series, not a general engineering conversion tool.</p>
+  </div>
+  <div class="sel-grid">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-h"><div class="ico">🌀</div><h2>Duty</h2></div>
+      <div class="card-b">
+        <div class="fg"><label>Flow (gpm)</label><input id="sel-q" type="number" min="0" step="any" inputmode="decimal" placeholder="80"></div>
+        <div class="fg"><label>Head (ft)</label><input id="sel-h" type="number" min="0" step="any" inputmode="decimal" placeholder="130"></div>
+        <div class="fg"><label>Fluid</label>
+          <select id="sel-fluid">
+            <option value="hto">Heat-transfer oil</option>
+            <option value="water">Water</option>
+            <option value="eg">Ethylene glycol</option>
+            <option value="pg">Propylene glycol</option>
+            <option value="other">Other fluid</option>
+          </select>
+        </div>
+        <div class="fg"><label>Temperature (°F)</label><input id="sel-t" type="number" step="any" inputmode="decimal" placeholder="400"></div>
+        <div class="bgrp">
+          <button class="btn btn-p" id="sel-go" type="button">Select pump</button>
+        </div>
+        <div class="sel-examples">
+          <button class="btn btn-g btn-sm" type="button" data-ex="80,130,hto,400">80 gpm · 130 ft</button>
+          <button class="btn btn-g btn-sm" type="button" data-ex="80,147,hto,400">80 gpm · 147 ft</button>
+          <button class="btn btn-g btn-sm" type="button" data-ex="500,90,hto,350">500 gpm · 90 ft</button>
+          <button class="btn btn-g btn-sm" type="button" data-ex="40,800,water,68">40 gpm · 800 ft</button>
+        </div>
+        <div class="sel-note">Unit conversions stay on the Units &amp; Ref tab. This search uses the Dean RA catalog curves only.</div>
+        <div class="err" id="sel-err"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-h"><div class="ico">📈</div><h2>Recommendation</h2><div class="badges"><span class="bdg ba" id="sel-badge">Dean RA</span></div></div>
+      <div class="card-b">
+        <div id="sel-result">
+          <div class="sel-note">Enter a duty. HydroSuite searches the digitized Dean RA curves and recommends one size when a real curve covers that point.</div>
+        </div>
+        <div class="sel-chart-wrap" id="sel-chart-wrap" style="display:none">
+          <canvas id="sel-canvas" width="800" height="460"></canvas>
+        </div>
+        <div id="sel-points"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ── OVERVIEW ── -->
-<div class="tab-pane active" id="tp-ov">
+<div class="tab-pane" id="tp-ov">
   <div class="intro">
     <h1>HydroSuite PRO — Pump &amp; Piping Calculators</h1>
     <p>Set your fluid, flow rate, and pipe size once — every calculator on every tab reads from that shared state automatically, so you never re-enter the same numbers. Pick a category from the tabs above, or follow the three steps below.</p>
@@ -2378,7 +2448,7 @@ function openEditor(hint){
 }
 
 /* ── TABS ── */
-var TABS=['ov','pipe','pump','therm','fl','mdy','uc','wiz'];
+var TABS=['sel','ov','pipe','pump','therm','fl','mdy','uc','wiz'];
 function tab(id){
   TABS.forEach(function(t){
     var p=$('tp-'+t),n=$('nt-'+t);
@@ -2391,6 +2461,7 @@ function tab(id){
   if(id==='pipe'){buildFitTbl();liveVel();}
   if(id==='pump'){buildSCFitTbl();seedSCRows();seedPSRows();}
   if(id==='ov')  drawPipeline();
+  if(id==='sel' && typeof drawDeanSelection==='function') drawDeanSelection();
 }
 
 /* ── PIPELINE SCHEMATIC ── */
@@ -4278,6 +4349,257 @@ document.addEventListener('DOMContentLoaded',function(){
       if(pw&&pw.parentElement)ro.observe(pw.parentElement);
     });
   });
+});
+</script>
+<script src="dean-ra-select.js"></script>
+<script>
+var DEAN_CATALOG=null;
+var DEAN_LAST=null;
+var DEAN_COLORS=['#b45309','#0e7490','#047857','#6d28d9','#b91c1c','#0369a1'];
+
+function selNum(id){
+  var el=document.getElementById(id);
+  if(!el||el.value==='')return null;
+  var n=Number(el.value);
+  return isFinite(n)?n:null;
+}
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g,function(ch){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+  });
+}
+function runDeanSelect(){
+  var err=document.getElementById('sel-err');
+  err.textContent='';
+  var q=selNum('sel-q'), h=selNum('sel-h'), t=selNum('sel-t');
+  var fluid=document.getElementById('sel-fluid').value;
+  if(!DEAN_CATALOG){ err.textContent='Catalog is still loading.'; return; }
+  if(q==null||h==null||t==null){ err.textContent='Enter flow, head, and temperature.'; return; }
+  if(q<=0||h<=0){ err.textContent='Flow and head need to be greater than zero.'; return; }
+  var result=DeanRA.select(DEAN_CATALOG,{q_gpm:q,h_ft:h});
+  DEAN_LAST={result:result,q:q,h:h,t:t,fluid:fluid};
+  renderDeanSelection();
+}
+function renderDeanSelection(){
+  if(!DEAN_LAST)return;
+  var box=document.getElementById('sel-result');
+  var points=document.getElementById('sel-points');
+  var wrap=document.getElementById('sel-chart-wrap');
+  var badge=document.getElementById('sel-badge');
+  var result=DEAN_LAST.result, q=DEAN_LAST.q, h=DEAN_LAST.h, t=DEAN_LAST.t, fluid=DEAN_LAST.fluid;
+  var fluidName=document.getElementById('sel-fluid').selectedOptions[0].textContent;
+  if(!result.covered){
+    badge.textContent='No cover';
+    wrap.style.display='none';
+    points.innerHTML='';
+    box.innerHTML='<div class="sel-note bad"><strong>None of these curves cover this duty.</strong> '+
+      esc(q)+' gpm at '+esc(h)+' ft is outside every digitized Dean RA head-capacity line. '+
+      'The search does not extend a line past its last real point, and it does not offer 1150 rpm.</div>'+
+      '<div class="sel-note">'+esc(DeanRA.fluidNote(fluid))+' Temperature '+esc(t)+' °F is recorded with the duty and is not used to correct the curve.</div>';
+    return;
+  }
+  var hit=result.pick;
+  var curve=hit.curve;
+  badge.textContent=curve.rpm+' rpm';
+  wrap.style.display='block';
+  var impText=DeanRA.impellerLabel(hit);
+  var inferredNote=hit.inferred
+    ? '<div class="sel-note warn">This part of the line uses a point marked inferred. It was read through a label or a crossing, about ±3 ft.</div>'
+    : '';
+  var rpmNote=curve.rpm_note ? '<div class="sel-note">'+esc(curve.rpm_note)+'</div>' : '';
+  box.innerHTML=
+    '<div class="sel-kpis">'+
+      '<div class="sel-kpi"><div class="k">Model</div><div class="v">'+esc(curve.model)+'</div></div>'+
+      '<div class="sel-kpi"><div class="k">Size</div><div class="v">'+esc(curve.size)+'</div></div>'+
+      '<div class="sel-kpi"><div class="k">Frame</div><div class="v">'+esc(DeanRA.frameLine(curve))+'</div></div>'+
+      '<div class="sel-kpi"><div class="k">Speed</div><div class="v">'+esc(curve.rpm)+' rpm</div></div>'+
+      '<div class="sel-kpi"><div class="k">Impeller</div><div class="v">'+esc(impText)+'</div></div>'+
+      '<div class="sel-kpi"><div class="k">Duty</div><div class="v">'+esc(q)+' gpm · '+esc(h)+' ft</div></div>'+
+    '</div>'+
+    '<div class="sel-note">One Dean RA size. '+esc(fluidName)+' at '+esc(t)+' °F. '+
+      'Margin to the end of the line used: '+esc(Math.round(hit.endMargin))+' gpm. '+
+      'Head and flow come from the catalog points only.</div>'+
+    inferredNote+
+    '<div class="sel-note">Sheet note: NPSH '+esc(curve.npsh_ft_note)+' ft. That is the note printed on the sheet, not an NPSHr curve. Efficiency and horsepower are not on these curves.</div>'+
+    '<div class="sel-note">'+esc(DeanRA.fluidNote(fluid))+'</div>'+
+    rpmNote;
+  points.innerHTML=renderPointTable(curve);
+  drawDeanSelection();
+}
+function renderPointTable(curve){
+  var rows='';
+  curve.impellers.forEach(function(imp){
+    imp.points.forEach(function(p){
+      rows+='<tr><td>'+esc(DeanRA.formatDia(imp.diameter_in))+'</td><td>'+esc(p.q_gpm)+'</td><td>'+esc(p.h_ft)+'</td><td>'+
+        (p.inferred?'<span class="inf-mark">inferred ±3 ft</span>':'read')+'</td></tr>';
+    });
+  });
+  return '<details style="margin-top:10px"><summary style="cursor:pointer;font-size:13px;color:var(--t2)">Catalog points for this size</summary>'+
+    '<div style="overflow-x:auto;margin-top:8px"><table class="ftbl" style="width:100%"><thead><tr><th>Dia in</th><th>gpm</th><th>ft</th><th>Read</th></tr></thead><tbody>'+
+    rows+'</tbody></table></div></details>';
+}
+function drawDeanSelection(){
+  if(!DEAN_LAST||!DEAN_LAST.result.covered)return;
+  var canvas=document.getElementById('sel-canvas');
+  if(!canvas||!canvas.parentElement)return;
+  var hit=DEAN_LAST.result.pick;
+  var qDuty=DEAN_LAST.q, hDuty=DEAN_LAST.h;
+  var curve=hit.curve;
+  var dpr=window.devicePixelRatio||1;
+  var cssW=canvas.parentElement.clientWidth||720;
+  var cssH=460;
+  canvas.style.width='100%';
+  canvas.style.height=cssH+'px';
+  canvas.width=Math.round(cssW*dpr);
+  canvas.height=Math.round(cssH*dpr);
+  var ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+  ctx.fillStyle='#ffffff';
+  ctx.fillRect(0,0,cssW,cssH);
+
+  var samples=betweenSamples(hit);
+  var maxQ=qDuty, maxH=hDuty;
+  curve.impellers.forEach(function(imp){
+    imp.points.forEach(function(p){ if(p.q_gpm>maxQ)maxQ=p.q_gpm; if(p.h_ft>maxH)maxH=p.h_ft; });
+  });
+  samples.forEach(function(p){ if(p.q>maxQ)maxQ=p.q; if(p.h>maxH)maxH=p.h; });
+  maxQ=maxQ*1.08; maxH=maxH*1.12;
+  var pad={l:64,r:18,t:28,b:46};
+  var pw=cssW-pad.l-pad.r, ph=cssH-pad.t-pad.b;
+  function X(q){ return pad.l+ (q/maxQ)*pw; }
+  function Y(h){ return pad.t+ ph - (h/maxH)*ph; }
+
+  ctx.strokeStyle='#e2e8f0';
+  ctx.fillStyle='#64748b';
+  ctx.font='11px IBM Plex Mono, monospace';
+  ctx.lineWidth=1;
+  for(var i=0;i<=5;i++){
+    var gq=maxQ*i/5, gh=maxH*i/5;
+    ctx.beginPath(); ctx.moveTo(X(gq), pad.t); ctx.lineTo(X(gq), pad.t+ph); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad.l, Y(gh)); ctx.lineTo(pad.l+pw, Y(gh)); ctx.stroke();
+    ctx.fillText(String(Math.round(gq)), X(gq)-10, pad.t+ph+16);
+    ctx.fillText(String(Math.round(gh)), 8, Y(gh)+4);
+  }
+  ctx.fillStyle='#334155';
+  ctx.fillText('gpm', pad.l+pw-28, cssH-8);
+  ctx.save();
+  ctx.translate(14, pad.t+ph/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillText('head, ft', 0, 0);
+  ctx.restore();
+
+  var highlight={};
+  highlight[hit.upperDiameter]=true;
+  if(hit.lowerDiameter!=null) highlight[hit.lowerDiameter]=true;
+
+  curve.impellers.forEach(function(imp, idx){
+    var pts=imp.points.slice().sort(function(a,b){ return a.q_gpm-b.q_gpm; });
+    var color=DEAN_COLORS[idx%DEAN_COLORS.length];
+    var hot=!!highlight[imp.diameter_in];
+    ctx.lineWidth=hot?2.5:1.25;
+    ctx.strokeStyle=color;
+    ctx.globalAlpha=hot?1:0.75;
+    for(var s=0;s<pts.length-1;s++){
+      ctx.beginPath();
+      ctx.setLineDash((pts[s].inferred||pts[s+1].inferred)?[5,4]:[]);
+      ctx.moveTo(X(pts[s].q_gpm), Y(pts[s].h_ft));
+      ctx.lineTo(X(pts[s+1].q_gpm), Y(pts[s+1].h_ft));
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    pts.forEach(function(p){
+      ctx.beginPath();
+      ctx.fillStyle=p.inferred?'#ffffff':color;
+      ctx.strokeStyle=color;
+      ctx.lineWidth=1.5;
+      ctx.arc(X(p.q_gpm), Y(p.h_ft), p.inferred?4.5:3, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+    });
+    var last=pts[pts.length-1];
+    ctx.globalAlpha=1;
+    ctx.fillStyle=color;
+    ctx.font='12px Barlow, sans-serif';
+    ctx.fillText(DeanRA.formatDia(imp.diameter_in)+'"', X(last.q_gpm)+6, Y(last.h_ft)+4);
+  });
+
+  if(samples.length>1){
+    ctx.beginPath();
+    ctx.setLineDash([7,4]);
+    ctx.lineWidth=2;
+    ctx.strokeStyle='#0f172a';
+    samples.forEach(function(p,i){
+      if(i===0) ctx.moveTo(X(p.q), Y(p.h));
+      else ctx.lineTo(X(p.q), Y(p.h));
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#0f172a';
+    ctx.fillText('between catalog diameters', X(samples[0].q)+8, Y(samples[0].h)-8);
+  }
+
+  ctx.beginPath();
+  ctx.fillStyle='#b45309';
+  ctx.strokeStyle='#0f172a';
+  ctx.lineWidth=1.5;
+  ctx.arc(X(qDuty), Y(hDuty), 6, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(X(qDuty)-10, Y(hDuty)); ctx.lineTo(X(qDuty)+10, Y(hDuty));
+  ctx.moveTo(X(qDuty), Y(hDuty)-10); ctx.lineTo(X(qDuty), Y(hDuty)+10);
+  ctx.stroke();
+  ctx.fillStyle='#0f172a';
+  ctx.fillText('duty', X(qDuty)+10, Y(hDuty)-10);
+  ctx.font='11px IBM Plex Mono, monospace';
+  ctx.fillStyle='#64748b';
+  ctx.fillText('Open circles are inferred points (±3 ft). No efficiency or power curve.', pad.l, 16);
+}
+function betweenSamples(hit){
+  if(hit.kind!=='between') return [];
+  var upper=null, lower=null;
+  hit.curve.impellers.forEach(function(imp){
+    if(imp.diameter_in===hit.upperDiameter) upper=imp;
+    if(imp.diameter_in===hit.lowerDiameter) lower=imp;
+  });
+  if(!upper||!lower) return [];
+  var q0=hit.qMin, q1=hit.qMax;
+  var out=[];
+  var steps=24;
+  for(var i=0;i<=steps;i++){
+    var q=q0+(q1-q0)*i/steps;
+    var a=DeanRA.headAt(upper.points, q);
+    var b=DeanRA.headAt(lower.points, q);
+    if(!a||!b) continue;
+    var top=Math.max(a.h,b.h), bot=Math.min(a.h,b.h);
+    out.push({q:q, h:bot+hit.fraction*(top-bot)});
+  }
+  return out;
+}
+document.getElementById('sel-go').addEventListener('click', runDeanSelect);
+document.querySelectorAll('[data-ex]').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var p=btn.getAttribute('data-ex').split(',');
+    document.getElementById('sel-q').value=p[0];
+    document.getElementById('sel-h').value=p[1];
+    document.getElementById('sel-fluid').value=p[2];
+    document.getElementById('sel-t').value=p[3];
+    runDeanSelect();
+  });
+});
+['sel-q','sel-h','sel-t'].forEach(function(id){
+  document.getElementById(id).addEventListener('keydown', function(ev){
+    if(ev.key==='Enter') runDeanSelect();
+  });
+});
+fetch('data/dean-ra-curves.json').then(function(r){
+  if(!r.ok) throw new Error('catalog '+r.status);
+  return r.json();
+}).then(function(data){
+  DEAN_CATALOG=data;
+}).catch(function(){
+  var err=document.getElementById('sel-err');
+  if(err) err.textContent='Could not load the Dean RA catalog.';
 });
 </script>
 </body>

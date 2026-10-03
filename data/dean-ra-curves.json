@@ -1,0 +1,1884 @@
+{
+  "source": "Met-Pro Dean RA data pak, 23 pages, created by Tom Hagler, 2022. Performance curves are PDF pages 10-22.",
+  "read_tolerance_ft": 3,
+  "rules": [
+    "Numbers are heads in feet at the listed flow in gpm.",
+    "inferred true means the impeller line was covered and the head was followed from the grid and the same stroke on either side.",
+    "A missing flow means the stroke had ended or could not be told from another line. Do not invent that point.",
+    "No efficiency or BHP was read.",
+    "NPSH is the sheet note, not a full NPSHr curve."
+  ],
+  "curves": [
+    {
+      "pdf_page": 10,
+      "model": "RA1060-A2",
+      "size": "1 x 1.5 x 6",
+      "frame": "RA2096",
+      "rpm": 3500,
+      "npsh_ft_note": 14,
+      "notes": "First flow is about 5 gpm, not a labeled grid line. Read tolerance about \u00b13 ft.",
+      "impellers": [
+        {
+          "diameter_in": 6,
+          "points": [
+            {
+              "q_gpm": 5,
+              "h_ft": 153,
+              "inferred": false
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 152,
+              "inferred": false
+            },
+            {
+              "q_gpm": 60,
+              "h_ft": 152,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 147,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 143,
+              "inferred": false
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 129,
+              "inferred": true
+            },
+            {
+              "q_gpm": 140,
+              "h_ft": 122,
+              "inferred": false
+            },
+            {
+              "q_gpm": 160,
+              "h_ft": 112,
+              "inferred": false
+            }
+          ]
+        },
+        {
+          "diameter_in": 5.5,
+          "points": [
+            {
+              "q_gpm": 5,
+              "h_ft": 126,
+              "inferred": false
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 124,
+              "inferred": false
+            },
+            {
+              "q_gpm": 60,
+              "h_ft": 122,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 118,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 113,
+              "inferred": false
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 106,
+              "inferred": true
+            },
+            {
+              "q_gpm": 140,
+              "h_ft": 95,
+              "inferred": false
+            },
+            {
+              "q_gpm": 160,
+              "h_ft": 91,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 5,
+          "points": [
+            {
+              "q_gpm": 5,
+              "h_ft": 100,
+              "inferred": false
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 100,
+              "inferred": false
+            },
+            {
+              "q_gpm": 60,
+              "h_ft": 96,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 91,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 87,
+              "inferred": true
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 82,
+              "inferred": true
+            },
+            {
+              "q_gpm": 140,
+              "h_ft": 85,
+              "inferred": false
+            }
+          ]
+        },
+        {
+          "diameter_in": 4.5,
+          "points": [
+            {
+              "q_gpm": 5,
+              "h_ft": 78,
+              "inferred": false
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 77,
+              "inferred": false
+            },
+            {
+              "q_gpm": 60,
+              "h_ft": 72,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 66,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 58,
+              "inferred": true
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 48,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 4,
+          "points": [
+            {
+              "q_gpm": 5,
+              "h_ft": 58,
+              "inferred": false
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 57,
+              "inferred": false
+            },
+            {
+              "q_gpm": 60,
+              "h_ft": 51,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 44,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 40,
+              "inferred": true
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 37,
+              "inferred": true
+            }
+          ]
+        }
+      ],
+      "pump_types": [
+        "RA2096"
+      ]
+    },
+    {
+      "pdf_page": 11,
+      "model": "RA1080-A2",
+      "size": "1 x 1.5 x 8",
+      "frame": "RA2096",
+      "rpm": 3500,
+      "npsh_ft_note": 14,
+      "notes": "",
+      "impellers": [
+        {
+          "diameter_in": 8,
+          "points": [
+            {
+              "q_gpm": 25,
+              "h_ft": 300,
+              "inferred": true
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 290,
+              "inferred": false
+            },
+            {
+              "q_gpm": 60,
+              "h_ft": 285,
+              "inferred": true
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 280,
+              "inferred": true
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 275,
+              "inferred": false
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 266,
+              "inferred": false
+            },
+            {
+              "q_gpm": 140,
+              "h_ft": 258,
+              "inferred": true
+            },
+            {
+              "q_gpm": 160,
+              "h_ft": 245,
+              "inferred": false
+            },
+            {
+              "q_gpm": 180,
+              "h_ft": 228,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 7,
+          "points": [
+            {
+              "q_gpm": 25,
+              "h_ft": 230,
+              "inferred": false
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 218,
+              "inferred": false
+            },
+            {
+              "q_gpm": 60,
+              "h_ft": 216,
+              "inferred": true
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 214,
+              "inferred": true
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 215,
+              "inferred": false
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 207,
+              "inferred": false
+            },
+            {
+              "q_gpm": 140,
+              "h_ft": 195,
+              "inferred": true
+            },
+            {
+              "q_gpm": 160,
+              "h_ft": 180,
+              "inferred": false
+            },
+            {
+              "q_gpm": 180,
+              "h_ft": 162,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 6,
+          "points": [
+            {
+              "q_gpm": 25,
+              "h_ft": 158,
+              "inferred": false
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 160,
+              "inferred": false
+            },
+            {
+              "q_gpm": 60,
+              "h_ft": 158,
+              "inferred": true
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 152,
+              "inferred": true
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 145,
+              "inferred": true
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 138,
+              "inferred": true
+            },
+            {
+              "q_gpm": 140,
+              "h_ft": 132,
+              "inferred": true
+            },
+            {
+              "q_gpm": 160,
+              "h_ft": 125,
+              "inferred": false
+            }
+          ]
+        },
+        {
+          "diameter_in": 5,
+          "points": [
+            {
+              "q_gpm": 25,
+              "h_ft": 108,
+              "inferred": false
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 112,
+              "inferred": false
+            },
+            {
+              "q_gpm": 60,
+              "h_ft": 108,
+              "inferred": true
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 102,
+              "inferred": true
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 98,
+              "inferred": true
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 92,
+              "inferred": true
+            },
+            {
+              "q_gpm": 140,
+              "h_ft": 88,
+              "inferred": true
+            },
+            {
+              "q_gpm": 160,
+              "h_ft": 85,
+              "inferred": false
+            }
+          ]
+        }
+      ],
+      "pump_types": [
+        "RA2096"
+      ]
+    },
+    {
+      "pdf_page": 12,
+      "model": "R1085-A2",
+      "size": "1 x 3 x 8.5",
+      "frame": "RA3146",
+      "rpm": 3500,
+      "npsh_ft_note": 7,
+      "notes": "",
+      "impellers": [
+        {
+          "diameter_in": 8.5,
+          "points": [
+            {
+              "q_gpm": 15,
+              "h_ft": 318,
+              "inferred": false
+            },
+            {
+              "q_gpm": 20,
+              "h_ft": 318,
+              "inferred": false
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 310,
+              "inferred": false
+            },
+            {
+              "q_gpm": 60,
+              "h_ft": 300,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 295,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 278,
+              "inferred": false
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 242,
+              "inferred": false
+            }
+          ]
+        },
+        {
+          "diameter_in": 7.5,
+          "points": [
+            {
+              "q_gpm": 15,
+              "h_ft": 242,
+              "inferred": false
+            },
+            {
+              "q_gpm": 20,
+              "h_ft": 242,
+              "inferred": false
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 232,
+              "inferred": false
+            },
+            {
+              "q_gpm": 60,
+              "h_ft": 230,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 215,
+              "inferred": true
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 188,
+              "inferred": false
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 165,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 6.5,
+          "points": [
+            {
+              "q_gpm": 15,
+              "h_ft": 172,
+              "inferred": false
+            },
+            {
+              "q_gpm": 20,
+              "h_ft": 172,
+              "inferred": false
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 165,
+              "inferred": false
+            },
+            {
+              "q_gpm": 60,
+              "h_ft": 155,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 148,
+              "inferred": true
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 138,
+              "inferred": false
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 118,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 5.5,
+          "points": [
+            {
+              "q_gpm": 15,
+              "h_ft": 128,
+              "inferred": false
+            },
+            {
+              "q_gpm": 20,
+              "h_ft": 128,
+              "inferred": false
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 122,
+              "inferred": false
+            },
+            {
+              "q_gpm": 60,
+              "h_ft": 118,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 108,
+              "inferred": true
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 88,
+              "inferred": false
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 72,
+              "inferred": true
+            }
+          ]
+        }
+      ],
+      "pump_types": [
+        "RA3146"
+      ]
+    },
+    {
+      "pdf_page": 13,
+      "model": "RA1560-A2",
+      "size": "1.5 x 3 x 6",
+      "frame": "RA2096",
+      "rpm": 3500,
+      "npsh_ft_note": 9,
+      "notes": "6 in at 80 gpm is about 118 ft, correcting an earlier false high read.",
+      "impellers": [
+        {
+          "diameter_in": 6,
+          "points": [
+            {
+              "q_gpm": 30,
+              "h_ft": 126,
+              "inferred": false
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 124,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 118,
+              "inferred": true
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 112,
+              "inferred": false
+            },
+            {
+              "q_gpm": 160,
+              "h_ft": 112,
+              "inferred": false
+            }
+          ]
+        },
+        {
+          "diameter_in": 5.5,
+          "points": [
+            {
+              "q_gpm": 30,
+              "h_ft": 110,
+              "inferred": true
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 108,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 102,
+              "inferred": true
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 91,
+              "inferred": false
+            },
+            {
+              "q_gpm": 160,
+              "h_ft": 82,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 5,
+          "points": [
+            {
+              "q_gpm": 30,
+              "h_ft": 84,
+              "inferred": false
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 82,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 78,
+              "inferred": true
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 71,
+              "inferred": false
+            },
+            {
+              "q_gpm": 160,
+              "h_ft": 72,
+              "inferred": false
+            }
+          ]
+        },
+        {
+          "diameter_in": 4.5,
+          "points": [
+            {
+              "q_gpm": 30,
+              "h_ft": 66,
+              "inferred": false
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 64,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 58,
+              "inferred": true
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 51,
+              "inferred": false
+            },
+            {
+              "q_gpm": 160,
+              "h_ft": 52,
+              "inferred": false
+            }
+          ]
+        },
+        {
+          "diameter_in": 4,
+          "points": [
+            {
+              "q_gpm": 30,
+              "h_ft": 46,
+              "inferred": false
+            },
+            {
+              "q_gpm": 40,
+              "h_ft": 44,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 38,
+              "inferred": true
+            },
+            {
+              "q_gpm": 120,
+              "h_ft": 31,
+              "inferred": false
+            }
+          ]
+        }
+      ],
+      "pump_types": [
+        "RA2096"
+      ]
+    },
+    {
+      "pdf_page": 14,
+      "model": "R1585-A2",
+      "size": "1.5 x 3 x 8.5",
+      "frame": "RA3146",
+      "rpm": 3500,
+      "npsh_ft_note": 10,
+      "notes": "",
+      "impellers": [
+        {
+          "diameter_in": 8.5,
+          "points": [
+            {
+              "q_gpm": 30,
+              "h_ft": 292,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 295,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 275,
+              "inferred": false
+            },
+            {
+              "q_gpm": 140,
+              "h_ft": 255,
+              "inferred": false
+            },
+            {
+              "q_gpm": 180,
+              "h_ft": 235,
+              "inferred": false
+            }
+          ]
+        },
+        {
+          "diameter_in": 7.5,
+          "points": [
+            {
+              "q_gpm": 30,
+              "h_ft": 218,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 213,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 215,
+              "inferred": false
+            },
+            {
+              "q_gpm": 140,
+              "h_ft": 195,
+              "inferred": true
+            },
+            {
+              "q_gpm": 180,
+              "h_ft": 178,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 6.5,
+          "points": [
+            {
+              "q_gpm": 30,
+              "h_ft": 162,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 155,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 148,
+              "inferred": true
+            },
+            {
+              "q_gpm": 140,
+              "h_ft": 132,
+              "inferred": true
+            },
+            {
+              "q_gpm": 180,
+              "h_ft": 118,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 5.5,
+          "points": [
+            {
+              "q_gpm": 30,
+              "h_ft": 114,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 110,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 105,
+              "inferred": true
+            },
+            {
+              "q_gpm": 140,
+              "h_ft": 92,
+              "inferred": true
+            },
+            {
+              "q_gpm": 180,
+              "h_ft": 78,
+              "inferred": true
+            }
+          ]
+        }
+      ],
+      "pump_types": [
+        "RA3146"
+      ]
+    },
+    {
+      "pdf_page": 15,
+      "model": "R15100-A2",
+      "size": "1.5 x 3 x 10",
+      "frame": "RA3146",
+      "rpm": 3500,
+      "npsh_ft_note": 5,
+      "notes": "",
+      "impellers": [
+        {
+          "diameter_in": 10,
+          "points": [
+            {
+              "q_gpm": 40,
+              "h_ft": 425,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 415,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 408,
+              "inferred": false
+            },
+            {
+              "q_gpm": 150,
+              "h_ft": 388,
+              "inferred": false
+            },
+            {
+              "q_gpm": 200,
+              "h_ft": 368,
+              "inferred": true
+            },
+            {
+              "q_gpm": 220,
+              "h_ft": 358,
+              "inferred": true
+            },
+            {
+              "q_gpm": 250,
+              "h_ft": 342,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 9,
+          "points": [
+            {
+              "q_gpm": 40,
+              "h_ft": 355,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 345,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 342,
+              "inferred": false
+            },
+            {
+              "q_gpm": 150,
+              "h_ft": 328,
+              "inferred": false
+            },
+            {
+              "q_gpm": 200,
+              "h_ft": 305,
+              "inferred": true
+            },
+            {
+              "q_gpm": 220,
+              "h_ft": 295,
+              "inferred": true
+            },
+            {
+              "q_gpm": 250,
+              "h_ft": 278,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 8,
+          "points": [
+            {
+              "q_gpm": 40,
+              "h_ft": 255,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 240,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 232,
+              "inferred": true
+            },
+            {
+              "q_gpm": 150,
+              "h_ft": 210,
+              "inferred": true
+            },
+            {
+              "q_gpm": 200,
+              "h_ft": 188,
+              "inferred": true
+            },
+            {
+              "q_gpm": 220,
+              "h_ft": 178,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 7,
+          "points": [
+            {
+              "q_gpm": 40,
+              "h_ft": 205,
+              "inferred": false
+            },
+            {
+              "q_gpm": 80,
+              "h_ft": 195,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 198,
+              "inferred": true
+            },
+            {
+              "q_gpm": 150,
+              "h_ft": 195,
+              "inferred": false
+            },
+            {
+              "q_gpm": 200,
+              "h_ft": 185,
+              "inferred": true
+            },
+            {
+              "q_gpm": 220,
+              "h_ft": 172,
+              "inferred": true
+            }
+          ]
+        }
+      ],
+      "pump_types": [
+        "RA3146"
+      ]
+    },
+    {
+      "pdf_page": 16,
+      "model": "R2085-A2",
+      "size": "2 x 3 x 8.5",
+      "frame": "RA3146",
+      "rpm": 3500,
+      "npsh_ft_note": 10,
+      "notes": "",
+      "impellers": [
+        {
+          "diameter_in": 8.5,
+          "points": [
+            {
+              "q_gpm": 50,
+              "h_ft": 305,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 300,
+              "inferred": false
+            },
+            {
+              "q_gpm": 150,
+              "h_ft": 294,
+              "inferred": true
+            },
+            {
+              "q_gpm": 200,
+              "h_ft": 287,
+              "inferred": true
+            },
+            {
+              "q_gpm": 300,
+              "h_ft": 266,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 7.5,
+          "points": [
+            {
+              "q_gpm": 50,
+              "h_ft": 238,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 237,
+              "inferred": false
+            },
+            {
+              "q_gpm": 150,
+              "h_ft": 230,
+              "inferred": false
+            },
+            {
+              "q_gpm": 200,
+              "h_ft": 221,
+              "inferred": false
+            },
+            {
+              "q_gpm": 300,
+              "h_ft": 181,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 6.5,
+          "points": [
+            {
+              "q_gpm": 50,
+              "h_ft": 179,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 176,
+              "inferred": false
+            },
+            {
+              "q_gpm": 150,
+              "h_ft": 168,
+              "inferred": false
+            },
+            {
+              "q_gpm": 200,
+              "h_ft": 160,
+              "inferred": false
+            },
+            {
+              "q_gpm": 300,
+              "h_ft": 133,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 5.5,
+          "points": [
+            {
+              "q_gpm": 50,
+              "h_ft": 133,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 128,
+              "inferred": false
+            },
+            {
+              "q_gpm": 150,
+              "h_ft": 120,
+              "inferred": false
+            },
+            {
+              "q_gpm": 200,
+              "h_ft": 102,
+              "inferred": false
+            }
+          ]
+        }
+      ],
+      "pump_types": [
+        "RA3146"
+      ]
+    },
+    {
+      "pdf_page": 17,
+      "model": "R20100-A2",
+      "size": "2 x 3 x 10",
+      "frame": "RA3146",
+      "rpm": 3500,
+      "npsh_ft_note": 15,
+      "notes": "7 in falls off hard after 100 gpm.",
+      "impellers": [
+        {
+          "diameter_in": 10,
+          "points": [
+            {
+              "q_gpm": 30,
+              "h_ft": 395,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 387,
+              "inferred": false
+            },
+            {
+              "q_gpm": 200,
+              "h_ft": 367,
+              "inferred": false
+            },
+            {
+              "q_gpm": 300,
+              "h_ft": 314,
+              "inferred": true
+            },
+            {
+              "q_gpm": 400,
+              "h_ft": 232,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 9,
+          "points": [
+            {
+              "q_gpm": 30,
+              "h_ft": 307,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 300,
+              "inferred": false
+            },
+            {
+              "q_gpm": 200,
+              "h_ft": 273,
+              "inferred": false
+            },
+            {
+              "q_gpm": 300,
+              "h_ft": 218,
+              "inferred": true
+            },
+            {
+              "q_gpm": 400,
+              "h_ft": 158,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 8,
+          "points": [
+            {
+              "q_gpm": 30,
+              "h_ft": 233,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 227,
+              "inferred": false
+            },
+            {
+              "q_gpm": 200,
+              "h_ft": 198,
+              "inferred": false
+            },
+            {
+              "q_gpm": 300,
+              "h_ft": 132,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 7,
+          "points": [
+            {
+              "q_gpm": 30,
+              "h_ft": 204,
+              "inferred": false
+            },
+            {
+              "q_gpm": 100,
+              "h_ft": 200,
+              "inferred": false
+            },
+            {
+              "q_gpm": 200,
+              "h_ft": 122,
+              "inferred": true
+            }
+          ]
+        }
+      ],
+      "pump_types": [
+        "RA3146"
+      ]
+    },
+    {
+      "pdf_page": 18,
+      "model": "R3085-A1",
+      "size": "3 x 4 x 8.5",
+      "frame": "RA3146",
+      "rpm": 3500,
+      "npsh_ft_note": 20,
+      "notes": "Sheet also references R4140 and R5140. 5.5 in at 50 gpm is just above the 120 ft grid.",
+      "impellers": [
+        {
+          "diameter_in": 8.5,
+          "points": [
+            {
+              "q_gpm": 50,
+              "h_ft": 305,
+              "inferred": false
+            },
+            {
+              "q_gpm": 150,
+              "h_ft": 302,
+              "inferred": false
+            },
+            {
+              "q_gpm": 300,
+              "h_ft": 300,
+              "inferred": false
+            },
+            {
+              "q_gpm": 500,
+              "h_ft": 284,
+              "inferred": true
+            },
+            {
+              "q_gpm": 700,
+              "h_ft": 264,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 7.5,
+          "points": [
+            {
+              "q_gpm": 50,
+              "h_ft": 235,
+              "inferred": false
+            },
+            {
+              "q_gpm": 150,
+              "h_ft": 232,
+              "inferred": false
+            },
+            {
+              "q_gpm": 300,
+              "h_ft": 224,
+              "inferred": false
+            },
+            {
+              "q_gpm": 500,
+              "h_ft": 203,
+              "inferred": false
+            },
+            {
+              "q_gpm": 700,
+              "h_ft": 202,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 6.5,
+          "points": [
+            {
+              "q_gpm": 50,
+              "h_ft": 175,
+              "inferred": false
+            },
+            {
+              "q_gpm": 150,
+              "h_ft": 170,
+              "inferred": false
+            },
+            {
+              "q_gpm": 300,
+              "h_ft": 163,
+              "inferred": false
+            },
+            {
+              "q_gpm": 500,
+              "h_ft": 142,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 5.5,
+          "points": [
+            {
+              "q_gpm": 50,
+              "h_ft": 121,
+              "inferred": true
+            },
+            {
+              "q_gpm": 150,
+              "h_ft": 117,
+              "inferred": false
+            },
+            {
+              "q_gpm": 300,
+              "h_ft": 107,
+              "inferred": false
+            }
+          ]
+        }
+      ],
+      "pump_types": [
+        "R4140",
+        "R5140",
+        "RA3146"
+      ]
+    },
+    {
+      "pdf_page": 19,
+      "model": "R30100-A1",
+      "size": "3 x 4 x 10",
+      "frame": "RA3146",
+      "rpm": 3500,
+      "npsh_ft_note": 14,
+      "notes": "",
+      "impellers": [
+        {
+          "diameter_in": 10,
+          "points": [
+            {
+              "q_gpm": 50,
+              "h_ft": 423,
+              "inferred": false
+            },
+            {
+              "q_gpm": 150,
+              "h_ft": 420,
+              "inferred": false
+            },
+            {
+              "q_gpm": 300,
+              "h_ft": 412,
+              "inferred": false
+            },
+            {
+              "q_gpm": 500,
+              "h_ft": 400,
+              "inferred": false
+            },
+            {
+              "q_gpm": 700,
+              "h_ft": 356,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 9,
+          "points": [
+            {
+              "q_gpm": 50,
+              "h_ft": 347,
+              "inferred": false
+            },
+            {
+              "q_gpm": 150,
+              "h_ft": 346,
+              "inferred": true
+            },
+            {
+              "q_gpm": 300,
+              "h_ft": 340,
+              "inferred": false
+            },
+            {
+              "q_gpm": 500,
+              "h_ft": 318,
+              "inferred": false
+            },
+            {
+              "q_gpm": 700,
+              "h_ft": 272,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 8,
+          "points": [
+            {
+              "q_gpm": 50,
+              "h_ft": 275,
+              "inferred": false
+            },
+            {
+              "q_gpm": 150,
+              "h_ft": 277,
+              "inferred": false
+            },
+            {
+              "q_gpm": 300,
+              "h_ft": 268,
+              "inferred": false
+            },
+            {
+              "q_gpm": 500,
+              "h_ft": 247,
+              "inferred": true
+            },
+            {
+              "q_gpm": 700,
+              "h_ft": 224,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 7,
+          "points": [
+            {
+              "q_gpm": 50,
+              "h_ft": 202,
+              "inferred": false
+            },
+            {
+              "q_gpm": 150,
+              "h_ft": 200,
+              "inferred": false
+            },
+            {
+              "q_gpm": 300,
+              "h_ft": 189,
+              "inferred": false
+            },
+            {
+              "q_gpm": 500,
+              "h_ft": 168,
+              "inferred": true
+            }
+          ]
+        }
+      ],
+      "pump_types": [
+        "R4140",
+        "R5140",
+        "RA3146"
+      ]
+    },
+    {
+      "pdf_page": 20,
+      "model": "R4085-A1",
+      "size": "4 x 6 x 8.5",
+      "frame": "RA3146",
+      "rpm": 3500,
+      "npsh_ft_note": 20,
+      "notes": "Only 8.5, 7.5, and 6.5 in are drawn.",
+      "impellers": [
+        {
+          "diameter_in": 8.5,
+          "points": [
+            {
+              "q_gpm": 50,
+              "h_ft": 312,
+              "inferred": false
+            },
+            {
+              "q_gpm": 200,
+              "h_ft": 305,
+              "inferred": false
+            },
+            {
+              "q_gpm": 400,
+              "h_ft": 300,
+              "inferred": false
+            },
+            {
+              "q_gpm": 600,
+              "h_ft": 290,
+              "inferred": false
+            },
+            {
+              "q_gpm": 800,
+              "h_ft": 271,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 7.5,
+          "points": [
+            {
+              "q_gpm": 50,
+              "h_ft": 239,
+              "inferred": false
+            },
+            {
+              "q_gpm": 200,
+              "h_ft": 230,
+              "inferred": false
+            },
+            {
+              "q_gpm": 400,
+              "h_ft": 222,
+              "inferred": false
+            },
+            {
+              "q_gpm": 600,
+              "h_ft": 208,
+              "inferred": false
+            }
+          ]
+        },
+        {
+          "diameter_in": 6.5,
+          "points": [
+            {
+              "q_gpm": 50,
+              "h_ft": 168,
+              "inferred": false
+            },
+            {
+              "q_gpm": 200,
+              "h_ft": 160,
+              "inferred": false
+            },
+            {
+              "q_gpm": 400,
+              "h_ft": 152,
+              "inferred": false
+            },
+            {
+              "q_gpm": 600,
+              "h_ft": 132,
+              "inferred": true
+            }
+          ]
+        }
+      ],
+      "pump_types": [
+        "R4140",
+        "R5140",
+        "RA3146"
+      ]
+    },
+    {
+      "pdf_page": 21,
+      "model": "R40100-B2",
+      "size": "4 x 6 x 10 #2",
+      "frame": "RWA4166",
+      "rpm": 1750,
+      "npsh_ft_note": 6,
+      "notes": "This sheet is 1750 rpm, not 3500. Upper chart 1750, lower chart 1150 was not digitized. From 1100 gpm the strokes cannot be separated. Also marked RWA4166.",
+      "impellers": [
+        {
+          "diameter_in": 10,
+          "points": [
+            {
+              "q_gpm": 350,
+              "h_ft": 105,
+              "inferred": true
+            },
+            {
+              "q_gpm": 500,
+              "h_ft": 104,
+              "inferred": false
+            },
+            {
+              "q_gpm": 700,
+              "h_ft": 102,
+              "inferred": false
+            },
+            {
+              "q_gpm": 900,
+              "h_ft": 98,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 9,
+          "points": [
+            {
+              "q_gpm": 350,
+              "h_ft": 86,
+              "inferred": true
+            },
+            {
+              "q_gpm": 500,
+              "h_ft": 85,
+              "inferred": false
+            },
+            {
+              "q_gpm": 700,
+              "h_ft": 83,
+              "inferred": false
+            },
+            {
+              "q_gpm": 900,
+              "h_ft": 78,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 8,
+          "points": [
+            {
+              "q_gpm": 350,
+              "h_ft": 70,
+              "inferred": true
+            },
+            {
+              "q_gpm": 500,
+              "h_ft": 68,
+              "inferred": false
+            },
+            {
+              "q_gpm": 700,
+              "h_ft": 63,
+              "inferred": false
+            },
+            {
+              "q_gpm": 900,
+              "h_ft": 58,
+              "inferred": true
+            }
+          ]
+        },
+        {
+          "diameter_in": 7,
+          "points": [
+            {
+              "q_gpm": 350,
+              "h_ft": 55,
+              "inferred": true
+            },
+            {
+              "q_gpm": 500,
+              "h_ft": 54,
+              "inferred": false
+            },
+            {
+              "q_gpm": 700,
+              "h_ft": 46,
+              "inferred": true
+            },
+            {
+              "q_gpm": 900,
+              "h_ft": 48,
+              "inferred": true
+            }
+          ]
+        }
+      ],
+      "pump_types": [
+        "R4140",
+        "R5140",
+        "RA3146",
+        "RWA4166"
+      ],
+      "rpm_note": "1750 rpm only. The 1150 rpm chart on this sheet was not digitized and is not offered."
+    },
+    {
+      "pdf_page": 22,
+      "model": "R40100-A1",
+      "size": "4 x 6 x 10 #1",
+      "frame": "RA3186",
+      "rpm": 3500,
+      "npsh_ft_note": 25,
+      "notes": "Head scale is 50 to 450 ft, not from 0. Impellers 10, 9, and 8 only. Nothing readable at 1800 gpm. Frame also associated with other frames on the sheet; primary frame noted as RA3186.",
+      "impellers": [
+        {
+          "diameter_in": 10,
+          "points": [
+            {
+              "q_gpm": 100,
+              "h_ft": 411,
+              "inferred": false
+            },
+            {
+              "q_gpm": 300,
+              "h_ft": 410,
+              "inferred": false
+            },
+            {
+              "q_gpm": 600,
+              "h_ft": 410,
+              "inferred": false
+            },
+            {
+              "q_gpm": 1000,
+              "h_ft": 400,
+              "inferred": false
+            },
+            {
+              "q_gpm": 1400,
+              "h_ft": 359,
+              "inferred": false
+            }
+          ]
+        },
+        {
+          "diameter_in": 9,
+          "points": [
+            {
+              "q_gpm": 100,
+              "h_ft": 327,
+              "inferred": false
+            },
+            {
+              "q_gpm": 300,
+              "h_ft": 327,
+              "inferred": false
+            },
+            {
+              "q_gpm": 600,
+              "h_ft": 323,
+              "inferred": true
+            },
+            {
+              "q_gpm": 1000,
+              "h_ft": 297,
+              "inferred": false
+            },
+            {
+              "q_gpm": 1400,
+              "h_ft": 248,
+              "inferred": false
+            }
+          ]
+        },
+        {
+          "diameter_in": 8,
+          "points": [
+            {
+              "q_gpm": 100,
+              "h_ft": 241,
+              "inferred": false
+            },
+            {
+              "q_gpm": 300,
+              "h_ft": 240,
+              "inferred": false
+            },
+            {
+              "q_gpm": 600,
+              "h_ft": 237,
+              "inferred": false
+            },
+            {
+              "q_gpm": 1000,
+              "h_ft": 214,
+              "inferred": true
+            },
+            {
+              "q_gpm": 1400,
+              "h_ft": 207,
+              "inferred": false
+            }
+          ]
+        }
+      ],
+      "pump_types": [
+        "R450",
+        "R5180",
+        "RA3186",
+        "RWA4206"
+      ]
+    }
+  ],
+  "verification": "Head-capacity points were compared with Met-Pro Dean RA data-pak PDF pages 10-22. No head was changed. Checked points sat on the drawn line within the stated \u00b13 ft read. Inferred flags are unchanged. pump_types lists the pump-type line printed on each sheet. frame was filled only where the JSON had none and the sheet prints an RA frame."
+}
