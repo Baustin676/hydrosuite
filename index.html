@@ -305,11 +305,53 @@ function esc(s) {
     return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[ch];
   });
 }
-function fluidLabel() {
+// Suite fluid temperatures. Water presets that print °F stay in °F.
+// A fluid printed only in °C stays in °C. This number is not a viscosity correction.
+var FLUID_TEMP = {
+  water: [68, 'F'], water60: [140, 'F'], water80: [176, 'F'], water100: [212, 'F'],
+  water121: [250, 'F'], water150: [302, 'F'], water180: [356, 'F'],
+  condensate: [90, 'C'], seawater: [20, 'C'],
+  eg30: [20, 'C'], eg50: [20, 'C'], eg50c: [-10, 'C'], pg30: [20, 'C'], pg50: [20, 'C'],
+  dowthermA: [150, 'C'], dowthermA260: [260, 'C'], dowthermQ: [100, 'C'], dowthermQ200: [200, 'C'],
+  therminol55: [100, 'C'], therminol66: [150, 'C'], therminol66h: [300, 'C'], therminolVP1: [200, 'C'],
+  syltherm800: [200, 'C'], syltherm800h: [350, 'C'], xlt: [-40, 'C'],
+  mineralOil100: [100, 'C'], mineralOil200: [200, 'C'],
+  crude: [68, 'F'], crudemed: [68, 'F'], diesel: [68, 'F'], fo6: [122, 'F'],
+  gasoline: [68, 'F'], jetA: [68, 'F'], isovg32: [104, 'F'], isovg68: [104, 'F'],
+  hcl: [68, 'F'], sulfuric: [68, 'F'], sulfuric10: [68, 'F'], naoh: [68, 'F'],
+  methanol: [68, 'F'], ethanol: [68, 'F'], ammonia: [-33, 'C']
+};
+var TEMP_UNIT = 'F';
+
+function fluidName() {
   var opt = document.getElementById('sel-fluid').selectedOptions[0];
   var text = opt ? opt.textContent : '';
   var cut = text.indexOf('(');
-  return (cut > 0 ? text.slice(0, cut) : text).trim();
+  if (cut > 0) text = text.slice(0, cut);
+  var at = text.indexOf(' @ ');
+  if (at > 0) text = text.slice(0, at);
+  return text.trim();
+}
+function formatTemp(t, unit) {
+  var n = Number(t);
+  var text = Math.abs(n - Math.round(n)) < 1e-9 ? String(Math.round(n)) : String(Math.round(n * 10) / 10);
+  return text + ' °' + unit;
+}
+function setTemperatureUnit(unit) {
+  TEMP_UNIT = unit === 'C' ? 'C' : 'F';
+  document.querySelector('label[for="sel-t"]').textContent = 'Temperature (°' + TEMP_UNIT + ')';
+}
+function applyFluidTemperature() {
+  var spec = FLUID_TEMP[document.getElementById('sel-fluid').value];
+  if (!spec) return;
+  setTemperatureUnit(spec[1]);
+  document.getElementById('sel-t').value = String(spec[0]);
+  if (DEAN_LAST) {
+    DEAN_LAST.t = spec[0];
+    DEAN_LAST.unit = TEMP_UNIT;
+    DEAN_LAST.fluid = document.getElementById('sel-fluid').value;
+    renderDeanSelection();
+  }
 }
 function syncChips() {
   var q = document.getElementById('sel-q').value;
@@ -330,7 +372,7 @@ function runDeanSelect() {
   if (q <= 0 || h <= 0) { err.textContent = 'Flow and head need to be greater than zero.'; return; }
   DEAN_LAST = {
     result: DeanRA.select(DEAN_CATALOG, {q_gpm: q, h_ft: h}),
-    q: q, h: h, t: t, fluid: fluid
+    q: q, h: h, t: t, unit: TEMP_UNIT, fluid: fluid
   };
   renderDeanSelection();
 }
@@ -343,6 +385,7 @@ function renderDeanSelection() {
   var wrap = document.getElementById('sel-chart-wrap');
   var result = DEAN_LAST.result;
   var q = DEAN_LAST.q, h = DEAN_LAST.h, t = DEAN_LAST.t, fluid = DEAN_LAST.fluid;
+  var dutyTemp = fluidName() + ', ' + formatTemp(t, DEAN_LAST.unit || TEMP_UNIT);
   var limit = '<p class="note">' + esc(LIMIT_NOTE) + '</p>';
   var fluidLine = '<p class="note">' + esc(DeanRA.fluidNote(fluid)) + '</p>';
   if (!result.covered) {
@@ -350,7 +393,7 @@ function renderDeanSelection() {
     points.innerHTML = '';
     lead.textContent = 'No curve in this catalog covers this duty.';
     trim.textContent = q + ' gpm at ' + h + ' ft is outside every digitized Dean RA line.';
-    meta.textContent = fluidLabel() + '. Temperature ' + t + ' °F.';
+    meta.textContent = dutyTemp;
     notes.innerHTML = limit + fluidLine;
     return;
   }
@@ -360,7 +403,7 @@ function renderDeanSelection() {
   wrap.hidden = false;
   lead.innerHTML = esc(frame) + ' <span class="size">' + esc(curve.size) + '</span>';
   trim.textContent = DeanRA.impellerLabel(hit);
-  meta.textContent = q + ' gpm at ' + h + ' ft · ' + curve.rpm + ' rpm · ' + fluidLabel() + '. Temperature ' + t + ' °F.';
+  meta.textContent = q + ' gpm at ' + h + ' ft · ' + curve.rpm + ' rpm · ' + dutyTemp;
   var extra = '';
   if (hit.inferred) {
     extra += '<p class="note quiet">This part of the line uses a point marked inferred. It was read through a label or a crossing, about ±3 ft.</p>';
@@ -542,6 +585,15 @@ document.querySelectorAll('[data-ex]').forEach(function (btn) {
 });
 ['sel-q', 'sel-h'].forEach(function (id) {
   document.getElementById(id).addEventListener('input', syncChips);
+});
+document.getElementById('sel-fluid').addEventListener('change', applyFluidTemperature);
+document.getElementById('sel-t').addEventListener('input', function () {
+  if (!DEAN_LAST) return;
+  var t = selNum('sel-t');
+  if (t == null) return;
+  DEAN_LAST.t = t;
+  DEAN_LAST.unit = TEMP_UNIT;
+  renderDeanSelection();
 });
 window.addEventListener('resize', function () {
   if (DEAN_LAST && DEAN_LAST.result.covered) drawDeanSelection();
