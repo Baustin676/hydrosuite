@@ -350,7 +350,7 @@ function renderDeanSelection() {
     points.innerHTML = '';
     lead.textContent = 'No curve in this catalog covers this duty.';
     trim.textContent = q + ' gpm at ' + h + ' ft is outside every digitized Dean RA line.';
-    meta.textContent = fluidLabel() + ' at ' + t + ' °F.';
+    meta.textContent = fluidLabel() + '. Temperature ' + t + ' °F.';
     notes.innerHTML = limit + fluidLine;
     return;
   }
@@ -360,7 +360,7 @@ function renderDeanSelection() {
   wrap.hidden = false;
   lead.innerHTML = esc(frame) + ' <span class="size">' + esc(curve.size) + '</span>';
   trim.textContent = DeanRA.impellerLabel(hit);
-  meta.textContent = q + ' gpm at ' + h + ' ft · ' + curve.rpm + ' rpm · ' + fluidLabel() + ' at ' + t + ' °F.';
+  meta.textContent = q + ' gpm at ' + h + ' ft · ' + curve.rpm + ' rpm · ' + fluidLabel() + '. Temperature ' + t + ' °F.';
   var extra = '';
   if (hit.inferred) {
     extra += '<p class="note quiet">This part of the line uses a point marked inferred. It was read through a label or a crossing, about ±3 ft.</p>';
