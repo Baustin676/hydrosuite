@@ -116,6 +116,38 @@ function assertCovered(result, q, h) {
   assert.strictEqual(onSix.pick.inferred, false);
 }
 
+// Page 11 (RA1080-A2) uses the corrected sheet heads, and dropped flows stay absent.
+{
+  const curve = catalog.curves.find(function (c) { return c.model === 'RA1080-A2'; });
+  function line(dia) {
+    return curve.impellers.find(function (imp) { return imp.diameter_in === dia; }).points;
+  }
+  function at(dia, q) { return DeanRA.headAt(line(dia), q); }
+  assert.strictEqual(at(8, 25).h, 294);
+  assert.strictEqual(at(8, 40).h, 290);
+  assert.strictEqual(at(8, 100).h, 293);
+  assert.strictEqual(at(8, 100).inferred, false);
+  assert.strictEqual(at(8, 160).h, 268);
+  assert.strictEqual(at(8, 180), null);
+  assert.strictEqual(at(7, 25).h, 221);
+  assert.strictEqual(at(7, 60).h, 222);
+  assert.strictEqual(at(7, 80).h, 222);
+  assert.strictEqual(at(7, 100).h, 215);
+  assert.strictEqual(at(6, 120).h, 146);
+  assert.strictEqual(at(6, 120).inferred, true);
+  assert.strictEqual(at(6, 140), null);
+  assert.strictEqual(at(6, 160), null);
+  assert.strictEqual(at(5, 100).h, 98);
+  assert.strictEqual(at(5, 120), null);
+  assert.strictEqual(at(5, 140), null);
+  assert.strictEqual(at(5, 160), null);
+  const onEight = pick(100, 293);
+  assertCovered(onEight, 100, 293);
+  assert.strictEqual(onEight.pick.curve.model, 'RA1080-A2');
+  assert.strictEqual(onEight.pick.kind, 'catalog');
+  assert.strictEqual(onEight.pick.upperDiameter, 8);
+}
+
 // Do not extrapolate past the last real point of a line.
 {
   const curve = catalog.curves.find(function (c) { return c.model === 'RA1060-A2'; });
@@ -147,7 +179,7 @@ function assertCovered(result, q, h) {
       });
     });
   });
-  assert.strictEqual(points, 283);
+  assert.strictEqual(points, 277);
   const r = pick(100, 100);
   assert.strictEqual(r.matchCount >= 1, true);
   assert.ok(r.pick);

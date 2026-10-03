@@ -230,14 +230,14 @@
       "frame": "RA2096",
       "rpm": 3500,
       "npsh_ft_note": 14,
-      "notes": "",
+      "notes": "Heads corrected to the sheet. 8 in ends at 160 gpm; there is no stroke at 180 gpm. 6 in ends at 120 gpm. 5 in ends at 100 gpm. 5 in at 120 gpm was not kept: the nearest separable strokes are about 101 and 107 ft and were not assigned to this impeller.",
       "impellers": [
         {
           "diameter_in": 8,
           "points": [
             {
               "q_gpm": 25,
-              "h_ft": 300,
+              "h_ft": 294,
               "inferred": true
             },
             {
@@ -247,38 +247,33 @@
             },
             {
               "q_gpm": 60,
-              "h_ft": 285,
+              "h_ft": 295,
               "inferred": true
             },
             {
               "q_gpm": 80,
-              "h_ft": 280,
+              "h_ft": 294,
               "inferred": true
             },
             {
               "q_gpm": 100,
-              "h_ft": 275,
+              "h_ft": 293,
               "inferred": false
             },
             {
               "q_gpm": 120,
-              "h_ft": 266,
+              "h_ft": 290,
               "inferred": false
             },
             {
               "q_gpm": 140,
-              "h_ft": 258,
+              "h_ft": 282,
               "inferred": true
             },
             {
               "q_gpm": 160,
-              "h_ft": 245,
+              "h_ft": 268,
               "inferred": false
-            },
-            {
-              "q_gpm": 180,
-              "h_ft": 228,
-              "inferred": true
             }
           ]
         },
@@ -287,7 +282,7 @@
           "points": [
             {
               "q_gpm": 25,
-              "h_ft": 230,
+              "h_ft": 221,
               "inferred": false
             },
             {
@@ -297,12 +292,12 @@
             },
             {
               "q_gpm": 60,
-              "h_ft": 216,
+              "h_ft": 222,
               "inferred": true
             },
             {
               "q_gpm": 80,
-              "h_ft": 214,
+              "h_ft": 222,
               "inferred": true
             },
             {
@@ -362,18 +357,8 @@
             },
             {
               "q_gpm": 120,
-              "h_ft": 138,
+              "h_ft": 146,
               "inferred": true
-            },
-            {
-              "q_gpm": 140,
-              "h_ft": 132,
-              "inferred": true
-            },
-            {
-              "q_gpm": 160,
-              "h_ft": 125,
-              "inferred": false
             }
           ]
         },
@@ -404,21 +389,6 @@
               "q_gpm": 100,
               "h_ft": 98,
               "inferred": true
-            },
-            {
-              "q_gpm": 120,
-              "h_ft": 92,
-              "inferred": true
-            },
-            {
-              "q_gpm": 140,
-              "h_ft": 88,
-              "inferred": true
-            },
-            {
-              "q_gpm": 160,
-              "h_ft": 85,
-              "inferred": false
             }
           ]
         }
@@ -1880,5 +1850,5 @@
       ]
     }
   ],
-  "verification": "Head-capacity points were compared with Met-Pro Dean RA data-pak PDF pages 10-22. No head was changed. Checked points sat on the drawn line within the stated \u00b13 ft read. Inferred flags are unchanged. pump_types lists the pump-type line printed on each sheet. frame was filled only where the JSON had none and the sheet prints an RA frame."
+  "verification": "Pages other than 11 matched the sheets within about 5 ft and were left unchanged. Page 11 (RA1080-A2, 1 x 1.5 x 8, 3500 rpm) heads were corrected to the drawn lines. 8 in: 25 gpm 300 to 294, 60 gpm 285 to 295, 80 gpm 280 to 294, 100 gpm 275 to 293, 120 gpm 266 to 290, 140 gpm 258 to 282, 160 gpm 245 to 268; 180 gpm 228 was dropped because the stroke does not come down there. 7 in: 25 gpm 230 to 221, 60 gpm 216 to 222, 80 gpm 214 to 222. 6 in: 120 gpm 138 to 146; 140 gpm and 160 gpm were dropped because the stroke has ended. 5 in: 120, 140, and 160 gpm were dropped. At 120 gpm the nearest separable strokes are about 101 and 107 ft and were not kept as this impeller. Unchanged on this sheet: 8 in at 40 gpm, the rest of the 7 in line, and 6 in and 5 in through 100 gpm. Inferred flags on kept points were not changed. pump_types lists the pump-type line printed on each sheet. frame was filled only where the JSON had none and the sheet prints an RA frame."
 }
