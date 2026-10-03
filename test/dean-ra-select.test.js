@@ -184,14 +184,20 @@ function assertCovered(result, q, h) {
   assert.strictEqual(DeanRA.headAt(six.points, 0), null);
 }
 
-// Water and glycol call out the hot-oil line. Other fluids stay uncorrected.
+// RA and RWA share these curves. Water and glycol are not sent to a different line.
 {
-  assert.ok(DeanRA.fluidNote('water').indexOf('not the RWA line') >= 0);
-  assert.ok(DeanRA.fluidNote('eg').indexOf('not the RWA line') >= 0);
-  assert.ok(DeanRA.fluidNote('pg').indexOf('hot-oil line') >= 0);
+  ['water', 'eg', 'pg', 'hto', 'other'].forEach(function (fluid) {
+    var note = DeanRA.fluidNote(fluid);
+    assert.ok(note.indexOf('not the RWA') < 0, fluid);
+    assert.ok(note.toLowerCase().indexOf('not rwa') < 0, fluid);
+    assert.ok(note.indexOf('shared Dean RA / RWA hydraulics') >= 0, fluid);
+    assert.ok(note.indexOf('hot-oil build') >= 0, fluid);
+    assert.ok(note.indexOf('hot-water build') >= 0, fluid);
+    assert.ok(note.indexOf('not a different head-capacity curve') >= 0, fluid);
+  });
+  assert.ok(DeanRA.fluidNote('water').indexOf('No viscosity correction') >= 0);
+  assert.ok(DeanRA.fluidNote('eg').indexOf('No viscosity correction') >= 0);
   assert.ok(DeanRA.fluidNote('other').indexOf('not viscosity-corrected') >= 0);
-  assert.ok(DeanRA.fluidNote('hto').indexOf('No viscosity correction') >= 0);
-  assert.ok(DeanRA.fluidNote('hto').indexOf('RWA') < 0);
 }
 
 // One recommendation, and every stored point still carries an inferred flag.

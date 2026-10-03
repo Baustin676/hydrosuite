@@ -172,13 +172,11 @@
 
   function fluidNote(fluid) {
     var kind = fluidClass(fluid);
-    if (kind === 'water' || kind === 'glycol') {
-      return 'This catalog is the Dean RA hot-oil line, not the RWA line. The curve is catalog water performance as drawn. No viscosity correction is applied.';
+    var build = 'These catalog curves are the shared Dean RA / RWA hydraulics. The RA frame is the hot-oil build and the RWA is the hot-water build: a materials and temperature distinction, not a different head-capacity curve.';
+    if (kind === 'other') {
+      return build + ' The curve is plotted as drawn. It is not viscosity-corrected.';
     }
-    if (kind === 'oil') {
-      return 'Dean RA line for heat-transfer oil. The curve is catalog water performance as drawn. No viscosity correction is applied.';
-    }
-    return 'Catalog curve plotted as drawn. It is not viscosity-corrected.';
+    return build + ' The curve is catalog water performance as drawn. No viscosity correction is applied.';
   }
 
   function impellerLabel(hit) {
