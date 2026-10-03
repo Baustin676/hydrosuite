@@ -220,6 +220,31 @@ function assertCovered(result, q, h) {
   assert.strictEqual(page22[page22.length - 1], 10);
 }
 
+// Page 22 heads use a 0-to-450 ft scale. Flags stay, and 1800 gpm stays blank.
+{
+  const curve = catalog.curves.find(function (c) { return c.model === 'R40100-A1'; });
+  const expect = {
+    10: [[100, 406, false], [300, 405, false], [600, 405, false], [1000, 394, false], [1400, 348, false]],
+    9: [[100, 312, false], [300, 312, false], [600, 307, true], [1000, 278, false], [1400, 223, false]],
+    8: [[100, 215, false], [300, 214, false], [600, 210, false], [1000, 185, true], [1400, 177, false]]
+  };
+  curve.impellers.forEach(function (imp) {
+    const rows = expect[imp.diameter_in];
+    assert.strictEqual(imp.points.length, rows.length);
+    rows.forEach(function (row, i) {
+      assert.strictEqual(imp.points[i].q_gpm, row[0]);
+      assert.strictEqual(imp.points[i].h_ft, row[1]);
+      assert.strictEqual(imp.points[i].inferred, row[2]);
+    });
+    assert.strictEqual(DeanRA.headAt(imp.points, 1800), null);
+  });
+  const high = pick(500, 360);
+  assertCovered(high, 500, 360);
+  assert.strictEqual(high.pick.curve.model, 'R40100-A1');
+  assert.strictEqual(high.pick.curve.rpm, 3500);
+  assert.strictEqual(DeanRA.powerFrame(high.pick.curve), 'RA3186');
+}
+
 // Do not extrapolate past the last real point of a line.
 {
   const curve = catalog.curves.find(function (c) { return c.model === 'RA1060-A2'; });

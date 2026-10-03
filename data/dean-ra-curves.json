@@ -1749,34 +1749,34 @@
       "frame": "RA3186",
       "rpm": 3500,
       "npsh_ft_note": 25,
-      "notes": "Head scale is 50 to 450 ft, not from 0. Impellers 10, 9, and 8 only. Nothing readable at 1800 gpm. Frame also associated with other frames on the sheet; primary frame noted as RA3186.",
+      "notes": "Head scale is 0 to 450 ft. Heads were rescaled from a mistaken 50-to-450 reading. Impellers 10, 9, and 8 only. Nothing readable at 1800 gpm. Frame also associated with other frames on the sheet; primary frame noted as RA3186.",
       "impellers": [
         {
           "diameter_in": 10,
           "points": [
             {
               "q_gpm": 100,
-              "h_ft": 411,
+              "h_ft": 406,
               "inferred": false
             },
             {
               "q_gpm": 300,
-              "h_ft": 410,
+              "h_ft": 405,
               "inferred": false
             },
             {
               "q_gpm": 600,
-              "h_ft": 410,
+              "h_ft": 405,
               "inferred": false
             },
             {
               "q_gpm": 1000,
-              "h_ft": 400,
+              "h_ft": 394,
               "inferred": false
             },
             {
               "q_gpm": 1400,
-              "h_ft": 359,
+              "h_ft": 348,
               "inferred": false
             }
           ]
@@ -1786,27 +1786,27 @@
           "points": [
             {
               "q_gpm": 100,
-              "h_ft": 327,
+              "h_ft": 312,
               "inferred": false
             },
             {
               "q_gpm": 300,
-              "h_ft": 327,
+              "h_ft": 312,
               "inferred": false
             },
             {
               "q_gpm": 600,
-              "h_ft": 323,
+              "h_ft": 307,
               "inferred": true
             },
             {
               "q_gpm": 1000,
-              "h_ft": 297,
+              "h_ft": 278,
               "inferred": false
             },
             {
               "q_gpm": 1400,
-              "h_ft": 248,
+              "h_ft": 223,
               "inferred": false
             }
           ]
@@ -1816,27 +1816,27 @@
           "points": [
             {
               "q_gpm": 100,
-              "h_ft": 241,
+              "h_ft": 215,
               "inferred": false
             },
             {
               "q_gpm": 300,
-              "h_ft": 240,
+              "h_ft": 214,
               "inferred": false
             },
             {
               "q_gpm": 600,
-              "h_ft": 237,
+              "h_ft": 210,
               "inferred": false
             },
             {
               "q_gpm": 1000,
-              "h_ft": 214,
+              "h_ft": 185,
               "inferred": true
             },
             {
               "q_gpm": 1400,
-              "h_ft": 207,
+              "h_ft": 177,
               "inferred": false
             }
           ]
@@ -1850,5 +1850,5 @@
       ]
     }
   ],
-  "verification": "Pages other than 11 matched the sheets within about 5 ft and were left unchanged. Page 11 (RA1080-A2, 1 x 1.5 x 8, 3500 rpm) heads were corrected to the drawn lines. 8 in: 25 gpm 300 to 294, 60 gpm 285 to 295, 80 gpm 280 to 294, 100 gpm 275 to 293, 120 gpm 266 to 290, 140 gpm 258 to 282, 160 gpm 245 to 268; 180 gpm 228 was dropped because the stroke does not come down there. 7 in: 25 gpm 230 to 221, 60 gpm 216 to 222, 80 gpm 214 to 222. 6 in: 120 gpm 138 to 146; 140 gpm and 160 gpm were dropped because the stroke has ended. 5 in: 120, 140, and 160 gpm were dropped. At 120 gpm the nearest separable strokes are about 101 and 107 ft and were not kept as this impeller. Unchanged on this sheet: 8 in at 40 gpm, the rest of the 7 in line, and 6 in and 5 in through 100 gpm. Inferred flags on kept points were not changed. pump_types lists the pump-type line printed on each sheet. frame was filled only where the JSON had none and the sheet prints an RA frame."
+  "verification": "Pages other than 11 and 22 matched the sheets within about 5 ft and were left unchanged. Page 22 (R40100-A1, 4 x 6 x 10 #1, RA3186, 3500 rpm) was read on a 50-to-450 ft scale. The sheet runs from 0 to 450 ft, so those heads were replaced and the clear versus inferred flags were kept. 1800 gpm stays blank. 10 in: 100 gpm 411 to 406, 300 gpm 410 to 405, 600 gpm 410 to 405, 1000 gpm 400 to 394, 1400 gpm 359 to 348. 9 in: 100 gpm 327 to 312, 300 gpm 327 to 312, 600 gpm 323 inferred to 307 inferred, 1000 gpm 297 to 278, 1400 gpm 248 to 223. 8 in: 100 gpm 241 to 215, 300 gpm 240 to 214, 600 gpm 237 to 210, 1000 gpm 214 inferred to 185 inferred, 1400 gpm 207 to 177. Page 11 (RA1080-A2, 1 x 1.5 x 8, 3500 rpm) heads were corrected to the drawn lines. 8 in: 25 gpm 300 to 294, 60 gpm 285 to 295, 80 gpm 280 to 294, 100 gpm 275 to 293, 120 gpm 266 to 290, 140 gpm 258 to 282, 160 gpm 245 to 268; 180 gpm 228 was dropped because the stroke does not come down there. 7 in: 25 gpm 230 to 221, 60 gpm 216 to 222, 80 gpm 214 to 222. 6 in: 120 gpm 138 to 146; 140 gpm and 160 gpm were dropped because the stroke has ended. 5 in: 120, 140, and 160 gpm were dropped. At 120 gpm the nearest separable strokes are about 101 and 107 ft and were not kept as this impeller. Unchanged on this sheet: 8 in at 40 gpm, the rest of the 7 in line, and 6 in and 5 in through 100 gpm. Inferred flags on kept points were not changed. pump_types lists the pump-type line printed on each sheet. frame was filled only where the JSON had none and the sheet prints an RA frame."
 }
