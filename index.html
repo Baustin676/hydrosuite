@@ -14,7 +14,7 @@
   --line: #e4e4e4;
   --amber: #FCB02C;
   --white: #ffffff;
-  --sans: "Exo", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --sans: "Exo", Inter, "Liberation Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
@@ -165,9 +165,20 @@ details summary:focus-visible {
 .sel-size { font-size: 16px; font-weight: 600; }
 .sel-rpm { color: var(--muted); font-size: 14px; }
 .sel-trim, .sel-seat, .iq { margin: 6px 0 0; font-size: 14px; }
-.chart-caption {
+.chart-head { padding: 16px 16px 0; }
+.chart-title {
   margin: 0;
-  padding: 10px 12px 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.chart-duty {
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.chart-caption {
+  margin: 4px 0 0;
   color: var(--muted);
   font-size: 13px;
 }
@@ -180,7 +191,13 @@ details summary:focus-visible {
 .chart-wrap canvas {
   display: block;
   width: 100%;
-  height: 440px;
+  height: 520px;
+}
+.chart-legend {
+  margin: 0;
+  padding: 0 16px 14px;
+  color: var(--muted);
+  font-size: 13px;
 }
 details { margin-top: 14px; }
 details summary {
@@ -205,7 +222,7 @@ th { font-weight: 600; }
   header h1 { font-size: 26px; }
   .layout { grid-template-columns: 1fr; gap: 28px; }
   .rec-lead { font-size: 24px; }
-  .chart-wrap canvas { height: 320px; }
+  .chart-wrap canvas { height: 400px; }
 }
 </style>
 </head>
@@ -302,11 +319,16 @@ th { font-weight: 600; }
       <p class="rec-kicker">Selections</p>
       <p class="rec-lead" id="rec-lead">Enter a duty.</p>
       <p class="rec-meta" id="rec-meta"></p>
-      <div id="rec-list" class="sel-list"></div>
       <div class="chart-wrap" id="sel-chart-wrap" hidden>
-        <p class="chart-caption" id="chart-caption"></p>
+        <div class="chart-head">
+          <p class="chart-title" id="chart-title"></p>
+          <p class="chart-duty" id="chart-duty"></p>
+          <p class="chart-caption" id="chart-caption"></p>
+        </div>
         <canvas id="sel-canvas"></canvas>
+        <p class="chart-legend" id="chart-legend"></p>
       </div>
+      <div id="rec-list" class="sel-list"></div>
       <div id="sel-points"></div>
       <div id="rec-notes">
         <p class="note">This catalog does not include pumps larger than 10 in, so a better Dean size may exist above that.</p>
@@ -444,6 +466,9 @@ function renderDeanSelection() {
   var points = document.getElementById('sel-points');
   var wrap = document.getElementById('sel-chart-wrap');
   var caption = document.getElementById('chart-caption');
+  var chartTitle = document.getElementById('chart-title');
+  var chartDuty = document.getElementById('chart-duty');
+  var legend = document.getElementById('chart-legend');
   var result = DEAN_LAST.result;
   var q = DEAN_LAST.q, h = DEAN_LAST.h, t = DEAN_LAST.t, fluid = DEAN_LAST.fluid;
   var dutyTemp = fluidName() + ', ' + formatTemp(t, DEAN_LAST.unit || TEMP_UNIT);
@@ -451,18 +476,19 @@ function renderDeanSelection() {
     '<p class="note">' + esc(DeanRA.RANK_NOTE) + '</p>' +
     '<p class="note">' + esc(DeanRA.SHARED_CURVE_NOTE) + '</p>' +
     '<p class="note">' + esc(DeanRA.fluidNote(fluid)) + '</p>';
-  meta.textContent = q + ' gpm at ' + h + ' ft · ' + dutyTemp;
   if (!result.covered) {
     wrap.hidden = true;
     points.innerHTML = '';
     listEl.innerHTML = '';
-    lead.textContent = 'No curve in this catalog covers this duty.';
+    lead.textContent = q + ' gpm at ' + h + ' ft';
+    meta.textContent = 'No curve in this catalog covers this duty. ' + dutyTemp;
     notes.innerHTML = notesHtml + '<p class="note">' + esc(q + ' gpm at ' + h + ' ft is outside every digitized Dean RA line.') + '</p>';
     return;
   }
   var selections = result.selections;
   var n = selections.length;
-  lead.textContent = n === 1 ? '1 size in this catalog can meet this duty.' : (n + ' sizes in this catalog can meet this duty.');
+  lead.textContent = q + ' gpm at ' + h + ' ft';
+  meta.textContent = (n === 1 ? '1 size in this catalog can meet this duty.' : (n + ' sizes in this catalog can meet this duty.')) + ' ' + dutyTemp;
   var html = '';
   selections.forEach(function (hit, i) {
     var curve = hit.curve;
@@ -486,7 +512,13 @@ function renderDeanSelection() {
   extra += '<p class="note quiet">Sheet note: NPSH ' + esc(curve.npsh_ft_note) + ' ft. That is the note printed on the sheet, not an NPSHr curve.</p>';
   if (curve.rpm_note) extra += '<p class="note quiet">' + esc(curve.rpm_note) + '</p>';
   notes.innerHTML = notesHtml + extra;
-  caption.textContent = 'Head-capacity curves for ' + DeanRA.powerFrame(curve) + ', ' + curve.size + '. Catalog water curve.';
+  var trimText = DeanRA.formatDia(hit.diameter_in) + (hit.kind === 'trim' ? ' in trim' : ' in');
+  chartTitle.textContent = DeanRA.powerFrame(curve) + '  ·  ' + curve.size + '  ·  ' + curve.rpm + ' rpm';
+  chartDuty.textContent = q + ' gpm at ' + h + ' ft  ·  ' + trimText;
+  caption.textContent = 'Catalog water curve.';
+  legend.textContent = hit.kind === 'trim'
+    ? 'Black lines are catalog diameters. The blue line is the trim for this duty. Labels sit beside the plot, not on the lines. Open circles were read through a label or a crossing, about ±3 ft.'
+    : 'Black lines are catalog diameters. This duty is on a published diameter. Labels sit beside the plot, not on the lines. Open circles were read through a label or a crossing, about ±3 ft.';
   wrap.hidden = false;
   points.innerHTML = renderPointTable(curve);
   drawDeanSelection();
@@ -514,8 +546,8 @@ function drawDeanSelection() {
   var qDuty = DEAN_LAST.q, hDuty = DEAN_LAST.h;
   var curve = hit.curve;
   var dpr = window.devicePixelRatio || 1;
-  var cssW = parent.clientWidth || 640;
-  var cssH = window.matchMedia('(max-width: 800px)').matches ? 320 : 440;
+  var cssW = parent.clientWidth || 720;
+  var cssH = window.matchMedia('(max-width: 800px)').matches ? 400 : 520;
   canvas.style.height = cssH + 'px';
   canvas.width = Math.round(cssW * dpr);
   canvas.height = Math.round(cssH * dpr);
@@ -526,7 +558,7 @@ function drawDeanSelection() {
   ctx.fillRect(0, 0, cssW, cssH);
 
   var samples = betweenSamples(hit);
-  var maxQ = qDuty, maxH = hDuty;
+  var maxQ = qDuty, maxH = Math.max(hDuty, 1);
   curve.impellers.forEach(function (imp) {
     imp.points.forEach(function (p) {
       if (p.q_gpm > maxQ) maxQ = p.q_gpm;
@@ -537,24 +569,76 @@ function drawDeanSelection() {
     if (p.q > maxQ) maxQ = p.q;
     if (p.h > maxH) maxH = p.h;
   });
-  maxQ = maxQ * 1.08;
-  maxH = maxH * 1.12;
-  var pad = {l: 58, r: 28, t: 28, b: 42};
-  var pw = cssW - pad.l - pad.r, ph = cssH - pad.t - pad.b;
-  function X(q) { return pad.l + (q / maxQ) * pw; }
-  function Y(h) { return pad.t + ph - (h / maxH) * ph; }
+  var xAxis = axisScale(maxQ * 1.04, 5);
+  var yAxis = axisScale(maxH * 1.08, 5);
+  var font = 'Inter, "Liberation Sans", Helvetica, Arial, sans-serif';
 
-  ctx.strokeStyle = '#ececec';
-  ctx.fillStyle = '#141414';
-  ctx.font = '12px Exo, Helvetica, sans-serif';
-  ctx.lineWidth = 1;
-  for (var i = 0; i <= 4; i++) {
-    var gq = maxQ * i / 4, gh = maxH * i / 4;
-    ctx.beginPath(); ctx.moveTo(X(gq), pad.t); ctx.lineTo(X(gq), pad.t + ph); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(pad.l, Y(gh)); ctx.lineTo(pad.l + pw, Y(gh)); ctx.stroke();
-    ctx.fillText(String(Math.round(gq)), X(gq) - 10, pad.t + ph + 16);
-    ctx.fillText(String(Math.round(gh)), 6, Y(gh) + 4);
+  var gutter = [];
+  curve.impellers.forEach(function (imp) {
+    var measured = DeanRA.measuredPoints(imp.points);
+    if (!measured.length) return;
+    var hot = imp.diameter_in === hit.upperDiameter || imp.diameter_in === hit.lowerDiameter;
+    var operating = hit.kind === 'catalog' && imp.diameter_in === hit.diameter_in;
+    gutter.push({
+      text: DeanRA.formatDia(imp.diameter_in) + ' in',
+      yHead: measured[0].h_ft,
+      color: operating ? '#1b4f8a' : (hot ? '#141414' : '#5c5c5c'),
+      weight: hot || operating ? '700' : '600'
+    });
+  });
+  if (samples.length > 1) {
+    gutter.push({
+      text: DeanRA.formatDia(hit.diameter_in) + ' in',
+      yHead: samples[0].h,
+      color: '#1b4f8a',
+      weight: '700'
+    });
   }
+
+  ctx.font = '700 12px ' + font;
+  var diaW = 0;
+  gutter.forEach(function (g) {
+    diaW = Math.max(diaW, ctx.measureText(g.text).width);
+  });
+  ctx.font = '12px ' + font;
+  var tickW = Math.max(ctx.measureText(String(Math.round(yAxis.max))).width, ctx.measureText(String(Math.round(xAxis.max))).width);
+  var pad = {
+    l: Math.ceil(18 + tickW + 14 + diaW + 10),
+    r: 18,
+    t: 16,
+    b: 46
+  };
+  var pw = cssW - pad.l - pad.r;
+  var ph = cssH - pad.t - pad.b;
+  function X(q) { return pad.l + (q / xAxis.max) * pw; }
+  function Y(h) { return pad.t + ph - (h / yAxis.max) * ph; }
+
+  ctx.strokeStyle = '#e6e6e6';
+  ctx.lineWidth = 1;
+  ctx.font = '12px ' + font;
+  ctx.fillStyle = '#141414';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  for (var qx = 0; qx <= xAxis.max + 1e-6; qx += xAxis.step) {
+    var xx = X(qx);
+    ctx.beginPath();
+    ctx.moveTo(xx, pad.t);
+    ctx.lineTo(xx, pad.t + ph);
+    ctx.stroke();
+    ctx.fillText(String(Math.round(qx)), xx, pad.t + ph + 8);
+  }
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (var hy = 0; hy <= yAxis.max + 1e-6; hy += yAxis.step) {
+    var yy = Y(hy);
+    ctx.beginPath();
+    ctx.moveTo(pad.l, yy);
+    ctx.lineTo(pad.l + pw, yy);
+    ctx.stroke();
+    ctx.fillText(String(Math.round(hy)), pad.l - diaW - 22, yy);
+  }
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
   ctx.strokeStyle = '#141414';
   ctx.lineWidth = 1.25;
   ctx.beginPath();
@@ -562,33 +646,36 @@ function drawDeanSelection() {
   ctx.lineTo(pad.l, pad.t + ph);
   ctx.lineTo(pad.l + pw, pad.t + ph);
   ctx.stroke();
-  ctx.fillText('gpm', pad.l + pw - 28, cssH - 8);
+  ctx.fillStyle = '#141414';
+  ctx.font = '600 12px ' + font;
+  ctx.textAlign = 'center';
+  ctx.fillText('Flow — gpm', pad.l + pw / 2, cssH - 16);
   ctx.save();
-  ctx.translate(14, pad.t + 36);
-  ctx.fillText('ft', 0, 0);
+  ctx.translate(13, pad.t + ph / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Head — ft', 0, 0);
   ctx.restore();
+  ctx.textAlign = 'left';
 
-  var highlight = {};
-  highlight[hit.upperDiameter] = true;
-  if (hit.lowerDiameter != null) highlight[hit.lowerDiameter] = true;
-
+  var polys = [];
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
+  ctx.setLineDash([]);
   curve.impellers.forEach(function (imp) {
-    var pts = imp.points.slice().sort(function (a, b) { return a.q_gpm - b.q_gpm; });
-    var hot = !!highlight[imp.diameter_in];
-    ctx.lineWidth = hot ? 2.4 : 1.35;
-    ctx.strokeStyle = hot ? '#141414' : '#8a8a8a';
-    ctx.globalAlpha = 1;
-    ctx.setLineDash([]);
+    var pts = DeanRA.measuredPoints(imp.points);
+    var hot = imp.diameter_in === hit.upperDiameter || imp.diameter_in === hit.lowerDiameter;
+    var operating = hit.kind === 'catalog' && imp.diameter_in === hit.diameter_in;
+    ctx.lineWidth = operating ? 2.6 : (hot ? 2.25 : 1.45);
+    ctx.strokeStyle = operating ? '#1b4f8a' : (hot ? '#141414' : '#8a8a8a');
     strokeSmooth(ctx, X, Y, pts);
+    polys.push(sampleCurve(pts, X, Y));
     pts.forEach(function (p) {
       if (!p.inferred) return;
       ctx.beginPath();
       ctx.fillStyle = '#ffffff';
       ctx.strokeStyle = hot ? '#141414' : '#8a8a8a';
       ctx.lineWidth = 1.25;
-      ctx.arc(X(p.q_gpm), Y(p.h_ft), 4, 0, Math.PI * 2);
+      ctx.arc(X(p.q_gpm), Y(p.h_ft), 3.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     });
@@ -596,33 +683,98 @@ function drawDeanSelection() {
 
   if (samples.length > 1) {
     ctx.beginPath();
-    ctx.setLineDash([7, 4]);
-    ctx.lineWidth = 2.25;
-    ctx.strokeStyle = '#141414';
+    ctx.setLineDash([]);
+    ctx.lineWidth = 2.6;
+    ctx.strokeStyle = '#1b4f8a';
     samples.forEach(function (p, i) {
-      if (i === 0) ctx.moveTo(X(p.q), Y(p.h));
-      else ctx.lineTo(X(p.q), Y(p.h));
+      var x = X(p.q), y = Y(p.h);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     });
     ctx.stroke();
-    ctx.setLineDash([]);
+    polys.push(samples.map(function (p) { return {x: X(p.q), y: Y(p.h)}; }));
   }
 
   var dutyX = X(qDuty), dutyY = Y(hDuty);
-  ctx.beginPath();
-  ctx.fillStyle = '#FCB02C';
-  ctx.strokeStyle = '#141414';
-  ctx.lineWidth = 1.5;
-  ctx.arc(dutyX, dutyY, 6, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.font = '12px Exo, Helvetica, sans-serif';
-  placeCurveLabels(ctx, {
-    X: X, Y: Y, curve: curve, highlight: highlight, samples: samples, hit: hit,
-    dutyX: dutyX, dutyY: dutyY,
-    bounds: {x: pad.l + 4, y: pad.t + 2, w: pw - 8, h: ph - 6}
+  drawDutyMarker(ctx, dutyX, dutyY);
+  placeDutyCallout(ctx, {
+    font: font,
+    dutyX: dutyX,
+    dutyY: dutyY,
+    qDuty: qDuty,
+    hDuty: hDuty,
+    hit: hit,
+    polys: polys,
+    bounds: {x: pad.l + 8, y: pad.t + 8, w: pw - 16, h: ph - 16}
   });
-  ctx.fillStyle = '#5c5c5c';
-  ctx.fillText('Open circles are inferred catalog points (±3 ft).', pad.l, 16);
+
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  var labelYs = gutter.map(function (g) { return Y(g.yHead); });
+  separateYs(labelYs, pad.t + 8, pad.t + ph - 8, 16);
+  gutter.forEach(function (g, i) {
+    ctx.font = g.weight + ' 12px ' + font;
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineJoin = 'round';
+    ctx.strokeText(g.text, pad.l - 8, labelYs[i]);
+    ctx.fillStyle = g.color;
+    ctx.fillText(g.text, pad.l - 8, labelYs[i]);
+  });
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+function sampleCurve(points, X, Y) {
+  var measured = DeanRA.measuredPoints(points);
+  var out = [];
+  if (measured.length < 2) return out;
+  var q0 = measured[0].q_gpm;
+  var q1 = measured[measured.length - 1].q_gpm;
+  var span = Math.abs(X(q1) - X(q0));
+  var n = Math.max(24, Math.round(span / 2));
+  for (var i = 0; i <= n; i++) {
+    var q = q0 + (q1 - q0) * i / n;
+    var sm = DeanRA.smoothHead(points, q);
+    if (!sm) continue;
+    out.push({x: X(q), y: Y(sm.h)});
+  }
+  return out;
+}
+function separateYs(ys, minY, maxY, gap) {
+  var order = ys.map(function (y, i) { return {y: y, i: i}; }).sort(function (a, b) { return a.y - b.y; });
+  for (var i = 1; i < order.length; i++) {
+    if (order[i].y < order[i - 1].y + gap) order[i].y = order[i - 1].y + gap;
+  }
+  if (order.length && order[order.length - 1].y > maxY) {
+    order[order.length - 1].y = maxY;
+    for (var j = order.length - 2; j >= 0; j--) {
+      if (order[j].y > order[j + 1].y - gap) order[j].y = order[j + 1].y - gap;
+    }
+  }
+  if (order.length && order[0].y < minY) order[0].y = minY;
+  order.forEach(function (item) { ys[item.i] = item.y; });
+}
+function axisScale(value, divisions) {
+  var raw = Math.max(value, 1) / divisions;
+  var pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  var frac = raw / pow;
+  var nice = frac <= 1 ? 1 : frac <= 2 ? 2 : frac <= 2.5 ? 2.5 : frac <= 5 ? 5 : 10;
+  var step = nice * pow;
+  var max = Math.ceil((value - 1e-9) / step) * step;
+  if (max < value) max += step;
+  return {step: step, max: max};
+}
+function drawDutyMarker(ctx, x, y) {
+  ctx.beginPath();
+  ctx.moveTo(x, y - 9);
+  ctx.lineTo(x + 8, y + 7);
+  ctx.lineTo(x - 8, y + 7);
+  ctx.closePath();
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  ctx.lineWidth = 1.75;
+  ctx.strokeStyle = '#1b4f8a';
+  ctx.stroke();
 }
 function strokeSmooth(ctx, X, Y, points) {
   var pieces = DeanRA.smoothPieces(points);
@@ -649,110 +801,136 @@ function strokeSmooth(ctx, X, Y, points) {
   });
   ctx.stroke();
 }
-function placeCurveLabels(ctx, spec) {
+function pointSegDist(px, py, x1, y1, x2, y2) {
+  var dx = x2 - x1, dy = y2 - y1;
+  var len2 = dx * dx + dy * dy;
+  var t = len2 === 0 ? 0 : ((px - x1) * dx + (py - y1) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  var qx = x1 + t * dx, qy = y1 + t * dy;
+  return Math.hypot(px - qx, py - qy);
+}
+function pointRectDist(px, py, box) {
+  var dx = Math.max(box.x - px, 0, px - (box.x + box.w));
+  var dy = Math.max(box.y - py, 0, py - (box.y + box.h));
+  return Math.hypot(dx, dy);
+}
+function segHitsRect(x1, y1, x2, y2, box) {
+  function inside(px, py) {
+    return px >= box.x && px <= box.x + box.w && py >= box.y && py <= box.y + box.h;
+  }
+  if (inside(x1, y1) || inside(x2, y2)) return true;
+  function cuts(ax, ay, bx, by) {
+    function cross(cx, cy, dx, dy, px, py) {
+      return (dx - cx) * (py - cy) - (dy - cy) * (px - cx);
+    }
+    var s1 = cross(ax, ay, bx, by, x1, y1);
+    var s2 = cross(ax, ay, bx, by, x2, y2);
+    var s3 = cross(x1, y1, x2, y2, ax, ay);
+    var s4 = cross(x1, y1, x2, y2, bx, by);
+    return s1 * s2 <= 0 && s3 * s4 <= 0;
+  }
+  var x = box.x, y = box.y, r = box.x + box.w, b = box.y + box.h;
+  return cuts(x, y, r, y) || cuts(r, y, r, b) || cuts(r, b, x, b) || cuts(x, b, x, y);
+}
+function segRectDist(x1, y1, x2, y2, box) {
+  if (segHitsRect(x1, y1, x2, y2, box)) return 0;
+  var d = Math.min(pointRectDist(x1, y1, box), pointRectDist(x2, y2, box));
+  d = Math.min(d, pointSegDist(box.x, box.y, x1, y1, x2, y2));
+  d = Math.min(d, pointSegDist(box.x + box.w, box.y, x1, y1, x2, y2));
+  d = Math.min(d, pointSegDist(box.x, box.y + box.h, x1, y1, x2, y2));
+  d = Math.min(d, pointSegDist(box.x + box.w, box.y + box.h, x1, y1, x2, y2));
+  return d;
+}
+function curveClearance(box, polys) {
+  var best = Infinity;
+  for (var p = 0; p < polys.length; p++) {
+    var pts = polys[p];
+    for (var i = 1; i < pts.length; i++) {
+      var d = segRectDist(pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y, box);
+      if (d < best) best = d;
+      if (best === 0) return 0;
+    }
+  }
+  return best;
+}
+function placeDutyCallout(ctx, spec) {
+  var font = spec.font;
+  var line1 = formatChartGpm(spec.qDuty) + ' gpm at ' + formatChartFt(spec.hDuty) + ' ft';
+  var line2 = DeanRA.formatDia(spec.hit.diameter_in) + (spec.hit.kind === 'trim' ? ' in trim' : ' in');
+  ctx.font = '600 13px ' + font;
+  var textW = Math.max(ctx.measureText(line1).width, ctx.measureText(line2).width);
+  var boxW = Math.ceil(textW + 16);
+  var boxH = 40;
   var bounds = spec.bounds;
-  var dutyX = spec.dutyX, dutyY = spec.dutyY;
-  var occupied = [{x: dutyX - 9, y: dutyY - 9, w: 18, h: 18}];
-  var placed = [];
-  function boxAt(text, x, y) {
-    return {x: x, y: y - 12, w: ctx.measureText(text).width, h: 15, text: text};
+  var marker = {x: spec.dutyX - 14, y: spec.dutyY - 14, w: 28, h: 28};
+  var best = null;
+  var bestScore = -1e12;
+  function overlaps(a, b, gap) {
+    return a.x < b.x + b.w + gap && a.x + a.w + gap > b.x && a.y < b.y + b.h + gap && a.y + a.h + gap > b.y;
   }
-  function hits(b) {
-    if (b.x < bounds.x || b.y < bounds.y || b.x + b.w > bounds.x + bounds.w || b.y + b.h > bounds.y + bounds.h) return true;
-    for (var i = 0; i < occupied.length; i++) {
-      var o = occupied[i];
-      if (b.x < o.x + o.w + 10 && b.x + b.w + 10 > o.x && b.y < o.y + o.h + 10 && b.y + b.h + 10 > o.y) return true;
-    }
-    return false;
-  }
-  function coversPoint(b, p) {
-    return p.x >= b.x - 3 && p.x <= b.x + b.w + 3 && p.y >= b.y - 3 && p.y <= b.y + b.h + 3;
-  }
-  function commit(b, color) {
-    occupied.push(b);
-    placed.push(b);
-    ctx.fillStyle = color;
-    ctx.fillText(b.text, b.x, b.y + 12);
-    return true;
-  }
-  function placeBeside(text, anchor, color) {
-    var w = ctx.measureText(text).width;
-    var candidates = [];
-    var dy, dx;
-    for (dy = -16; dy >= -78; dy -= 14) candidates.push([10, dy]);
-    for (dy = 18; dy <= 78; dy += 14) candidates.push([10, dy]);
-    candidates.push([-w - 10, -16], [-w - 10, 18]);
-    for (dx = 24; dx <= 120; dx += 24) {
-      candidates.push([dx, -16], [dx, 18], [-w - dx, -16]);
-    }
-    var best = null, bestDist = 1e9;
-    candidates.forEach(function (off) {
-      var b = boxAt(text, anchor.x + off[0], anchor.y + off[1]);
-      if (hits(b) || coversPoint(b, anchor) || coversPoint(b, {x: dutyX, y: dutyY})) return;
-      var dist = Math.hypot(off[0], off[1]) + (off[1] < 0 ? -6 : 8);
-      if (dist < bestDist) { bestDist = dist; best = b; }
-    });
-    if (!best) return false;
-    return commit(best, color);
-  }
-  var imps = spec.curve.impellers.slice().sort(function (a, b) { return b.diameter_in - a.diameter_in; });
-  imps.forEach(function (imp) {
-    var pts = imp.points.slice().sort(function (a, b) { return a.q_gpm - b.q_gpm; });
-    if (!pts.length) return;
-    var first = pts[0];
-    var color = spec.highlight[imp.diameter_in] ? '#141414' : '#5c5c5c';
-    placeBeside(DeanRA.formatDia(imp.diameter_in) + ' in', {x: spec.X(first.q_gpm), y: spec.Y(first.h_ft)}, color);
-  });
-  if (spec.samples.length > 1) {
-    var trimText = DeanRA.formatDia(spec.hit.diameter_in) + ' in trim';
-    var ranked = spec.samples.map(function (p) {
-      var x = spec.X(p.q), y = spec.Y(p.h);
-      var score = Math.hypot(x - dutyX, y - dutyY);
-      occupied.forEach(function (o) {
-        var gap = Math.hypot(x - (o.x + o.w / 2), y - (o.y + o.h / 2));
-        if (gap < 90) score -= (90 - gap) * 3;
-      });
-      return {x: x, y: y, d: score};
-    }).sort(function (a, b) { return b.d - a.d; });
-    var step = Math.max(1, Math.floor(ranked.length / 10));
-    var parked = false;
-    for (var i = 0; i < ranked.length && !parked; i += step) {
-      if (ranked[i].d < 36) continue;
-      parked = placeBeside(trimText, ranked[i], '#141414');
-    }
-    if (!parked) placeBeside(trimText, ranked[0], '#141414');
-  }
-  var dutyWord = 'duty';
-  var dw = ctx.measureText(dutyWord).width;
-  var rings = [22, 36, 52, 70];
-  var dirs = [[1, -1], [-1, -1], [1, 1], [-1, 1], [0, -1], [1, 0], [0, 1], [-1, 0]];
-  var dutyBox = null;
-  for (var r = 0; r < rings.length && !dutyBox; r++) {
-    for (var d = 0; d < dirs.length && !dutyBox; d++) {
-      var ox = dirs[d][0] * rings[r];
-      var oy = dirs[d][1] * rings[r] * 0.75;
-      var x = dutyX + (dirs[d][0] < 0 ? ox - dw : ox + 4);
-      var y = dutyY + oy;
-      var b = boxAt(dutyWord, x, y);
-      if (!hits(b)) dutyBox = b;
+  var step = 8;
+  for (var y = bounds.y; y + boxH <= bounds.y + bounds.h; y += step) {
+    for (var x = bounds.x; x + boxW <= bounds.x + bounds.w; x += step) {
+      var box = {x: x, y: y, w: boxW, h: boxH};
+      if (overlaps(box, marker, 12)) continue;
+      var clearance = curveClearance(box, spec.polys);
+      if (clearance < 14) continue;
+      var cx = x + boxW / 2, cy = y + boxH / 2;
+      var near = Math.hypot(cx - spec.dutyX, cy - spec.dutyY);
+      var score = Math.min(clearance, 56) * 5 - near * 0.15;
+      if (score > bestScore) { bestScore = score; best = box; best.clearance = clearance; }
     }
   }
-  if (dutyBox) {
-    var cx = dutyBox.x + dutyBox.w / 2;
-    var cy = dutyBox.y + dutyBox.h / 2;
-    var ldx = cx - dutyX, ldy = cy - dutyY;
-    var llen = Math.hypot(ldx, ldy) || 1;
-    if (llen > 20) {
-      ctx.strokeStyle = '#141414';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([]);
-      ctx.beginPath();
-      ctx.moveTo(dutyX + ldx / llen * 8, dutyY + ldy / llen * 8);
-      ctx.lineTo(cx - ldx / llen * (dutyBox.w / 2 + 3), cy - ldy / llen * (dutyBox.h / 2 + 3));
-      ctx.stroke();
+  if (!best) {
+    var fallbackScore = -1e12;
+    for (var fy = bounds.y; fy + boxH <= bounds.y + bounds.h; fy += step) {
+      for (var fx = bounds.x; fx + boxW <= bounds.x + bounds.w; fx += step) {
+        var fbox = {x: fx, y: fy, w: boxW, h: boxH};
+        if (overlaps(fbox, marker, 8)) continue;
+        var fclear = curveClearance(fbox, spec.polys);
+        if (fclear > fallbackScore) { fallbackScore = fclear; best = fbox; best.clearance = fclear; }
+      }
     }
-    commit(dutyBox, '#141414');
   }
+  if (!best) return;
+  var cx = best.x + best.w / 2;
+  var cy = best.y + best.h / 2;
+  var dx = spec.dutyX - cx;
+  var dy = spec.dutyY - cy;
+  var sx = dx === 0 ? 1e9 : (best.w / 2) / Math.abs(dx);
+  var sy = dy === 0 ? 1e9 : (best.h / 2) / Math.abs(dy);
+  var s = Math.min(sx, sy);
+  var startX = cx + dx * s;
+  var startY = cy + dy * s;
+  var len = Math.hypot(dx, dy) || 1;
+  ctx.beginPath();
+  ctx.strokeStyle = '#1b4f8a';
+  ctx.lineWidth = 1.15;
+  ctx.setLineDash([]);
+  ctx.moveTo(startX, startY);
+  ctx.lineTo(spec.dutyX - dx / len * 12, spec.dutyY - dy / len * 12);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#1b4f8a';
+  ctx.lineWidth = 1.25;
+  ctx.roundRect(best.x, best.y, best.w, best.h, 4);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#141414';
+  ctx.font = '600 13px ' + font;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(line1, best.x + 8, best.y + 16);
+  ctx.fillText(line2, best.x + 8, best.y + 32);
+}
+function formatChartGpm(q) {
+  var n = Math.round(Number(q) * 10) / 10;
+  if (Math.abs(n - Math.round(n)) < 1e-9) return String(Math.round(n));
+  return n.toFixed(1);
+}
+function formatChartFt(h) {
+  return formatChartGpm(h);
 }
 function betweenSamples(hit) {
   if (hit.kind !== 'trim') return [];
