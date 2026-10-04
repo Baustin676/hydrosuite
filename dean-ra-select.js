@@ -1,7 +1,9 @@
 /* Dean RA catalog selector.
-   Uses digitized head-capacity points. A smooth monotone fit supplies
+   Uses digitized head-capacity points. A monotone cubic spline supplies
    intermediate points inside each impeller's measured flow range; those
    points are marked interpolated and are not new sheet readings.
+   The spline passes through every catalog head and falls or stays level
+   as flow increases. It is not extended past the first or last catalog flow.
    A duty between two lines is an eighth-inch trim from diameter-squared
    affinity, not a linear diameter. Does not extrapolate or speed-scale.
    A duty returns every catalog size that can meet it. The order is hydraulic
@@ -91,15 +93,11 @@
     return hLo + (hHi - hLo) * (d * d - dLo * dLo) / denom;
   }
 
-  // Fritsch–Carlson / PCHIP endpoint slope. Keeps a monotone interpolant from leaving the interval.
-  function edgeSlope(h0, h1, d0, d1) {
-    var d = ((2 * h0 + h1) * d0 - h0 * d1) / (h0 + h1);
-    if (d * d0 <= 0) return 0;
-    if (d0 * d1 < 0 && Math.abs(d) > Math.abs(3 * d0)) return 3 * d0;
-    return d;
-  }
-
-  function pchipSlopes(pts) {
+  // Natural cubic spline slopes, then clamped so each cubic piece stays monotone.
+  // The harmonic-mean slopes of a piecewise cubic hug each chord, so a long
+  // gap between catalog readings looks like a straight segment. The spline
+  // keeps one continuous bow through the same readings.
+  function monotoneSlopes(pts) {
     var n = pts.length;
     var m = new Array(n);
     if (n < 2) {
@@ -107,27 +105,79 @@
       return m;
     }
     var h = [];
-    var d = [];
+    var s = [];
     for (var i = 0; i < n - 1; i++) {
       var dq = pts[i + 1].q_gpm - pts[i].q_gpm;
       h.push(dq);
-      d.push(dq === 0 ? 0 : (pts[i + 1].h_ft - pts[i].h_ft) / dq);
+      s.push(dq === 0 ? 0 : (pts[i + 1].h_ft - pts[i].h_ft) / dq);
     }
     if (n === 2) {
-      m[0] = d[0];
-      m[1] = d[0];
+      m[0] = s[0];
+      m[1] = s[0];
       return m;
     }
-    for (var k = 1; k < n - 1; k++) {
-      if (d[k - 1] * d[k] <= 0) m[k] = 0;
-      else {
-        var w1 = 2 * h[k] + h[k - 1];
-        var w2 = h[k] + 2 * h[k - 1];
-        m[k] = (w1 + w2) / (w1 / d[k - 1] + w2 / d[k]);
-      }
+    var lower = new Array(n);
+    var diag = new Array(n);
+    var upper = new Array(n);
+    var rhs = new Array(n);
+    for (var z = 0; z < n; z++) {
+      lower[z] = 0;
+      diag[z] = 0;
+      upper[z] = 0;
+      rhs[z] = 0;
     }
-    m[0] = edgeSlope(h[0], h[1], d[0], d[1]);
-    m[n - 1] = edgeSlope(h[n - 2], h[n - 3], d[n - 2], d[n - 3]);
+    diag[0] = 1;
+    rhs[0] = 0;
+    diag[n - 1] = 1;
+    rhs[n - 1] = 0;
+    for (var row = 1; row < n - 1; row++) {
+      lower[row] = h[row - 1];
+      diag[row] = 2 * (h[row - 1] + h[row]);
+      upper[row] = h[row];
+      rhs[row] = 6 * (s[row] - s[row - 1]);
+    }
+    for (var k = 1; k < n; k++) {
+      var w = diag[k - 1] === 0 ? 0 : lower[k] / diag[k - 1];
+      diag[k] -= w * upper[k - 1];
+      rhs[k] -= w * rhs[k - 1];
+    }
+    var second = new Array(n);
+    second[n - 1] = diag[n - 1] === 0 ? 0 : rhs[n - 1] / diag[n - 1];
+    for (var back = n - 2; back >= 0; back--) {
+      second[back] = diag[back] === 0 ? 0 : (rhs[back] - upper[back] * second[back + 1]) / diag[back];
+    }
+    m[0] = s[0] - h[0] * (2 * second[0] + second[1]) / 6;
+    for (var p = 1; p < n - 1; p++) {
+      m[p] = s[p - 1] + h[p - 1] * (2 * second[p] + second[p - 1]) / 6;
+    }
+    m[n - 1] = s[n - 2] + h[n - 2] * (second[n - 2] + 2 * second[n - 1]) / 6;
+    function clampSlope(index, secants) {
+      var lo = -Infinity;
+      var hi = Infinity;
+      for (var c = 0; c < secants.length; c++) {
+        var sec = secants[c];
+        if (Math.abs(sec) < 1e-12) {
+          m[index] = 0;
+          return;
+        }
+        if (sec < 0) {
+          lo = Math.max(lo, 3 * sec);
+          hi = Math.min(hi, 0);
+        } else {
+          lo = Math.max(lo, 0);
+          hi = Math.min(hi, 3 * sec);
+        }
+      }
+      if (!(lo <= hi)) {
+        m[index] = 0;
+        return;
+      }
+      if (m[index] < lo) m[index] = lo;
+      if (m[index] > hi) m[index] = hi;
+    }
+    clampSlope(0, [s[0]]);
+    for (var t = 1; t < n - 1; t++) clampSlope(t, [s[t - 1], s[t]]);
+    clampSlope(n - 1, [s[n - 2]]);
     return m;
   }
 
@@ -155,7 +205,7 @@
       }
     }
     if (pts.length < 2) return null;
-    var slopes = pchipSlopes(pts);
+    var slopes = monotoneSlopes(pts);
     for (var j = 0; j < pts.length - 1; j++) {
       if (q > pts[j].q_gpm && q < pts[j + 1].q_gpm) {
         return {
@@ -172,7 +222,7 @@
   function smoothPieces(points) {
     var pts = measuredPoints(points);
     if (pts.length < 2) return [];
-    var slopes = pchipSlopes(pts);
+    var slopes = monotoneSlopes(pts);
     var out = [];
     for (var i = 0; i < pts.length - 1; i++) {
       if (pts[i + 1].q_gpm <= pts[i].q_gpm) continue;

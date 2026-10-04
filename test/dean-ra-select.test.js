@@ -468,6 +468,24 @@ function assertCovered(result, q, h) {
   assert.ok(Math.abs(mid.h_ft - chord) > 1, 'interpolated point is still the straight chord');
 }
 
+// A published line bows the way a pump curve does: above the end-to-end chord,
+// and steeper at the high-flow end than near the start of the measured range.
+{
+  const imp = catalog.curves.find(function (c) { return c.model === 'R20100-A2'; })
+    .impellers.find(function (i) { return i.diameter_in === 10; });
+  const pts = DeanRA.measuredPoints(imp.points);
+  const qA = pts[0].q_gpm;
+  const qB = pts[pts.length - 1].q_gpm;
+  function at(q) { return DeanRA.smoothHead(imp.points, q).h; }
+  function slope(q0, q1) { return (at(q1) - at(q0)) / (q1 - q0); }
+  const early = slope(qA + (qB - qA) * 0.05, qA + (qB - qA) * 0.2);
+  const late = slope(qA + (qB - qA) * 0.75, qA + (qB - qA) * 0.95);
+  assert.ok(late < early - 0.15, 'head should fall faster as flow increases');
+  const midQ = (qA + qB) / 2;
+  const chord = at(qA) + (at(qB) - at(qA)) * (midQ - qA) / (qB - qA);
+  assert.ok(at(midQ) > chord + 8, 'the line should bow above the straight chord');
+}
+
 // 400 gpm at 200 ft is a list of every size that can meet it, not one winner.
 {
   const r = pick(400, 200);
@@ -641,7 +659,10 @@ function assertCovered(result, q, h) {
   const row = findModel(at400, 'R3085-A1');
   assert.strictEqual(row.kind, 'catalog');
   assert.strictEqual(row.diameter_in, 6.5);
-  assert.ok(Math.abs(row.head_ft - 154.37) < 0.05);
+  const sixFive = catalog.curves.find(function (c) { return c.model === 'R3085-A1'; })
+    .impellers.find(function (imp) { return imp.diameter_in === 6.5; });
+  assert.ok(Math.abs(row.head_ft - DeanRA.smoothHead(sixFive.points, 400).h) < 1e-6);
+  assert.ok(row.head_ft > 150 && row.head_ft < 160);
   const at100 = pick(100, 250);
   const small = findModel(at100, 'RA1080-A2');
   assert.strictEqual(small.diameter_in, 7.5);
