@@ -173,6 +173,26 @@ details summary:focus-visible {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+.chart-head {
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.chart-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.chart-duty {
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.chart-caption {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
 .chart-wrap {
   margin-top: 18px;
   background: var(--white);
@@ -182,7 +202,26 @@ details summary:focus-visible {
 .chart-wrap canvas {
   display: block;
   width: 100%;
-  height: 440px;
+  height: 480px;
+}
+.chart-disclaimer {
+  margin: 0;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  background: #f6f5f2;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.chart-legend, .chart-correction {
+  margin: 0;
+  padding: 10px 16px 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.chart-correction {
+  color: var(--ink);
+  border-top: 1px solid var(--line);
 }
 details { margin-top: 14px; }
 details summary {
@@ -207,7 +246,7 @@ th { font-weight: 600; }
   header h1 { font-size: 26px; }
   .layout { grid-template-columns: 1fr; gap: 28px; }
   .rec-lead { font-size: 24px; }
-  .chart-wrap canvas { height: 320px; }
+  .chart-wrap canvas { height: 360px; }
 }
 </style>
 </head>
@@ -308,7 +347,15 @@ th { font-weight: 600; }
         <p class="note">This catalog does not include pumps larger than 10 in, so a better Dean size may exist above that.</p>
       </div>
       <div class="chart-wrap" id="sel-chart-wrap" hidden>
+        <div class="chart-head">
+          <p class="chart-title" id="chart-title"></p>
+          <p class="chart-duty" id="chart-duty"></p>
+          <p class="chart-caption" id="chart-caption"></p>
+        </div>
         <canvas id="sel-canvas"></canvas>
+        <p class="chart-disclaimer">These curves are not intended to be a direct duplicate of the curves provided by Dean. They are for reference only.</p>
+        <p class="chart-legend" id="chart-legend"></p>
+        <p class="chart-correction" id="chart-correction" hidden></p>
       </div>
       <div id="rec-sizes"></div>
       <div id="sel-points"></div>
@@ -424,12 +471,21 @@ function renderDeanSelection() {
   var sizes = document.getElementById('rec-sizes');
   var points = document.getElementById('sel-points');
   var wrap = document.getElementById('sel-chart-wrap');
+  var chartTitle = document.getElementById('chart-title');
+  var chartDuty = document.getElementById('chart-duty');
+  var caption = document.getElementById('chart-caption');
+  var legend = document.getElementById('chart-legend');
+  var chartCorrection = document.getElementById('chart-correction');
   var result = DEAN_LAST.result;
   var q = DEAN_LAST.q, h = DEAN_LAST.h, t = DEAN_LAST.t, fluid = DEAN_LAST.fluid;
   var dutyTemp = fluidName() + ', ' + formatTemp(t, DEAN_LAST.unit || TEMP_UNIT);
   var limit = '<p class="note">' + esc(LIMIT_NOTE) + '</p>';
   var fluidLine = correctionBlock(result);
   var list = sizeList(result);
+  if (chartCorrection) {
+    chartCorrection.hidden = true;
+    chartCorrection.textContent = '';
+  }
   if (!result.covered) {
     wrap.hidden = true;
     points.innerHTML = '';
@@ -453,7 +509,21 @@ function renderDeanSelection() {
   }
   extra += '<p class="note quiet">Sheet note: NPSH ' + esc(curve.npsh_ft_note) + ' ft. That is the note printed on the sheet, not an NPSHr curve.</p>';
   if (curve.rpm_note) extra += '<p class="note quiet">' + esc(curve.rpm_note) + '</p>';
-  notes.innerHTML = fluidLine + disclaimerBlock(result) + extra;
+  var corr = result.correction;
+  if (corr && corr.status !== 'water') {
+    chartCorrection.hidden = false;
+    chartCorrection.textContent = corr.note;
+    notes.innerHTML = extra;
+  } else {
+    notes.innerHTML = fluidLine + extra;
+  }
+  var trimText = DeanRA.formatDia(hit.diameter_in) + (hit.kind === 'trim' ? ' in trim' : ' in');
+  chartTitle.textContent = frame + '  ·  ' + curve.size + '  ·  ' + curve.rpm + ' rpm';
+  chartDuty.textContent = q + ' gpm at ' + h + ' ft  ·  ' + trimText;
+  caption.textContent = 'Catalog water curve.';
+  legend.textContent = hit.kind === 'trim'
+    ? 'The heavy line is the impeller for this size. Faded lines are the other catalog diameters. The crosshair is the duty you entered. Diameter labels sit beside the plot. Open circles were read through a label or a crossing, about ±3 ft.'
+    : 'The heavy line is the catalog diameter for this size. Faded lines are the other diameters. The crosshair is the duty you entered. Diameter labels sit beside the plot. Open circles were read through a label or a crossing, about ±3 ft.';
   sizes.innerHTML = list + limit;
   points.innerHTML = renderPointTable(curve);
   drawDeanSelection();
@@ -470,17 +540,21 @@ function renderPointTable(curve) {
     '<table><thead><tr><th>Dia in</th><th>gpm</th><th>ft</th><th>Read</th></tr></thead><tbody>' +
     rows + '</tbody></table></details>';
 }
+function measuredPoints(points) {
+  return (points || []).filter(function (p) { return !p.interpolated; });
+}
 function drawDeanSelection() {
   if (!DEAN_LAST || !DEAN_LAST.result.covered) return;
   var canvas = document.getElementById('sel-canvas');
   var parent = canvas.parentElement;
   if (!canvas || !parent) return;
   var hit = DEAN_LAST.result.pick;
+  if (!hit) return;
   var qDuty = DEAN_LAST.q, hDuty = DEAN_LAST.h;
   var curve = hit.curve;
   var dpr = window.devicePixelRatio || 1;
-  var cssW = parent.clientWidth || 640;
-  var cssH = window.matchMedia('(max-width: 800px)').matches ? 320 : 440;
+  var cssW = parent.clientWidth || 720;
+  var cssH = window.matchMedia('(max-width: 800px)').matches ? 360 : 480;
   canvas.style.height = cssH + 'px';
   canvas.width = Math.round(cssW * dpr);
   canvas.height = Math.round(cssH * dpr);
@@ -491,7 +565,7 @@ function drawDeanSelection() {
   ctx.fillRect(0, 0, cssW, cssH);
 
   var samples = betweenSamples(hit);
-  var maxQ = qDuty, maxH = hDuty;
+  var maxQ = qDuty, maxH = Math.max(hDuty, 1);
   curve.impellers.forEach(function (imp) {
     imp.points.forEach(function (p) {
       if (p.q_gpm > maxQ) maxQ = p.q_gpm;
@@ -502,182 +576,402 @@ function drawDeanSelection() {
     if (p.q > maxQ) maxQ = p.q;
     if (p.h > maxH) maxH = p.h;
   });
-  maxQ = maxQ * 1.08;
-  maxH = maxH * 1.12;
-  var pad = {l: 58, r: 28, t: 28, b: 42};
-  var pw = cssW - pad.l - pad.r, ph = cssH - pad.t - pad.b;
-  function X(q) { return pad.l + (q / maxQ) * pw; }
-  function Y(h) { return pad.t + ph - (h / maxH) * ph; }
+  var xAxis = axisScale(maxQ * 1.04, 5);
+  var yAxis = axisScale(maxH * 1.08, 5);
+  var font = 'Inter, "Liberation Sans", Helvetica, Arial, sans-serif';
 
-  ctx.strokeStyle = '#ececec';
-  ctx.fillStyle = '#141414';
-  ctx.font = '12px Exo, Helvetica, sans-serif';
-  ctx.lineWidth = 1;
-  for (var i = 0; i <= 4; i++) {
-    var gq = maxQ * i / 4, gh = maxH * i / 4;
-    ctx.beginPath(); ctx.moveTo(X(gq), pad.t); ctx.lineTo(X(gq), pad.t + ph); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(pad.l, Y(gh)); ctx.lineTo(pad.l + pw, Y(gh)); ctx.stroke();
-    ctx.fillText(String(Math.round(gq)), X(gq) - 10, pad.t + ph + 16);
-    ctx.fillText(String(Math.round(gh)), 6, Y(gh) + 4);
+  var gutter = [];
+  curve.impellers.forEach(function (imp) {
+    var measured = measuredPoints(imp.points);
+    if (!measured.length) return;
+    var heavy = hit.kind === 'catalog' && imp.diameter_in === hit.diameter_in;
+    gutter.push({
+      text: DeanRA.formatDia(imp.diameter_in) + ' in',
+      yHead: measured[0].h_ft,
+      color: heavy ? '#141414' : '#a3a3a3',
+      weight: heavy ? '700' : '500'
+    });
+  });
+  if (samples.length > 1) {
+    gutter.push({
+      text: DeanRA.formatDia(hit.diameter_in) + ' in',
+      yHead: samples[0].h,
+      color: '#141414',
+      weight: '700'
+    });
   }
+
+  ctx.font = '700 12px ' + font;
+  var diaW = 0;
+  gutter.forEach(function (g) {
+    diaW = Math.max(diaW, ctx.measureText(g.text).width);
+  });
+  ctx.font = '12px ' + font;
+  var tickW = Math.max(ctx.measureText(String(Math.round(yAxis.max))).width, ctx.measureText(String(Math.round(xAxis.max))).width);
+  var pad = {
+    l: Math.ceil(18 + tickW + 14 + diaW + 10),
+    r: 18,
+    t: 16,
+    b: 46
+  };
+  var pw = cssW - pad.l - pad.r;
+  var ph = cssH - pad.t - pad.b;
+  function X(q) { return pad.l + (q / xAxis.max) * pw; }
+  function Y(h) { return pad.t + ph - (h / yAxis.max) * ph; }
+
+  ctx.lineWidth = 1;
+  ctx.font = '12px ' + font;
+  ctx.fillStyle = '#141414';
+  function drawGridLine(x0, y0, x1, y1, major) {
+    ctx.strokeStyle = major ? '#e4e4e4' : '#f3f3f3';
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.stroke();
+  }
+  var xHalf = xAxis.step / 2;
+  var yHalf = yAxis.step / 2;
+  if (xHalf >= 25) {
+    for (var qx2 = xHalf; qx2 < xAxis.max - 1e-6; qx2 += xAxis.step) {
+      drawGridLine(X(qx2), pad.t, X(qx2), pad.t + ph, false);
+    }
+  }
+  if (yHalf >= 10) {
+    for (var hy2 = yHalf; hy2 < yAxis.max - 1e-6; hy2 += yAxis.step) {
+      drawGridLine(pad.l, Y(hy2), pad.l + pw, Y(hy2), false);
+    }
+  }
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  for (var qx = 0; qx <= xAxis.max + 1e-6; qx += xAxis.step) {
+    var xx = X(qx);
+    drawGridLine(xx, pad.t, xx, pad.t + ph, true);
+    ctx.fillStyle = '#141414';
+    ctx.fillText(String(Math.round(qx)), xx, pad.t + ph + 8);
+  }
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (var hy = 0; hy <= yAxis.max + 1e-6; hy += yAxis.step) {
+    var yy = Y(hy);
+    drawGridLine(pad.l, yy, pad.l + pw, yy, true);
+    ctx.fillStyle = '#141414';
+    ctx.fillText(String(Math.round(hy)), pad.l - diaW - 22, yy);
+  }
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
   ctx.strokeStyle = '#141414';
   ctx.lineWidth = 1.25;
-  ctx.beginPath();
-  ctx.moveTo(pad.l, pad.t);
-  ctx.lineTo(pad.l, pad.t + ph);
-  ctx.lineTo(pad.l + pw, pad.t + ph);
-  ctx.stroke();
-  ctx.fillText('gpm', pad.l + pw - 28, cssH - 8);
+  ctx.strokeRect(pad.l, pad.t, pw, ph);
+  ctx.fillStyle = '#141414';
+  ctx.font = '600 12px ' + font;
+  ctx.textAlign = 'center';
+  ctx.fillText('Flow (gpm)', pad.l + pw / 2, cssH - 16);
   ctx.save();
-  ctx.translate(14, pad.t + 36);
-  ctx.fillText('ft', 0, 0);
+  ctx.translate(13, pad.t + ph / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Head (feet)', 0, 0);
   ctx.restore();
+  ctx.textAlign = 'left';
 
-  var highlight = {};
-  highlight[hit.upperDiameter] = true;
-  if (hit.lowerDiameter != null) highlight[hit.lowerDiameter] = true;
-
-  curve.impellers.forEach(function (imp) {
-    var pts = imp.points.slice().sort(function (a, b) { return a.q_gpm - b.q_gpm; });
-    var hot = !!highlight[imp.diameter_in];
-    ctx.lineWidth = hot ? 2.25 : 1.15;
-    ctx.strokeStyle = hot ? '#141414' : '#8a8a8a';
-    ctx.globalAlpha = 1;
-    ctx.setLineDash([]);
-    strokeSmooth(ctx, X, Y, DeanRA.smoothPieces(imp.points));
+  var polys = [];
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.setLineDash([]);
+  function paintImpeller(imp, heavy) {
+    var pts = measuredPoints(imp.points);
+    ctx.lineWidth = heavy ? 3.25 : 1.35;
+    ctx.strokeStyle = heavy ? '#141414' : '#b5b5b5';
+    strokeSmooth(ctx, X, Y, pts);
+    polys.push(sampleCurve(pts, X, Y));
     pts.forEach(function (p) {
       if (!p.inferred) return;
       ctx.beginPath();
       ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = hot ? '#141414' : '#8a8a8a';
-      ctx.lineWidth = 1.25;
-      ctx.arc(X(p.q_gpm), Y(p.h_ft), 4, 0, Math.PI * 2);
+      ctx.strokeStyle = heavy ? '#141414' : '#b0b0b0';
+      ctx.lineWidth = 1.15;
+      ctx.arc(X(p.q_gpm), Y(p.h_ft), 3.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     });
-    var last = pts[pts.length - 1];
-    ctx.fillStyle = hot ? '#141414' : '#5c5c5c';
-    ctx.fillText(DeanRA.formatDia(imp.diameter_in) + ' in', X(last.q_gpm) + 6, Y(last.h_ft) - 6);
+  }
+  curve.impellers.forEach(function (imp) {
+    var heavy = hit.kind === 'catalog' && imp.diameter_in === hit.diameter_in;
+    if (!heavy) paintImpeller(imp, false);
+  });
+  curve.impellers.forEach(function (imp) {
+    if (hit.kind === 'catalog' && imp.diameter_in === hit.diameter_in) paintImpeller(imp, true);
   });
 
   if (samples.length > 1) {
     ctx.beginPath();
-    ctx.setLineDash([7, 4]);
-    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.lineWidth = 3.15;
     ctx.strokeStyle = '#141414';
     samples.forEach(function (p, i) {
-      if (i === 0) ctx.moveTo(X(p.q), Y(p.h));
-      else ctx.lineTo(X(p.q), Y(p.h));
-    });
-    ctx.stroke();
-    ctx.setLineDash([]);
-    var mid = samples[Math.floor(samples.length / 2)];
-    ctx.fillStyle = '#141414';
-    ctx.fillText(DeanRA.formatDia(hit.diameter_in) + ' in trim', X(mid.q) + 8, Y(mid.h) - 8);
-  }
-
-  ctx.beginPath();
-  ctx.fillStyle = '#FCB02C';
-  ctx.strokeStyle = '#141414';
-  ctx.lineWidth = 1.5;
-  ctx.arc(X(qDuty), Y(hDuty), 6, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#141414';
-  ctx.fillText('duty', X(qDuty) + 10, Y(hDuty) - 10);
-  ctx.fillStyle = '#5c5c5c';
-  ctx.fillText('Open circles are inferred points (±3 ft).', pad.l, 16);
-  drawCorrectedCurve(ctx, X, Y, hit, samples, qDuty, hDuty);
-  drawCorrectionTag(ctx, cssW, pad);
-}
-function drawCorrectedCurve(ctx, X, Y, hit, samples, qDuty, hDuty) {
-  var corr = DEAN_LAST.result.correction;
-  if (!corr || !corr.applied) return;
-  var curve = hit.curve;
-  var highlight = {};
-  highlight[hit.upperDiameter] = true;
-  if (hit.lowerDiameter != null) highlight[hit.lowerDiameter] = true;
-  ctx.save();
-  ctx.setLineDash([7, 5]);
-  ctx.lineWidth = 2.5;
-  ctx.strokeStyle = '#C47D00';
-  curve.impellers.forEach(function (imp) {
-    if (!highlight[imp.diameter_in]) return;
-    strokeSmooth(ctx, X, Y, DeanRA.correctedPieces(imp.points, corr.CQ, corr.CH));
-  });
-  if (samples.length > 1) {
-    ctx.beginPath();
-    samples.forEach(function (p, i) {
-      var x = X(p.q * corr.CQ);
-      var y = Y(p.h * corr.CH);
+      var x = X(p.q), y = Y(p.h);
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     });
     ctx.stroke();
-    var mid = samples[Math.floor(samples.length / 2)];
-    ctx.fillStyle = '#C47D00';
-    ctx.fillText('HI correction', X(mid.q * corr.CQ) + 8, Y(mid.h * corr.CH) + 16);
+    polys.push(samples.map(function (p) { return {x: X(p.q), y: Y(p.h)}; }));
   }
-  var dx = X(corr.qWater) - X(qDuty);
-  var dy = Y(corr.hWater) - Y(hDuty);
-  if (dx * dx + dy * dy > 144) {
-    ctx.setLineDash([3, 3]);
-    ctx.lineWidth = 1.25;
-    ctx.beginPath();
-    ctx.moveTo(X(qDuty), Y(hDuty));
-    ctx.lineTo(X(corr.qWater), Y(corr.hWater));
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.beginPath();
-    ctx.fillStyle = '#ffffff';
-    ctx.lineWidth = 1.5;
-    ctx.arc(X(corr.qWater), Y(corr.hWater), 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = '#C47D00';
-    ctx.fillText('water equivalent', X(corr.qWater) + 8, Y(corr.hWater) + 14);
-  }
-  ctx.restore();
+
+  var dutyX = X(qDuty), dutyY = Y(hDuty);
+  var hair = drawCrosshair(ctx, dutyX, dutyY, {left: pad.l, right: pad.l + pw, top: pad.t, bottom: pad.t + ph});
+  dutyX = hair.x;
+  dutyY = hair.y;
+  placeDutyCallout(ctx, {
+    font: font,
+    dutyX: dutyX,
+    dutyY: dutyY,
+    qDuty: qDuty,
+    hDuty: hDuty,
+    hit: hit,
+    polys: polys,
+    bounds: {x: pad.l + 8, y: pad.t + 8, w: pw - 16, h: ph - 16}
+  });
+
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  var labelYs = gutter.map(function (g) { return Y(g.yHead); });
+  separateYs(labelYs, pad.t + 8, pad.t + ph - 8, 16);
+  gutter.forEach(function (g, i) {
+    ctx.font = g.weight + ' 12px ' + font;
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineJoin = 'round';
+    ctx.strokeText(g.text, pad.l - 8, labelYs[i]);
+    ctx.fillStyle = g.color;
+    ctx.fillText(g.text, pad.l - 8, labelYs[i]);
+  });
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
 }
-function drawCorrectionTag(ctx, cssW, pad) {
-  var lines = DeanRA.correctionTag(DEAN_LAST.result.correction);
-  if (!lines.length) return;
+function sampleCurve(points, X, Y) {
+  var measured = measuredPoints(points);
+  var out = [];
+  if (measured.length < 2) return out;
+  var q0 = measured[0].q_gpm;
+  var q1 = measured[measured.length - 1].q_gpm;
+  var span = Math.abs(X(q1) - X(q0));
+  var n = Math.max(24, Math.round(span / 2));
+  for (var i = 0; i <= n; i++) {
+    var q = q0 + (q1 - q0) * i / n;
+    var sm = DeanRA.smoothHead(points, q);
+    if (!sm) continue;
+    out.push({x: X(q), y: Y(sm.h)});
+  }
+  return out;
+}
+function separateYs(ys, minY, maxY, gap) {
+  var order = ys.map(function (y, i) { return {y: y, i: i}; }).sort(function (a, b) { return a.y - b.y; });
+  for (var i = 1; i < order.length; i++) {
+    if (order[i].y < order[i - 1].y + gap) order[i].y = order[i - 1].y + gap;
+  }
+  if (order.length && order[order.length - 1].y > maxY) {
+    order[order.length - 1].y = maxY;
+    for (var j = order.length - 2; j >= 0; j--) {
+      if (order[j].y > order[j + 1].y - gap) order[j].y = order[j + 1].y - gap;
+    }
+  }
+  if (order.length && order[0].y < minY) order[0].y = minY;
+  order.forEach(function (item) { ys[item.i] = item.y; });
+}
+function axisScale(value, divisions) {
+  var raw = Math.max(value, 1) / divisions;
+  var pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  var frac = raw / pow;
+  var nice = frac <= 1 ? 1 : frac <= 2 ? 2 : frac <= 2.5 ? 2.5 : frac <= 5 ? 5 : 10;
+  var step = nice * pow;
+  var max = Math.ceil((value - 1e-9) / step) * step;
+  if (max < value) max += step;
+  return {step: step, max: max};
+}
+function drawCrosshair(ctx, x, y, plot) {
+  var cx = Math.round(x) + 0.5;
+  var cy = Math.round(y) + 0.5;
   ctx.save();
-  ctx.font = '12px Exo, Helvetica, sans-serif';
-  var width = 0;
-  lines.forEach(function (line) {
-    var w = ctx.measureText(line).width;
-    if (w > width) width = w;
-  });
-  var boxW = width + 16;
-  var boxH = lines.length * 16 + 10;
-  var x = cssW - pad.r - boxW;
-  var y = pad.t + 8;
-  ctx.fillStyle = '#fff8eb';
-  ctx.strokeStyle = '#C47D00';
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#7a4e10';
+  ctx.lineWidth = 1.25;
   ctx.setLineDash([]);
-  ctx.fillRect(x, y, boxW, boxH);
-  ctx.strokeRect(x, y, boxW, boxH);
-  ctx.fillStyle = '#141414';
-  lines.forEach(function (line, i) {
-    ctx.fillText(line, x + 8, y + 16 + i * 16);
-  });
+  ctx.lineCap = 'butt';
+  ctx.beginPath();
+  ctx.moveTo(cx, plot.top);
+  ctx.lineTo(cx, plot.bottom);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(plot.left, cy);
+  ctx.lineTo(plot.right, cy);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#FCB02C';
+  ctx.fill();
+  ctx.lineWidth = 1.25;
+  ctx.strokeStyle = '#141414';
+  ctx.stroke();
   ctx.restore();
+  return {x: cx, y: cy};
 }
-function strokeSmooth(ctx, X, Y, pieces) {
-  if (!pieces.length) return;
+function strokeSmooth(ctx, X, Y, points) {
+  var pieces = DeanRA.smoothPieces(points);
+  if (!pieces.length) {
+    if (!points || points.length < 2) return;
+    ctx.beginPath();
+    points.forEach(function (p, i) {
+      var x = X(p.q_gpm), y = Y(p.h_ft);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    return;
+  }
   ctx.beginPath();
   ctx.moveTo(X(pieces[0].q0), Y(pieces[0].h0));
-  pieces.forEach(function (p) {
-    var dx = p.q1 - p.q0;
-    ctx.bezierCurveTo(
-      X(p.q0 + dx / 3), Y(p.h0 + p.m0 * dx / 3),
-      X(p.q1 - dx / 3), Y(p.h1 - p.m1 * dx / 3),
-      X(p.q1), Y(p.h1)
-    );
+  pieces.forEach(function (seg) {
+    var dx = seg.q1 - seg.q0;
+    var c1q = seg.q0 + dx / 3;
+    var c1h = seg.h0 + seg.m0 * dx / 3;
+    var c2q = seg.q1 - dx / 3;
+    var c2h = seg.h1 - seg.m1 * dx / 3;
+    ctx.bezierCurveTo(X(c1q), Y(c1h), X(c2q), Y(c2h), X(seg.q1), Y(seg.h1));
   });
   ctx.stroke();
+}
+function pointSegDist(px, py, x1, y1, x2, y2) {
+  var dx = x2 - x1, dy = y2 - y1;
+  var len2 = dx * dx + dy * dy;
+  var t = len2 === 0 ? 0 : ((px - x1) * dx + (py - y1) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  var qx = x1 + t * dx, qy = y1 + t * dy;
+  return Math.hypot(px - qx, py - qy);
+}
+function pointRectDist(px, py, box) {
+  var dx = Math.max(box.x - px, 0, px - (box.x + box.w));
+  var dy = Math.max(box.y - py, 0, py - (box.y + box.h));
+  return Math.hypot(dx, dy);
+}
+function segHitsRect(x1, y1, x2, y2, box) {
+  function inside(px, py) {
+    return px >= box.x && px <= box.x + box.w && py >= box.y && py <= box.y + box.h;
+  }
+  if (inside(x1, y1) || inside(x2, y2)) return true;
+  function cuts(ax, ay, bx, by) {
+    function cross(cx, cy, dx, dy, px, py) {
+      return (dx - cx) * (py - cy) - (dy - cy) * (px - cx);
+    }
+    var s1 = cross(ax, ay, bx, by, x1, y1);
+    var s2 = cross(ax, ay, bx, by, x2, y2);
+    var s3 = cross(x1, y1, x2, y2, ax, ay);
+    var s4 = cross(x1, y1, x2, y2, bx, by);
+    return s1 * s2 <= 0 && s3 * s4 <= 0;
+  }
+  var x = box.x, y = box.y, r = box.x + box.w, b = box.y + box.h;
+  return cuts(x, y, r, y) || cuts(r, y, r, b) || cuts(r, b, x, b) || cuts(x, b, x, y);
+}
+function segRectDist(x1, y1, x2, y2, box) {
+  if (segHitsRect(x1, y1, x2, y2, box)) return 0;
+  var d = Math.min(pointRectDist(x1, y1, box), pointRectDist(x2, y2, box));
+  d = Math.min(d, pointSegDist(box.x, box.y, x1, y1, x2, y2));
+  d = Math.min(d, pointSegDist(box.x + box.w, box.y, x1, y1, x2, y2));
+  d = Math.min(d, pointSegDist(box.x, box.y + box.h, x1, y1, x2, y2));
+  d = Math.min(d, pointSegDist(box.x + box.w, box.y + box.h, x1, y1, x2, y2));
+  return d;
+}
+function curveClearance(box, polys) {
+  var best = Infinity;
+  for (var p = 0; p < polys.length; p++) {
+    var pts = polys[p];
+    for (var i = 1; i < pts.length; i++) {
+      var d = segRectDist(pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y, box);
+      if (d < best) best = d;
+      if (best === 0) return 0;
+    }
+  }
+  return best;
+}
+function placeDutyCallout(ctx, spec) {
+  var font = spec.font;
+  var line1 = formatChartGpm(spec.qDuty) + ' gpm at ' + formatChartFt(spec.hDuty) + ' ft';
+  ctx.font = '600 13px ' + font;
+  var textW = ctx.measureText(line1).width;
+  var boxW = Math.ceil(textW + 16);
+  var boxH = 28;
+  var bounds = spec.bounds;
+  var marker = {x: spec.dutyX - 16, y: spec.dutyY - 16, w: 32, h: 32};
+  var best = null;
+  var bestScore = -1e12;
+  function overlaps(a, b, gap) {
+    return a.x < b.x + b.w + gap && a.x + a.w + gap > b.x && a.y < b.y + b.h + gap && a.y + a.h + gap > b.y;
+  }
+  function crossesHair(box) {
+    var overV = box.x < spec.dutyX && spec.dutyX < box.x + box.w;
+    var overH = box.y < spec.dutyY && spec.dutyY < box.y + box.h;
+    return overV || overH;
+  }
+  var step = 8;
+  for (var y = bounds.y; y + boxH <= bounds.y + bounds.h; y += step) {
+    for (var x = bounds.x; x + boxW <= bounds.x + bounds.w; x += step) {
+      var box = {x: x, y: y, w: boxW, h: boxH};
+      if (overlaps(box, marker, 18)) continue;
+      if (crossesHair(box)) continue;
+      var clearance = curveClearance(box, spec.polys);
+      if (clearance < 22) continue;
+      var cx = x + boxW / 2, cy = y + boxH / 2;
+      var near = Math.hypot(cx - spec.dutyX, cy - spec.dutyY);
+      var score = Math.min(clearance, 80) * 6 - near * 0.04;
+      if (score > bestScore) { bestScore = score; best = box; best.clearance = clearance; }
+    }
+  }
+  if (!best) {
+    var fallbackScore = -1e12;
+    for (var fy = bounds.y; fy + boxH <= bounds.y + bounds.h; fy += step) {
+      for (var fx = bounds.x; fx + boxW <= bounds.x + bounds.w; fx += step) {
+        var fbox = {x: fx, y: fy, w: boxW, h: boxH};
+        if (overlaps(fbox, marker, 8)) continue;
+        var fclear = curveClearance(fbox, spec.polys);
+        if (fclear > fallbackScore) { fallbackScore = fclear; best = fbox; best.clearance = fclear; }
+      }
+    }
+  }
+  if (!best) return;
+  var cx = best.x + best.w / 2;
+  var cy = best.y + best.h / 2;
+  var dx = spec.dutyX - cx;
+  var dy = spec.dutyY - cy;
+  var sx = dx === 0 ? 1e9 : (best.w / 2) / Math.abs(dx);
+  var sy = dy === 0 ? 1e9 : (best.h / 2) / Math.abs(dy);
+  var s = Math.min(sx, sy);
+  var startX = cx + dx * s;
+  var startY = cy + dy * s;
+  var len = Math.hypot(dx, dy) || 1;
+  ctx.beginPath();
+  ctx.strokeStyle = '#8a5a12';
+  ctx.lineWidth = 1.15;
+  ctx.setLineDash([]);
+  ctx.moveTo(startX, startY);
+  ctx.lineTo(spec.dutyX - dx / len * 14, spec.dutyY - dy / len * 14);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#141414';
+  ctx.lineWidth = 1.25;
+  ctx.roundRect(best.x, best.y, best.w, best.h, 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#141414';
+  ctx.font = '600 13px ' + font;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(line1, best.x + 8, best.y + boxH / 2);
+}
+function formatChartGpm(q) {
+  var n = Math.round(Number(q) * 10) / 10;
+  if (Math.abs(n - Math.round(n)) < 1e-9) return String(Math.round(n));
+  return n.toFixed(1);
+}
+function formatChartFt(h) {
+  return formatChartGpm(h);
 }
 function betweenSamples(hit) {
   if (hit.kind !== 'trim') return [];
