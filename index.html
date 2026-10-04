@@ -147,6 +147,30 @@ details summary:focus-visible {
 }
 .note { color: var(--ink); }
 .note.quiet { color: var(--muted); font-size: 14px; }
+.sel-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.sel-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.sel-row.active { border-color: var(--amber); box-shadow: inset 3px 0 0 var(--amber); }
+.sel-top { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+.sel-rank { color: var(--muted); font-size: 13px; font-weight: 600; min-width: 1.4rem; }
+.sel-frame { font-size: 18px; font-weight: 700; }
+.sel-size { font-size: 16px; font-weight: 600; }
+.sel-rpm { color: var(--muted); font-size: 14px; }
+.sel-trim, .sel-seat, .iq { margin: 6px 0 0; font-size: 14px; }
+.chart-caption {
+  margin: 0;
+  padding: 10px 12px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
 .chart-wrap {
   margin-top: 18px;
   background: var(--white);
@@ -189,7 +213,7 @@ th { font-weight: 600; }
 <div class="page">
   <header>
     <h1>Dean RA Pump Selector</h1>
-    <p class="lede">Recommend one Dean RA frame from the flow, head, fluid, and temperature you enter.</p>
+    <p class="lede">List every Dean RA size in this catalog that can meet the flow, head, fluid, and temperature you enter.</p>
     <p class="by">Powered by HydroSuite</p>
   </header>
   <div class="layout">
@@ -269,30 +293,34 @@ th { font-weight: 600; }
         <button class="chip" type="button" data-ex="80,130">80 gpm · 130 ft</button>
         <button class="chip" type="button" data-ex="80,147">80 gpm · 147 ft</button>
         <button class="chip" type="button" data-ex="500,90">500 gpm · 90 ft</button>
+        <button class="chip" type="button" data-ex="400,200">400 gpm · 200 ft</button>
         <button class="chip" type="button" data-ex="40,800">40 gpm · 800 ft</button>
       </div>
       <p class="err" id="sel-err" role="status"></p>
     </form>
     <section id="result" aria-live="polite">
-      <p class="rec-kicker">Recommendation</p>
+      <p class="rec-kicker">Selections</p>
       <p class="rec-lead" id="rec-lead">Enter a duty.</p>
-      <p class="rec-trim" id="rec-trim"></p>
       <p class="rec-meta" id="rec-meta"></p>
-      <div id="rec-notes">
-        <p class="note">This catalog does not include pumps larger than 10 in, so a better Dean size may exist above that.</p>
-      </div>
+      <div id="rec-list" class="sel-list"></div>
       <div class="chart-wrap" id="sel-chart-wrap" hidden>
+        <p class="chart-caption" id="chart-caption"></p>
         <canvas id="sel-canvas"></canvas>
       </div>
       <div id="sel-points"></div>
+      <div id="rec-notes">
+        <p class="note">This catalog does not include pumps larger than 10 in, so a better Dean size may exist above that.</p>
+        <p class="note">The list is ranked by how closely the trim meets the requested head on the catalog water curve. Head differences inside the 3 ft sheet-reading tolerance count as the same fit, and those pumps are then ordered by how much flow is left before the curve ends. It is not ranked by efficiency. The curve sheets do not include efficiency, so this list can differ from IntelliQuip.</p>
+        <p class="note">RA and RWA share the same head-capacity curve.</p>
+      </div>
     </section>
   </div>
 </div>
 <script src="dean-ra-select.js"></script>
 <script>
 var DEAN_CATALOG = null;
+var DEAN_IQ = { records: [] };
 var DEAN_LAST = null;
-var LIMIT_NOTE = 'This catalog does not include pumps larger than 10 in, so a better Dean size may exist above that.';
 
 function selNum(id) {
   var el = document.getElementById(id);
@@ -372,45 +400,91 @@ function runDeanSelect() {
   if (q <= 0 || h <= 0) { err.textContent = 'Flow and head need to be greater than zero.'; return; }
   DEAN_LAST = {
     result: DeanRA.select(DEAN_CATALOG, {q_gpm: q, h_ft: h}),
-    q: q, h: h, t: t, unit: TEMP_UNIT, fluid: fluid
+    q: q, h: h, t: t, unit: TEMP_UNIT, fluid: fluid, active: 0
   };
   renderDeanSelection();
 }
+function activeHit() {
+  if (!DEAN_LAST || !DEAN_LAST.result || !DEAN_LAST.result.covered) return null;
+  var list = DEAN_LAST.result.selections || [];
+  var i = DEAN_LAST.active || 0;
+  if (i < 0 || i >= list.length) i = 0;
+  return list[i] || null;
+}
+function fixedNum(n, digits) {
+  var v = Number(n);
+  if (!isFinite(v)) return '';
+  return v.toFixed(digits);
+}
+function iqMarkup(rec) {
+  if (!rec) return '';
+  var src = rec.source || 'IntelliQuip';
+  var parts = ['impeller ' + fixedNum(rec.impeller_in, 2) + ' in', 'head actual ' + fixedNum(rec.head_actual_ft, 1) + ' ft'];
+  if (rec.efficiency_pct != null) parts.push('efficiency ' + fixedNum(rec.efficiency_pct, 2) + '%');
+  if (rec.npshr_ft != null) parts.push('NPSHr ' + fixedNum(rec.npshr_ft, 2) + ' ft');
+  if (rec.power_rated_hp != null) parts.push('power rated ' + fixedNum(rec.power_rated_hp, 2) + ' hp');
+  if (rec.power_max_hp != null) parts.push('power maximum ' + fixedNum(rec.power_max_hp, 2) + ' hp');
+  if (rec.motor_hp != null) {
+    var motor = 'motor ' + fixedNum(rec.motor_hp, 2) + ' hp';
+    if (rec.motor_kw != null) motor += ' / ' + fixedNum(rec.motor_kw, 2) + ' kW';
+    parts.push(motor);
+  }
+  if (rec.stages != null) parts.push(rec.stages + (rec.stages === 1 ? ' stage' : ' stages'));
+  if (rec.npsha) parts.push('NPSHa ' + rec.npsha);
+  return '<p class="iq">' + esc(src) + ', not a curve-sheet reading: ' + esc(parts.join(', ')) + '.</p>';
+}
 function renderDeanSelection() {
   var lead = document.getElementById('rec-lead');
-  var trim = document.getElementById('rec-trim');
   var meta = document.getElementById('rec-meta');
   var notes = document.getElementById('rec-notes');
+  var listEl = document.getElementById('rec-list');
   var points = document.getElementById('sel-points');
   var wrap = document.getElementById('sel-chart-wrap');
+  var caption = document.getElementById('chart-caption');
   var result = DEAN_LAST.result;
   var q = DEAN_LAST.q, h = DEAN_LAST.h, t = DEAN_LAST.t, fluid = DEAN_LAST.fluid;
   var dutyTemp = fluidName() + ', ' + formatTemp(t, DEAN_LAST.unit || TEMP_UNIT);
-  var limit = '<p class="note">' + esc(LIMIT_NOTE) + '</p>';
-  var fluidLine = '<p class="note">' + esc(DeanRA.fluidNote(fluid)) + '</p>';
+  var notesHtml = '<p class="note">' + esc(DeanRA.CATALOG_LIMIT_NOTE) + '</p>' +
+    '<p class="note">' + esc(DeanRA.RANK_NOTE) + '</p>' +
+    '<p class="note">' + esc(DeanRA.SHARED_CURVE_NOTE) + '</p>' +
+    '<p class="note">' + esc(DeanRA.fluidNote(fluid)) + '</p>';
+  meta.textContent = q + ' gpm at ' + h + ' ft · ' + dutyTemp;
   if (!result.covered) {
     wrap.hidden = true;
     points.innerHTML = '';
+    listEl.innerHTML = '';
     lead.textContent = 'No curve in this catalog covers this duty.';
-    trim.textContent = q + ' gpm at ' + h + ' ft is outside every digitized Dean RA line.';
-    meta.textContent = dutyTemp;
-    notes.innerHTML = limit + fluidLine;
+    notes.innerHTML = notesHtml + '<p class="note">' + esc(q + ' gpm at ' + h + ' ft is outside every digitized Dean RA line.') + '</p>';
     return;
   }
-  var hit = result.pick;
+  var selections = result.selections;
+  var n = selections.length;
+  lead.textContent = n === 1 ? '1 size in this catalog can meet this duty.' : (n + ' sizes in this catalog can meet this duty.');
+  var html = '';
+  selections.forEach(function (hit, i) {
+    var curve = hit.curve;
+    var frame = DeanRA.powerFrame(curve);
+    var iq = DeanRA.intelliquipFor(DEAN_IQ, curve, { q_gpm: q, h_ft: h, fluid: fluid });
+    html += '<button type="button" class="sel-row' + (i === (DEAN_LAST.active || 0) ? ' active' : '') + '" data-i="' + i + '" aria-pressed="' + (i === (DEAN_LAST.active || 0) ? 'true' : 'false') + '">' +
+      '<span class="sel-top"><span class="sel-rank">' + (i + 1) + '</span><span class="sel-frame">' + esc(frame) + '</span>' +
+      '<span class="sel-size">' + esc(curve.size) + '</span><span class="sel-rpm">' + esc(curve.rpm) + ' rpm</span></span>' +
+      '<p class="sel-trim">' + esc(DeanRA.impellerLabel(hit)) + '</p>' +
+      '<p class="sel-seat">' + esc(DeanRA.dutySeat(hit, q, h)) + '</p>' +
+      iqMarkup(iq) +
+      '</button>';
+  });
+  listEl.innerHTML = html;
+  var hit = activeHit();
   var curve = hit.curve;
-  var frame = DeanRA.powerFrame(curve);
-  wrap.hidden = false;
-  lead.innerHTML = esc(frame) + ' <span class="size">' + esc(curve.size) + '</span>';
-  trim.textContent = DeanRA.impellerLabel(hit);
-  meta.textContent = q + ' gpm at ' + h + ' ft · ' + curve.rpm + ' rpm · ' + dutyTemp;
   var extra = '';
   if (hit.inferred) {
     extra += '<p class="note quiet">This part of the line uses a point marked inferred. It was read through a label or a crossing, about ±3 ft.</p>';
   }
   extra += '<p class="note quiet">Sheet note: NPSH ' + esc(curve.npsh_ft_note) + ' ft. That is the note printed on the sheet, not an NPSHr curve.</p>';
   if (curve.rpm_note) extra += '<p class="note quiet">' + esc(curve.rpm_note) + '</p>';
-  notes.innerHTML = limit + fluidLine + extra;
+  notes.innerHTML = notesHtml + extra;
+  caption.textContent = 'Head-capacity curves for ' + DeanRA.powerFrame(curve) + ', ' + curve.size + '. Catalog water curve.';
+  wrap.hidden = false;
   points.innerHTML = renderPointTable(curve);
   drawDeanSelection();
 }
@@ -418,12 +492,13 @@ function renderPointTable(curve) {
   var rows = '';
   curve.impellers.forEach(function (imp) {
     imp.points.forEach(function (p) {
+      var mark = p.interpolated ? 'interpolated from catalog points' : (p.inferred ? 'inferred ±3 ft' : 'catalog');
       rows += '<tr><td>' + esc(DeanRA.formatDia(imp.diameter_in)) + '</td><td>' + esc(p.q_gpm) + '</td><td>' + esc(p.h_ft) + '</td><td>' +
-        (p.inferred ? 'inferred ±3 ft' : 'read') + '</td></tr>';
+        esc(mark) + '</td></tr>';
     });
   });
-  return '<details><summary>Catalog points for this size</summary>' +
-    '<table><thead><tr><th>Dia in</th><th>gpm</th><th>ft</th><th>Read</th></tr></thead><tbody>' +
+  return '<details><summary>Points for this size</summary>' +
+    '<table><thead><tr><th>Dia in</th><th>gpm</th><th>ft</th><th>Source</th></tr></thead><tbody>' +
     rows + '</tbody></table></details>';
 }
 function drawDeanSelection() {
@@ -431,7 +506,8 @@ function drawDeanSelection() {
   var canvas = document.getElementById('sel-canvas');
   var parent = canvas.parentElement;
   if (!canvas || !parent) return;
-  var hit = DEAN_LAST.result.pick;
+  var hit = activeHit();
+  if (!hit) return;
   var qDuty = DEAN_LAST.q, hDuty = DEAN_LAST.h;
   var curve = hit.curve;
   var dpr = window.devicePixelRatio || 1;
@@ -493,6 +569,8 @@ function drawDeanSelection() {
   highlight[hit.upperDiameter] = true;
   if (hit.lowerDiameter != null) highlight[hit.lowerDiameter] = true;
 
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
   curve.impellers.forEach(function (imp) {
     var pts = imp.points.slice().sort(function (a, b) { return a.q_gpm - b.q_gpm; });
     var hot = !!highlight[imp.diameter_in];
@@ -500,7 +578,7 @@ function drawDeanSelection() {
     ctx.strokeStyle = hot ? '#141414' : '#8a8a8a';
     ctx.globalAlpha = 1;
     ctx.setLineDash([]);
-    strokeSmooth(ctx, X, Y, DeanRA.smoothPieces(imp.points));
+    strokeCurve(ctx, X, Y, pts);
     pts.forEach(function (p) {
       if (!p.inferred) return;
       ctx.beginPath();
@@ -542,19 +620,15 @@ function drawDeanSelection() {
   ctx.fillStyle = '#141414';
   ctx.fillText('duty', X(qDuty) + 10, Y(hDuty) - 10);
   ctx.fillStyle = '#5c5c5c';
-  ctx.fillText('Open circles are inferred points (±3 ft).', pad.l, 16);
+  ctx.fillText('Open circles are inferred catalog points (±3 ft).', pad.l, 16);
 }
-function strokeSmooth(ctx, X, Y, pieces) {
-  if (!pieces.length) return;
+function strokeCurve(ctx, X, Y, points) {
+  if (!points || points.length < 2) return;
   ctx.beginPath();
-  ctx.moveTo(X(pieces[0].q0), Y(pieces[0].h0));
-  pieces.forEach(function (p) {
-    var dx = p.q1 - p.q0;
-    ctx.bezierCurveTo(
-      X(p.q0 + dx / 3), Y(p.h0 + p.m0 * dx / 3),
-      X(p.q1 - dx / 3), Y(p.h1 - p.m1 * dx / 3),
-      X(p.q1), Y(p.h1)
-    );
+  points.forEach(function (p, i) {
+    var x = X(p.q_gpm), y = Y(p.h_ft);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
   });
   ctx.stroke();
 }
@@ -580,6 +654,12 @@ function betweenSamples(hit) {
   }
   return out;
 }
+document.getElementById('rec-list').addEventListener('click', function (ev) {
+  var btn = ev.target.closest('[data-i]');
+  if (!btn || !DEAN_LAST) return;
+  DEAN_LAST.active = Number(btn.getAttribute('data-i'));
+  renderDeanSelection();
+});
 document.getElementById('duty').addEventListener('submit', function (ev) {
   ev.preventDefault();
   runDeanSelect();
@@ -612,9 +692,15 @@ fetch('data/dean-ra-curves.json').then(function (r) {
   return r.json();
 }).then(function (data) {
   DEAN_CATALOG = data;
+  return fetch('data/intelliquip-selections.json');
+}).then(function (r) {
+  if (!r || !r.ok) return null;
+  return r.json();
+}).then(function (iq) {
+  if (iq && iq.records) DEAN_IQ = iq;
 }).catch(function () {
   var err = document.getElementById('sel-err');
-  if (err) err.textContent = 'Could not load the Dean RA catalog.';
+  if (err && !DEAN_CATALOG) err.textContent = 'Could not load the Dean RA catalog.';
 });
 </script>
 </body>
