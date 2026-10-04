@@ -147,6 +147,32 @@ details summary:focus-visible {
 }
 .note { color: var(--ink); }
 .note.quiet { color: var(--muted); font-size: 14px; }
+.correction {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--amber);
+  background: #fff8eb;
+  font-size: 14px;
+}
+.sizes {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sizes li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.sizes li.recommended { font-weight: 600; }
+.size-kicker {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 .chart-wrap {
   margin-top: 18px;
   background: var(--white);
@@ -284,6 +310,7 @@ th { font-weight: 600; }
       <div class="chart-wrap" id="sel-chart-wrap" hidden>
         <canvas id="sel-canvas"></canvas>
       </div>
+      <div id="rec-sizes"></div>
       <div id="sel-points"></div>
     </section>
   </div>
@@ -305,22 +332,6 @@ function esc(s) {
     return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[ch];
   });
 }
-// Suite fluid temperatures. Water presets that print °F stay in °F.
-// A fluid printed only in °C stays in °C. This number is not a viscosity correction.
-var FLUID_TEMP = {
-  water: [68, 'F'], water60: [140, 'F'], water80: [176, 'F'], water100: [212, 'F'],
-  water121: [250, 'F'], water150: [302, 'F'], water180: [356, 'F'],
-  condensate: [90, 'C'], seawater: [20, 'C'],
-  eg30: [20, 'C'], eg50: [20, 'C'], eg50c: [-10, 'C'], pg30: [20, 'C'], pg50: [20, 'C'],
-  dowthermA: [150, 'C'], dowthermA260: [260, 'C'], dowthermQ: [100, 'C'], dowthermQ200: [200, 'C'],
-  therminol55: [100, 'C'], therminol66: [150, 'C'], therminol66h: [300, 'C'], therminolVP1: [200, 'C'],
-  syltherm800: [200, 'C'], syltherm800h: [350, 'C'], xlt: [-40, 'C'],
-  mineralOil100: [100, 'C'], mineralOil200: [200, 'C'],
-  crude: [68, 'F'], crudemed: [68, 'F'], diesel: [68, 'F'], fo6: [122, 'F'],
-  gasoline: [68, 'F'], jetA: [68, 'F'], isovg32: [104, 'F'], isovg68: [104, 'F'],
-  hcl: [68, 'F'], sulfuric: [68, 'F'], sulfuric10: [68, 'F'], naoh: [68, 'F'],
-  methanol: [68, 'F'], ethanol: [68, 'F'], ammonia: [-33, 'C']
-};
 var TEMP_UNIT = 'F';
 
 function fluidName() {
@@ -342,16 +353,12 @@ function setTemperatureUnit(unit) {
   document.querySelector('label[for="sel-t"]').textContent = 'Temperature (°' + TEMP_UNIT + ')';
 }
 function applyFluidTemperature() {
-  var spec = FLUID_TEMP[document.getElementById('sel-fluid').value];
-  if (!spec) return;
-  setTemperatureUnit(spec[1]);
-  document.getElementById('sel-t').value = String(spec[0]);
-  if (DEAN_LAST) {
-    DEAN_LAST.t = spec[0];
-    DEAN_LAST.unit = TEMP_UNIT;
-    DEAN_LAST.fluid = document.getElementById('sel-fluid').value;
-    renderDeanSelection();
+  var rec = DeanRA.fluids[document.getElementById('sel-fluid').value];
+  if (rec && rec.temp != null) {
+    setTemperatureUnit(rec.unit);
+    document.getElementById('sel-t').value = String(rec.temp);
   }
+  if (selNum('sel-q') != null && selNum('sel-h') != null && DEAN_CATALOG) runDeanSelect();
 }
 function syncChips() {
   var q = document.getElementById('sel-q').value;
@@ -371,30 +378,66 @@ function runDeanSelect() {
   if (q == null || h == null || t == null) { err.textContent = 'Enter flow, head, and temperature.'; return; }
   if (q <= 0 || h <= 0) { err.textContent = 'Flow and head need to be greater than zero.'; return; }
   DEAN_LAST = {
-    result: DeanRA.select(DEAN_CATALOG, {q_gpm: q, h_ft: h}),
+    result: DeanRA.select(DEAN_CATALOG, {q_gpm: q, h_ft: h, fluid: fluid, temp: t, unit: TEMP_UNIT}),
     q: q, h: h, t: t, unit: TEMP_UNIT, fluid: fluid
   };
   renderDeanSelection();
+}
+function correctionBlock(result) {
+  var corr = result.correction;
+  if (!corr || corr.status === 'water') {
+    return '<p class="note">' + esc(corr && corr.note ? corr.note : DeanRA.fluidNote('water')) + '</p>';
+  }
+  return '<div class="correction">' + esc(corr.note) + '</div>';
+}
+function disclaimerBlock(result) {
+  var corr = result.correction;
+  if (corr && corr.note && corr.note.indexOf(DeanRA.DISCLAIMER) >= 0) return '';
+  return '<p class="note quiet">' + esc(DeanRA.DISCLAIMER) + '</p>';
+}
+function sizeList(result) {
+  var matches = result.matches || [];
+  if (!matches.length) return '';
+  var corr = result.correction;
+  var heading = 'Every catalog size that can meet this duty';
+  if (corr && corr.applied) {
+    heading = 'Every catalog size that can meet the corrected water duty, ' +
+      corr.qWater.toFixed(1).replace(/\.0$/, '') + ' gpm at ' +
+      corr.hWater.toFixed(1).replace(/\.0$/, '') + ' ft';
+  }
+  var items = matches.map(function (hit, i) {
+    var curve = hit.curve;
+    return '<li class="' + (i === 0 ? 'recommended' : '') + '">' +
+      esc(DeanRA.powerFrame(curve)) + ' · ' + esc(curve.size) + ' · ' +
+      esc(DeanRA.impellerLabel(hit)) + ' · ' + esc(curve.rpm) + ' rpm' +
+      (i === 0 ? ' · recommended' : '') + '</li>';
+  }).join('');
+  return '<p class="size-kicker">Sizes</p>' +
+    '<p class="note quiet">' + esc(heading) + '. Not ranked by efficiency.</p>' +
+    '<ul class="sizes">' + items + '</ul>';
 }
 function renderDeanSelection() {
   var lead = document.getElementById('rec-lead');
   var trim = document.getElementById('rec-trim');
   var meta = document.getElementById('rec-meta');
   var notes = document.getElementById('rec-notes');
+  var sizes = document.getElementById('rec-sizes');
   var points = document.getElementById('sel-points');
   var wrap = document.getElementById('sel-chart-wrap');
   var result = DEAN_LAST.result;
   var q = DEAN_LAST.q, h = DEAN_LAST.h, t = DEAN_LAST.t, fluid = DEAN_LAST.fluid;
   var dutyTemp = fluidName() + ', ' + formatTemp(t, DEAN_LAST.unit || TEMP_UNIT);
   var limit = '<p class="note">' + esc(LIMIT_NOTE) + '</p>';
-  var fluidLine = '<p class="note">' + esc(DeanRA.fluidNote(fluid)) + '</p>';
+  var fluidLine = correctionBlock(result);
+  var list = sizeList(result);
   if (!result.covered) {
     wrap.hidden = true;
     points.innerHTML = '';
     lead.textContent = 'No curve in this catalog covers this duty.';
     trim.textContent = q + ' gpm at ' + h + ' ft is outside every digitized Dean RA line.';
     meta.textContent = dutyTemp;
-    notes.innerHTML = limit + fluidLine;
+    notes.innerHTML = fluidLine + disclaimerBlock(result);
+    sizes.innerHTML = list + limit;
     return;
   }
   var hit = result.pick;
@@ -410,7 +453,8 @@ function renderDeanSelection() {
   }
   extra += '<p class="note quiet">Sheet note: NPSH ' + esc(curve.npsh_ft_note) + ' ft. That is the note printed on the sheet, not an NPSHr curve.</p>';
   if (curve.rpm_note) extra += '<p class="note quiet">' + esc(curve.rpm_note) + '</p>';
-  notes.innerHTML = limit + fluidLine + extra;
+  notes.innerHTML = fluidLine + disclaimerBlock(result) + extra;
+  sizes.innerHTML = list + limit;
   points.innerHTML = renderPointTable(curve);
   drawDeanSelection();
 }
@@ -543,6 +587,83 @@ function drawDeanSelection() {
   ctx.fillText('duty', X(qDuty) + 10, Y(hDuty) - 10);
   ctx.fillStyle = '#5c5c5c';
   ctx.fillText('Open circles are inferred points (±3 ft).', pad.l, 16);
+  drawCorrectedCurve(ctx, X, Y, hit, samples, qDuty, hDuty);
+  drawCorrectionTag(ctx, cssW, pad);
+}
+function drawCorrectedCurve(ctx, X, Y, hit, samples, qDuty, hDuty) {
+  var corr = DEAN_LAST.result.correction;
+  if (!corr || !corr.applied) return;
+  var curve = hit.curve;
+  var highlight = {};
+  highlight[hit.upperDiameter] = true;
+  if (hit.lowerDiameter != null) highlight[hit.lowerDiameter] = true;
+  ctx.save();
+  ctx.setLineDash([7, 5]);
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = '#C47D00';
+  curve.impellers.forEach(function (imp) {
+    if (!highlight[imp.diameter_in]) return;
+    strokeSmooth(ctx, X, Y, DeanRA.correctedPieces(imp.points, corr.CQ, corr.CH));
+  });
+  if (samples.length > 1) {
+    ctx.beginPath();
+    samples.forEach(function (p, i) {
+      var x = X(p.q * corr.CQ);
+      var y = Y(p.h * corr.CH);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    var mid = samples[Math.floor(samples.length / 2)];
+    ctx.fillStyle = '#C47D00';
+    ctx.fillText('HI correction', X(mid.q * corr.CQ) + 8, Y(mid.h * corr.CH) + 16);
+  }
+  var dx = X(corr.qWater) - X(qDuty);
+  var dy = Y(corr.hWater) - Y(hDuty);
+  if (dx * dx + dy * dy > 144) {
+    ctx.setLineDash([3, 3]);
+    ctx.lineWidth = 1.25;
+    ctx.beginPath();
+    ctx.moveTo(X(qDuty), Y(hDuty));
+    ctx.lineTo(X(corr.qWater), Y(corr.hWater));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.fillStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.arc(X(corr.qWater), Y(corr.hWater), 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#C47D00';
+    ctx.fillText('water equivalent', X(corr.qWater) + 8, Y(corr.hWater) + 14);
+  }
+  ctx.restore();
+}
+function drawCorrectionTag(ctx, cssW, pad) {
+  var lines = DeanRA.correctionTag(DEAN_LAST.result.correction);
+  if (!lines.length) return;
+  ctx.save();
+  ctx.font = '12px Exo, Helvetica, sans-serif';
+  var width = 0;
+  lines.forEach(function (line) {
+    var w = ctx.measureText(line).width;
+    if (w > width) width = w;
+  });
+  var boxW = width + 16;
+  var boxH = lines.length * 16 + 10;
+  var x = cssW - pad.r - boxW;
+  var y = pad.t + 8;
+  ctx.fillStyle = '#fff8eb';
+  ctx.strokeStyle = '#C47D00';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([]);
+  ctx.fillRect(x, y, boxW, boxH);
+  ctx.strokeRect(x, y, boxW, boxH);
+  ctx.fillStyle = '#141414';
+  lines.forEach(function (line, i) {
+    ctx.fillText(line, x + 8, y + 16 + i * 16);
+  });
+  ctx.restore();
 }
 function strokeSmooth(ctx, X, Y, pieces) {
   if (!pieces.length) return;
@@ -597,12 +718,8 @@ document.querySelectorAll('[data-ex]').forEach(function (btn) {
 });
 document.getElementById('sel-fluid').addEventListener('change', applyFluidTemperature);
 document.getElementById('sel-t').addEventListener('input', function () {
-  if (!DEAN_LAST) return;
-  var t = selNum('sel-t');
-  if (t == null) return;
-  DEAN_LAST.t = t;
-  DEAN_LAST.unit = TEMP_UNIT;
-  renderDeanSelection();
+  if (selNum('sel-t') == null) return;
+  if (selNum('sel-q') != null && selNum('sel-h') != null && DEAN_CATALOG) runDeanSelect();
 });
 window.addEventListener('resize', function () {
   if (DEAN_LAST && DEAN_LAST.result.covered) drawDeanSelection();

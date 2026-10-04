@@ -255,23 +255,172 @@ function assertCovered(result, q, h) {
   assert.strictEqual(DeanRA.headAt(six.points, 0), null);
 }
 
-// Water at ambient is the reference. Any other fluid still plots that catalog water curve.
+// Water at ambient is the reference. The default water note does not mention a viscosity correction.
 {
   ['water', 'water60', 'water180', 'eg50', 'therminol66', 'dowthermA', 'seawater', 'custom'].forEach(function (fluid) {
-    var note = DeanRA.fluidNote(fluid);
+    var note = DeanRA.fluidNote(fluid, { q_gpm: 400, h_ft: 200 });
     assert.ok(note.indexOf('Water at ambient is the reference these curves were drawn for.') >= 0, fluid);
     assert.ok(note.toLowerCase().indexOf('not the rwa') < 0, fluid);
     assert.ok(note.toLowerCase().indexOf('not rwa') < 0, fluid);
-    assert.ok(note.toLowerCase().indexOf('viscosity') < 0, fluid);
   });
   assert.ok(DeanRA.fluidNote('water').indexOf('still the catalog water curve') < 0);
   assert.ok(DeanRA.fluidNote('water60').indexOf('still the catalog water curve') < 0);
-  ['eg50', 'therminol66', 'dowthermA', 'seawater', 'pg50', 'custom', 'hto'].forEach(function (fluid) {
-    assert.ok(
-      DeanRA.fluidNote(fluid).indexOf('The plotted curve is still the catalog water curve.') >= 0,
-      fluid
-    );
+  assert.ok(DeanRA.fluidNote('water').toLowerCase().indexOf('viscosity') < 0);
+  assert.ok(DeanRA.fluidNote('water60').toLowerCase().indexOf('viscosity') < 0);
+  assert.strictEqual(
+    DeanRA.fluidNote('water'),
+    'Water at ambient is the reference these curves were drawn for.'
+  );
+}
+
+// Published Hydraulic Institute preliminary correction, USCS worked example:
+// 440 gpm at 230 ft, 120 cSt → B = 5.70, CQ = 0.934, water duty 471 gpm at 246 ft.
+{
+  const hi = DeanRA.hiPreliminary(440, 230, 120);
+  assert.ok(Math.abs(hi.B - 5.70) < 0.02, 'B ' + hi.B);
+  assert.ok(Math.abs(hi.CQ - 0.934) < 0.002, 'CQ ' + hi.CQ);
+  assert.ok(Math.abs(hi.CH - hi.CQ) < 1e-12);
+  assert.ok(Math.abs(hi.qWater - 471) < 1, 'Qw ' + hi.qWater);
+  assert.ok(Math.abs(hi.hWater - 246) < 1, 'Hw ' + hi.hWater);
+  assert.strictEqual(hi.range, 'ok');
+  const low = DeanRA.hiPreliminary(400, 200, 1);
+  assert.strictEqual(low.range, 'low');
+  assert.strictEqual(low.CQ, 1);
+  assert.strictEqual(low.CH, 1);
+  const high = DeanRA.hiPreliminary(20, 40, 3000);
+  assert.strictEqual(high.range, 'high');
+  assert.strictEqual(high.CQ, null);
+}
+
+// Stored menu properties drive the correction. Missing properties are not invented.
+{
+  const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+  const seen = {};
+  const re = /<option value="([^"]+)"[^>]*>([^<]*)<\/option>/g;
+  let m;
+  while ((m = re.exec(html))) {
+    seen[m[1]] = m[2];
+    const sg = /SG=([0-9.]+)/.exec(m[2]);
+    const mu = /μ=([0-9.]+)/.exec(m[2]);
+    if (m[1] === 'custom') {
+      assert.ok(!sg && !mu);
+      assert.strictEqual(DeanRA.fluids[m[1]], undefined);
+      continue;
+    }
+    assert.ok(sg && mu, m[1]);
+    const rec = DeanRA.fluids[m[1]];
+    assert.ok(rec, 'missing stored fluid ' + m[1]);
+    assert.strictEqual(rec.sg, Number(sg[1]));
+    assert.strictEqual(rec.visc, Number(mu[1]));
+  }
+  Object.keys(DeanRA.fluids).forEach(function (id) {
+    assert.ok(seen[id], id);
   });
+  const duty = { q_gpm: 400, h_ft: 200 };
+  ['custom', 'hto'].forEach(function (fluid) {
+    const note = DeanRA.fluidNote(fluid, duty);
+    assert.ok(note.indexOf('No viscosity or specific gravity is stored') >= 0, fluid);
+    assert.ok(note.indexOf(DeanRA.DISCLAIMER) >= 0, fluid);
+    const sel = DeanRA.select(catalog, { q_gpm: 400, h_ft: 200, fluid: fluid, temp: 68, unit: 'F' });
+    assert.strictEqual(sel.correction.applied, false);
+    assert.strictEqual(sel.correction.status, 'missing');
+    assert.strictEqual(sel.pick.curve.model, pick(400, 200).pick.curve.model);
+  });
+  const wrongTemp = DeanRA.fluidNote('therminol66', { q_gpm: 400, h_ft: 200, temp: 68, unit: 'F' });
+  assert.ok(wrongTemp.indexOf('stored at 150 °C') >= 0);
+  assert.ok(wrongTemp.indexOf('not at the temperature entered') >= 0);
+  assert.ok(wrongTemp.toLowerCase().indexOf('corrected flow') < 0);
+}
+
+// A non-water fluid corrects the catalog water curve. It does not invent heads, efficiency, BHP, or NPSHr.
+{
+  const water = pick(400, 200);
+  const same = DeanRA.select(catalog, { q_gpm: 400, h_ft: 200, fluid: 'water', temp: 68, unit: 'F' });
+  assert.strictEqual(same.correction.status, 'water');
+  assert.strictEqual(same.correction.applied, false);
+  assert.strictEqual(same.pick.curve.model, water.pick.curve.model);
+  assert.strictEqual(same.pick.diameter_in, water.pick.diameter_in);
+  assert.strictEqual(same.pick.kind, water.pick.kind);
+
+  const hot = DeanRA.select(catalog, { q_gpm: 400, h_ft: 200, fluid: 'water60', temp: 140, unit: 'F' });
+  assert.strictEqual(hot.correction.status, 'water');
+  assert.strictEqual(hot.pick.curve.model, water.pick.curve.model);
+  assert.strictEqual(hot.pick.diameter_in, water.pick.diameter_in);
+
+  const thin = DeanRA.select(catalog, { q_gpm: 400, h_ft: 200, fluid: 'therminol66', temp: 150, unit: 'C' });
+  assert.strictEqual(thin.correction.status, 'unchanged');
+  assert.strictEqual(thin.correction.applied, false);
+  assert.strictEqual(thin.correction.CQ, 1);
+  assert.strictEqual(thin.correction.sg, 0.963);
+  assert.strictEqual(thin.correction.visc, 1.850);
+  assert.ok(thin.correction.B <= 1);
+  assert.strictEqual(thin.pick.curve.model, water.pick.curve.model);
+  assert.strictEqual(thin.pick.diameter_in, water.pick.diameter_in);
+  assert.ok(thin.correction.note.indexOf('Hydraulic Institute') >= 0);
+  assert.ok(thin.correction.note.indexOf('1.85 cP') >= 0);
+  assert.ok(thin.correction.note.indexOf('0.963') >= 0);
+  assert.ok(thin.correction.note.indexOf('stay on the catalog water curve') >= 0);
+  assert.ok(thin.correction.note.indexOf(DeanRA.DISCLAIMER) >= 0);
+  assert.ok(thin.correction.note.indexOf('The plotted curve is still the catalog water curve.') < 0);
+
+  const xlt = DeanRA.select(catalog, { q_gpm: 400, h_ft: 200, fluid: 'xlt', temp: -40, unit: 'C' });
+  assert.strictEqual(xlt.correction.status, 'corrected');
+  assert.strictEqual(xlt.correction.applied, true);
+  assert.strictEqual(xlt.correction.sg, 0.985);
+  assert.strictEqual(xlt.correction.visc, 12);
+  assert.ok(xlt.correction.qWater > 400);
+  assert.ok(xlt.correction.hWater > 200);
+  assert.ok(xlt.correction.CQ < 1);
+  assert.ok(Math.abs(xlt.correction.CH - xlt.correction.CQ) < 1e-12);
+  assert.ok(xlt.correction.note.indexOf('Corrected flow') >= 0);
+  assert.ok(xlt.correction.note.indexOf('corrected head') >= 0);
+  assert.ok(xlt.correction.note.indexOf('not a Dean sheet') >= 0);
+  assert.ok(xlt.correction.note.indexOf(DeanRA.DISCLAIMER) >= 0);
+  assert.ok(xlt.matchCount < water.matchCount);
+  assert.ok(water.matches.some(function (hit) { return hit.curve.model === 'R20100-A2'; }));
+  assert.ok(!xlt.matches.some(function (hit) { return hit.curve.model === 'R20100-A2'; }));
+  const tag = DeanRA.correctionTag(xlt.correction);
+  assert.ok(tag[0].indexOf('HI correction') >= 0);
+  assert.ok(tag[1].indexOf('12 cP') >= 0);
+  assert.ok(tag[1].indexOf('0.985') >= 0);
+  const pieces = DeanRA.correctedPieces(
+    xlt.pick.curve.impellers[0].points,
+    xlt.correction.CQ,
+    xlt.correction.CH
+  );
+  const raw = DeanRA.smoothPieces(xlt.pick.curve.impellers[0].points);
+  assert.strictEqual(pieces.length, raw.length);
+  assert.ok(Math.abs(pieces[0].q0 - raw[0].q0 * xlt.correction.CQ) < 1e-6);
+  assert.ok(Math.abs(pieces[0].h0 - raw[0].h0 * xlt.correction.CH) < 1e-6);
+  assert.strictEqual(xlt.pick.curve.impellers[0].points[0].q_gpm, raw[0].q0);
+
+  const oil = DeanRA.select(catalog, { q_gpm: 400, h_ft: 200, fluid: 'fo6', temp: 122, unit: 'F' });
+  assert.strictEqual(oil.correction.applied, true);
+  assert.notStrictEqual(oil.pick.curve.model, water.pick.curve.model);
+  assert.strictEqual(DeanRA.powerFrame(oil.pick.curve), 'RA3186');
+  assert.ok(oil.correction.qWater > 450);
+  assert.ok(oil.correction.hWater > 220);
+
+  [water, xlt, oil, thin].forEach(function (result) {
+    assert.strictEqual(result.pick.efficiency, undefined);
+    assert.strictEqual(result.pick.bhp, undefined);
+    assert.strictEqual(result.pick.npshr, undefined);
+    assert.strictEqual(result.correction.efficiency, undefined);
+    assert.strictEqual(result.correction.bhp, undefined);
+    assert.strictEqual(result.correction.npshr, undefined);
+    assert.strictEqual(result.matches.length, result.matchCount);
+    assert.strictEqual(result.matches[0], result.pick);
+    result.matches.forEach(function (hit) {
+      var frame = DeanRA.powerFrame(hit.curve);
+      assert.ok(frame === 'RA2096' || frame === 'RA3146' || frame === 'RA3186');
+    });
+  });
+  const models = {};
+  water.matches.forEach(function (hit) { models[hit.curve.model] = true; });
+  ['R20100-A2', 'R3085-A1', 'R30100-A1', 'R4085-A1'].forEach(function (model) {
+    assert.strictEqual(models[model], true, model);
+  });
+  assert.strictEqual(Object.keys(models).length, 4);
 }
 
 // Every impeller line falls or stays level as flow rises, and a trim stays between its neighbors.
