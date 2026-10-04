@@ -9,17 +9,26 @@ function pick(q, h) {
   return DeanRA.select(catalog, { q_gpm: q, h_ft: h });
 }
 
-function assertCovered(result, q, h) {
-  assert.strictEqual(result.covered, true, 'expected a cover for ' + q + ' gpm / ' + h + ' ft');
-  const hit = result.pick;
+function findModel(result, model) {
+  const hit = (result.selections || []).find(function (s) { return s.curve.model === model; });
+  assert.ok(hit, 'missing ' + model + ' from the list');
+  return hit;
+}
+
+function assertHit(hit, q, h) {
   assert.ok(hit.endMargin >= -1e-6, 'duty is past the last real point');
   assert.ok(q + 1e-6 >= hit.qMin && q - 1e-6 <= hit.qMax, 'flow outside the real segment');
+  assert.ok(hit.head_ft + 1e-4 >= h - DeanRA.ON_LINE_FT, 'head short of the duty');
+  const frame = DeanRA.powerFrame(hit.curve);
+  assert.ok(frame === 'RA2096' || frame === 'RA3146' || frame === 'RA3186');
+  assert.notStrictEqual(frame, hit.curve.model);
   if (hit.kind === 'catalog') {
-    const on = DeanRA.headAt(
+    const on = DeanRA.smoothHead(
       hit.curve.impellers.find(function (imp) { return imp.diameter_in === hit.upperDiameter; }).points,
       q
     );
-    assert.ok(Math.abs(on.h - h) <= DeanRA.ON_LINE_FT + 1e-6);
+    assert.ok(Math.abs(on.h - hit.head_ft) < 1e-6);
+    assert.ok(on.h + 1e-4 >= h - DeanRA.ON_LINE_FT);
   } else {
     assert.strictEqual(hit.kind, 'trim');
     const top = Math.max(hit.hUpper, hit.hLower);
@@ -27,32 +36,50 @@ function assertCovered(result, q, h) {
     assert.ok(h <= top + 1e-6 && h >= bot - 1e-6, 'head left the adjacent-diameter envelope');
     assert.ok(hit.between[1] - hit.between[0] > 0);
     const hd = DeanRA.affinityHead(hit.hLower, hit.hUpper, hit.lowerDiameter, hit.upperDiameter, hit.diameter_in);
+    assert.ok(Math.abs(hd - hit.head_ft) < 1e-6);
     assert.ok(hd + 1e-4 >= h, 'trim head is below the duty');
     assert.ok(hit.diameter_in > hit.lowerDiameter - 1e-6 && hit.diameter_in < hit.upperDiameter + 1e-6);
   }
   assert.notStrictEqual(hit.curve.rpm, 1150);
 }
 
+function assertCovered(result, q, h) {
+  assert.strictEqual(result.covered, true, 'expected a cover for ' + q + ' gpm / ' + h + ' ft');
+  assert.ok(result.selections && result.selections.length === result.matchCount);
+  assert.strictEqual(result.pick, result.selections[0]);
+  result.selections.forEach(function (hit) { assertHit(hit, q, h); });
+  for (let i = 1; i < result.selections.length; i++) {
+    const prev = result.selections[i - 1].head_ft - h;
+    const cur = result.selections[i].head_ft - h;
+    if (prev >= -1e-6 && cur >= -1e-6) {
+      assert.ok(cur + DeanRA.ON_LINE_FT + 0.05 >= prev, 'closer trim ranked after a looser one');
+    }
+  }
+}
+
 // Exact catalog point on RA1060 6 in at 80 gpm / 147 ft.
 {
   const r = pick(80, 147);
   assertCovered(r, 80, 147);
-  assert.strictEqual(r.pick.curve.model, 'RA1060-A2');
-  assert.strictEqual(r.pick.kind, 'catalog');
-  assert.strictEqual(r.pick.upperDiameter, 6);
-  assert.strictEqual(r.pick.curve.rpm, 3500);
-  assert.strictEqual(r.pick.curve.frame, 'RA2096');
+  const hit = findModel(r, 'RA1060-A2');
+  assert.strictEqual(hit.kind, 'catalog');
+  assert.strictEqual(hit.upperDiameter, 6);
+  assert.strictEqual(hit.curve.rpm, 3500);
+  assert.strictEqual(hit.curve.frame, 'RA2096');
+  assert.strictEqual(hit.head_ft, 147);
 }
 
 // Between the 6 in and 5.5 in lines: eighth-inch trim, not a linear diameter.
+// The list is every size that can meet the duty, not this one pump.
 {
   const r = pick(80, 130);
   assertCovered(r, 80, 130);
-  assert.strictEqual(r.pick.curve.model, 'RA1060-A2');
-  assert.strictEqual(r.pick.kind, 'trim');
-  assert.strictEqual(r.pick.diameter_in, 5.75);
-  assert.deepStrictEqual(r.pick.between, [5.5, 6]);
-  const label = DeanRA.impellerLabel(r.pick);
+  assert.ok(r.selections.length > 1);
+  const hit = findModel(r, 'RA1060-A2');
+  assert.strictEqual(hit.kind, 'trim');
+  assert.strictEqual(hit.diameter_in, 5.75);
+  assert.deepStrictEqual(hit.between, [5.5, 6]);
+  const label = DeanRA.impellerLabel(hit);
   assert.ok(label.indexOf('5.75 in') === 0);
   assert.ok(label.indexOf('calculated between the 5.5 in and 6 in catalog diameters') >= 0);
   assert.ok(label.indexOf('not a published curve') >= 0);
@@ -62,9 +89,9 @@ function assertCovered(result, q, h) {
 {
   const r = pick(80, 145);
   assertCovered(r, 80, 145);
-  assert.strictEqual(r.pick.curve.model, 'RA1060-A2');
-  assert.strictEqual(r.pick.kind, 'catalog');
-  assert.strictEqual(r.pick.diameter_in, 6);
+  const hit = findModel(r, 'RA1060-A2');
+  assert.strictEqual(hit.kind, 'catalog');
+  assert.strictEqual(hit.diameter_in, 6);
 }
 
 // Above every published line.
@@ -75,12 +102,12 @@ function assertCovered(result, q, h) {
 }
 
 // Past the end of the small pump, still inside a larger one: 200 gpm at 140 ft.
-// RA1060 ends at 160 gpm, so it must not be chosen.
+// RA1060 ends at 160 gpm, so it must not be in the list.
 {
   const r = pick(200, 140);
   assertCovered(r, 200, 140);
-  assert.notStrictEqual(r.pick.curve.model, 'RA1060-A2');
-  assert.ok(r.pick.endMargin > 0);
+  assert.ok(r.selections.every(function (s) { return s.curve.model !== 'RA1060-A2'; }));
+  assert.ok(r.selections.some(function (s) { return s.endMargin > 0; }));
 }
 
 // 1750 rpm sheet only. A low head at mid flow is the #2 curve, not the 3500 #1.
@@ -170,10 +197,10 @@ function assertCovered(result, q, h) {
   assert.strictEqual(at(5, 160), null);
   const onEight = pick(100, 293);
   assertCovered(onEight, 100, 293);
-  assert.strictEqual(onEight.pick.curve.model, 'RA1080-A2');
-  assert.strictEqual(onEight.pick.kind, 'catalog');
-  assert.strictEqual(onEight.pick.upperDiameter, 8);
-  assert.strictEqual(DeanRA.powerFrame(onEight.pick.curve), 'RA2096');
+  const eight = findModel(onEight, 'RA1080-A2');
+  assert.strictEqual(eight.kind, 'catalog');
+  assert.strictEqual(eight.upperDiameter, 8);
+  assert.strictEqual(DeanRA.powerFrame(eight.curve), 'RA2096');
 }
 
 // The name on screen is the RA power frame printed on the sheet, not the curve-sheet id.
@@ -232,11 +259,12 @@ function assertCovered(result, q, h) {
   };
   curve.impellers.forEach(function (imp) {
     const rows = expect[imp.diameter_in];
-    assert.strictEqual(imp.points.length, rows.length);
+    const measured = DeanRA.measuredPoints(imp.points);
+    assert.strictEqual(measured.length, rows.length);
     rows.forEach(function (row, i) {
-      assert.strictEqual(imp.points[i].q_gpm, row[0]);
-      assert.strictEqual(imp.points[i].h_ft, row[1]);
-      assert.strictEqual(imp.points[i].inferred, row[2]);
+      assert.strictEqual(measured[i].q_gpm, row[0]);
+      assert.strictEqual(measured[i].h_ft, row[1]);
+      assert.strictEqual(measured[i].inferred, row[2]);
     });
     assert.strictEqual(DeanRA.headAt(imp.points, 1800), null);
   });
@@ -312,10 +340,10 @@ function assertCovered(result, q, h) {
   });
   const bump = pick(80, 250);
   assertCovered(bump, 80, 250);
-  assert.strictEqual(bump.pick.curve.model, 'RA1080-A2');
-  assert.strictEqual(bump.pick.kind, 'trim');
-  assert.strictEqual(bump.pick.diameter_in, 7.5);
-  assert.deepStrictEqual(bump.pick.between, [7, 8]);
+  const hit = findModel(bump, 'RA1080-A2');
+  assert.strictEqual(hit.kind, 'trim');
+  assert.strictEqual(hit.diameter_in, 7.5);
+  assert.deepStrictEqual(hit.between, [7, 8]);
 }
 
 // The plotted curve is a smooth monotone fit through the points, not a chord past the last point.
@@ -323,7 +351,7 @@ function assertCovered(result, q, h) {
   catalog.curves.forEach(function (curve) {
     const imps = curve.impellers.slice().sort(function (a, b) { return b.diameter_in - a.diameter_in; });
     imps.forEach(function (imp) {
-      const pts = imp.points.slice().sort(function (a, b) { return a.q_gpm - b.q_gpm; });
+      const pts = DeanRA.measuredPoints(imp.points);
       pts.forEach(function (p) {
         const on = DeanRA.smoothHead(imp.points, p.q_gpm);
         assert.ok(Math.abs(on.h - p.h_ft) < 1e-6, curve.model + ' fit missed ' + p.q_gpm);
@@ -380,23 +408,265 @@ function assertCovered(result, q, h) {
   assert.ok(mid.h < 200 && mid.h > 122);
 }
 
-// One recommendation, and every stored point still carries an inferred flag.
+// Catalog readings stay 277. Interpolated samples are extra, and not sheet readings.
 {
   let points = 0;
+  let interpolated = 0;
   catalog.curves.forEach(function (c) {
     c.impellers.forEach(function (imp) {
       imp.points.forEach(function (p) {
-        points++;
-        assert.strictEqual(typeof p.inferred, 'boolean');
         assert.strictEqual(typeof p.h_ft, 'number');
         assert.strictEqual(typeof p.q_gpm, 'number');
+        assert.ok(!('efficiency' in p) && !('bhp' in p) && !('bep' in p));
+        if (p.interpolated) {
+          interpolated++;
+          assert.strictEqual(p.interpolated, true);
+          assert.ok(!('inferred' in p));
+        } else {
+          points++;
+          assert.strictEqual(typeof p.inferred, 'boolean');
+        }
       });
     });
   });
   assert.strictEqual(points, 277);
+  assert.ok(interpolated > points);
   const r = pick(100, 100);
-  assert.strictEqual(r.matchCount >= 1, true);
-  assert.ok(r.pick);
+  assert.ok(r.selections.length >= 1);
+  assert.strictEqual(r.pick, r.selections[0]);
+}
+
+// Stored samples are a smooth fit through the catalog points, inside the measured flow.
+{
+  catalog.curves.forEach(function (curve) {
+    curve.impellers.forEach(function (imp) {
+      const measured = DeanRA.measuredPoints(imp.points);
+      const fresh = DeanRA.interpolatedPoints(measured);
+      const qMin = measured[0].q_gpm;
+      const qMax = measured[measured.length - 1].q_gpm;
+      let prev = measured[0].h_ft;
+      imp.points.forEach(function (p) {
+        assert.ok(p.h_ft <= prev + 1e-6, curve.model + ' ' + imp.diameter_in + ' rises at ' + p.q_gpm);
+        prev = p.h_ft;
+        assert.ok(p.q_gpm + 1e-9 >= qMin && p.q_gpm - 1e-9 <= qMax);
+      });
+      const stored = imp.points.filter(function (p) { return p.interpolated; });
+      assert.ok(stored.length >= 3, curve.model + ' ' + imp.diameter_in + ' has no interpolated samples');
+      stored.forEach(function (p) {
+        const on = DeanRA.smoothHead(measured, p.q_gpm);
+        assert.ok(on, 'sample outside the catalog flow');
+        assert.ok(Math.abs(on.h - p.h_ft) <= 0.02, curve.model + ' sample left the fit at ' + p.q_gpm);
+        assert.ok(p.q_gpm > qMin + 1e-9 && p.q_gpm < qMax - 1e-9);
+      });
+      assert.strictEqual(fresh.length, stored.length);
+    });
+  });
+  const seven = catalog.curves.find(function (c) { return c.model === 'R20100-A2'; })
+    .impellers.find(function (imp) { return imp.diameter_in === 7; });
+  const mid = seven.points.find(function (p) { return p.interpolated && p.q_gpm > 100 && p.q_gpm < 200; });
+  const chord = 200 + (122 - 200) * (mid.q_gpm - 100) / 100;
+  assert.ok(Math.abs(mid.h_ft - chord) > 1, 'interpolated point is still the straight chord');
+}
+
+// A published line bows the way a pump curve does: above the end-to-end chord,
+// and steeper at the high-flow end than near the start of the measured range.
+{
+  const imp = catalog.curves.find(function (c) { return c.model === 'R20100-A2'; })
+    .impellers.find(function (i) { return i.diameter_in === 10; });
+  const pts = DeanRA.measuredPoints(imp.points);
+  const qA = pts[0].q_gpm;
+  const qB = pts[pts.length - 1].q_gpm;
+  function at(q) { return DeanRA.smoothHead(imp.points, q).h; }
+  function slope(q0, q1) { return (at(q1) - at(q0)) / (q1 - q0); }
+  const early = slope(qA + (qB - qA) * 0.05, qA + (qB - qA) * 0.2);
+  const late = slope(qA + (qB - qA) * 0.75, qA + (qB - qA) * 0.95);
+  assert.ok(late < early - 0.15, 'head should fall faster as flow increases');
+  const midQ = (qA + qB) / 2;
+  const chord = at(qA) + (at(qB) - at(qA)) * (midQ - qA) / (qB - qA);
+  assert.ok(at(midQ) > chord + 8, 'the line should bow above the straight chord');
+}
+
+// 400 gpm at 200 ft is a list of every size that can meet it, not one winner.
+{
+  const r = pick(400, 200);
+  assertCovered(r, 400, 200);
+  assert.ok(r.selections.length >= 2);
+  const seen = {};
+  r.selections.forEach(function (s) {
+    const key = s.curve.size + '@' + s.curve.rpm;
+    assert.ok(!seen[key], 'duplicate size ' + key);
+    seen[key] = true;
+    assert.ok(DeanRA.dutySeat(s, 400, 200).indexOf('400 gpm') >= 0);
+    assert.ok(DeanRA.dutySeat(s, 400, 200).toLowerCase().indexOf('efficiency') < 0);
+  });
+  assert.ok(DeanRA.RANK_NOTE.toLowerCase().indexOf('not ranked by efficiency') >= 0);
+  assert.ok(DeanRA.RANK_NOTE.indexOf('IntelliQuip') >= 0);
+  assert.ok(DeanRA.CATALOG_LIMIT_NOTE.indexOf('10 in') >= 0);
+  assert.ok(DeanRA.SHARED_CURVE_NOTE.indexOf('RA and RWA share the same head-capacity curve') >= 0);
+}
+
+// IntelliQuip datasheets Blake supplied are duty-specific and are not curve readings.
+{
+  const iq = JSON.parse(fs.readFileSync(path.join(__dirname, '../data/intelliquip-selections.json'), 'utf8'));
+  assert.strictEqual(iq.source, 'IntelliQuip');
+  function curve(size, rpm) {
+    return catalog.curves.find(function (c) {
+      return c.size === size && c.rpm === (rpm || 3500);
+    });
+  }
+  const two = DeanRA.intelliquipFor(iq, curve('2 x 3 x 8.5'), { q_gpm: 200, h_ft: 150, fluid: 'water' });
+  assert.strictEqual(two.source, 'IntelliQuip');
+  assert.strictEqual(two.impeller_in, 6.5);
+  assert.strictEqual(two.head_actual_ft, 157.2);
+  assert.strictEqual(two.efficiency_pct, 62.29);
+  assert.strictEqual(two.npshr_ft, 7.37);
+  assert.strictEqual(two.power_rated_hp, 12.16);
+  assert.strictEqual(two.power_max_hp, 15.11);
+  assert.strictEqual(two.motor_hp, 20);
+  assert.strictEqual(two.motor_kw, 14.91);
+  const three = DeanRA.intelliquipFor(iq, curve('3 x 4 x 8.5'), { q_gpm: 400, h_ft: 150, fluid: 'water' });
+  assert.strictEqual(three.head_actual_ft, 154.7);
+  assert.strictEqual(three.efficiency_pct, 74.6);
+  assert.strictEqual(three.npshr_ft, 12.2);
+  assert.strictEqual(three.impeller_in, 6.5);
+  assert.strictEqual(three.power_rated_hp, 20.31);
+  assert.strictEqual(three.power_max_hp, 26.84);
+  assert.strictEqual(three.motor_hp, 30);
+  const one = DeanRA.intelliquipFor(iq, curve('1 x 1.5 x 8'), { q_gpm: 100, h_ft: 250, fluid: 'water' });
+  assert.strictEqual(one.head_actual_ft, 254.3);
+  assert.strictEqual(one.efficiency_pct, 56.55);
+  assert.strictEqual(one.npshr_ft, 7.97);
+  assert.strictEqual(one.impeller_in, 7.5);
+  assert.strictEqual(one.power_rated_hp, 11.16);
+  assert.strictEqual(one.power_max_hp, 14.35);
+  assert.strictEqual(one.motor_hp, 15);
+  const six = DeanRA.intelliquipFor(iq, curve('1 x 1.5 x 6'), { q_gpm: 100, h_ft: 130, fluid: 'water' });
+  assert.strictEqual(six.source, 'IntelliQuip');
+  assert.strictEqual(six.head_actual_ft, 131.5);
+  assert.strictEqual(six.efficiency_pct, 63.08);
+  assert.strictEqual(six.npshr_ft, 6.7);
+  assert.strictEqual(six.impeller_in, 5.88);
+  assert.strictEqual(six.power_rated_hp, 5.2);
+  assert.strictEqual(six.power_max_hp, 6.45);
+  assert.strictEqual(six.motor_hp, 7.5);
+  assert.strictEqual(six.motor_kw, 5.59);
+  assert.strictEqual(DeanRA.intelliquipFor(iq, curve('1 x 1.5 x 6'), { q_gpm: 80, h_ft: 130, fluid: 'water' }), null);
+  const fifteen = DeanRA.intelliquipFor(iq, curve('1.5 x 3 x 6'), { q_gpm: 120, h_ft: 100, fluid: 'water' });
+  assert.strictEqual(fifteen.source, 'IntelliQuip');
+  assert.strictEqual(fifteen.head_actual_ft, 106.2);
+  assert.strictEqual(fifteen.efficiency_pct, 59.56);
+  assert.strictEqual(fifteen.npshr_ft, 5.03);
+  assert.strictEqual(fifteen.impeller_in, 5.38);
+  assert.strictEqual(fifteen.power_rated_hp, 5.09);
+  assert.strictEqual(fifteen.power_max_hp, 6.67);
+  assert.strictEqual(fifteen.motor_hp, 7.5);
+  assert.strictEqual(fifteen.motor_kw, 5.59);
+  assert.strictEqual(DeanRA.intelliquipFor(iq, curve('1.5 x 3 x 6'), { q_gpm: 100, h_ft: 100, fluid: 'water' }), null);
+  const oneThree = DeanRA.intelliquipFor(iq, curve('1 x 3 x 8.5'), { q_gpm: 80, h_ft: 250, fluid: 'water' });
+  assert.strictEqual(oneThree.source, 'IntelliQuip');
+  assert.strictEqual(oneThree.head_actual_ft, 251.2);
+  assert.strictEqual(oneThree.efficiency_pct, 46.2);
+  assert.strictEqual(oneThree.npshr_ft, 5.69);
+  assert.strictEqual(oneThree.impeller_in, 8);
+  assert.strictEqual(oneThree.power_rated_hp, 10.98);
+  assert.strictEqual(oneThree.power_max_hp, 14.11);
+  assert.strictEqual(oneThree.motor_hp, 15);
+  assert.strictEqual(oneThree.motor_kw, 11.19);
+  assert.strictEqual(DeanRA.intelliquipFor(iq, curve('1 x 3 x 8.5'), { q_gpm: 100, h_ft: 250, fluid: 'water' }), null);
+  assert.strictEqual(DeanRA.intelliquipFor(iq, curve('3 x 4 x 8.5'), { q_gpm: 400, h_ft: 200, fluid: 'water' }), null);
+  assert.strictEqual(DeanRA.intelliquipFor(iq, curve('2 x 3 x 8.5'), { q_gpm: 200, h_ft: 150, fluid: 'eg50' }), null);
+  const fifteenEight = DeanRA.intelliquipFor(iq, curve('1.5 x 3 x 8.5'), { q_gpm: 150, h_ft: 100, fluid: 'water' });
+  assert.strictEqual(fifteenEight.source, 'IntelliQuip');
+  assert.strictEqual(fifteenEight.head_actual_ft, 102.6);
+  assert.strictEqual(fifteenEight.efficiency_pct, 49.9);
+  assert.strictEqual(fifteenEight.npshr_ft, 8.85);
+  assert.strictEqual(fifteenEight.impeller_in, 6.13);
+  assert.strictEqual(fifteenEight.power_rated_hp, 7.59);
+  assert.strictEqual(fifteenEight.power_max_hp, 7.84);
+  assert.strictEqual(fifteenEight.motor_hp, 10);
+  assert.strictEqual(fifteenEight.motor_kw, 7.46);
+  assert.strictEqual(DeanRA.intelliquipFor(iq, curve('1.5 x 3 x 8.5'), { q_gpm: 150, h_ft: 130, fluid: 'water' }), null);
+  const fifteenTen = DeanRA.intelliquipFor(iq, curve('1.5 x 3 x 10'), { q_gpm: 150, h_ft: 350, fluid: 'water' });
+  assert.strictEqual(fifteenTen.source, 'IntelliQuip');
+  assert.strictEqual(fifteenTen.head_actual_ft, 350.5);
+  assert.strictEqual(fifteenTen.efficiency_pct, 53.84);
+  assert.strictEqual(fifteenTen.npshr_ft, 5.36);
+  assert.strictEqual(fifteenTen.impeller_in, 9.5);
+  assert.strictEqual(fifteenTen.power_rated_hp, 24.65);
+  assert.strictEqual(fifteenTen.power_max_hp, 32.37);
+  assert.strictEqual(fifteenTen.motor_hp, 40);
+  assert.strictEqual(fifteenTen.motor_kw, 29.83);
+  const twoTen = DeanRA.intelliquipFor(iq, curve('2 x 3 x 10'), { q_gpm: 250, h_ft: 300, fluid: 'water' });
+  assert.strictEqual(twoTen.source, 'IntelliQuip');
+  assert.strictEqual(twoTen.head_actual_ft, 303.1);
+  assert.strictEqual(twoTen.efficiency_pct, 63.49);
+  assert.strictEqual(twoTen.npshr_ft, 7.7);
+  assert.strictEqual(twoTen.impeller_in, 9.25);
+  assert.strictEqual(twoTen.power_rated_hp, 29.82);
+  assert.strictEqual(twoTen.power_max_hp, 36.51);
+  assert.strictEqual(twoTen.motor_hp, 40);
+  assert.strictEqual(twoTen.motor_kw, 29.83);
+  assert.strictEqual(DeanRA.intelliquipFor(iq, curve('2 x 3 x 10'), { q_gpm: 250, h_ft: 250, fluid: 'water' }), null);
+  assert.strictEqual(DeanRA.intelliquipFor(iq, curve('1.5 x 3 x 10'), { q_gpm: 150, h_ft: 300, fluid: 'water' }), null);
+  const threeTen = DeanRA.intelliquipFor(iq, curve('3 x 4 x 10'), { q_gpm: 400, h_ft: 360, fluid: 'water' });
+  assert.strictEqual(threeTen.source, 'IntelliQuip');
+  assert.strictEqual(threeTen.head_actual_ft, 367.6);
+  assert.strictEqual(threeTen.efficiency_pct, 67.43);
+  assert.strictEqual(threeTen.npshr_ft, 9.05);
+  assert.strictEqual(threeTen.impeller_in, 9.5);
+  assert.strictEqual(threeTen.power_rated_hp, 53.91);
+  assert.strictEqual(threeTen.power_max_hp, 80.48);
+  assert.strictEqual(threeTen.motor_hp, 100);
+  assert.strictEqual(threeTen.motor_kw, 74.57);
+  assert.strictEqual(DeanRA.intelliquipFor(iq, curve('3 x 4 x 10'), { q_gpm: 400, h_ft: 300, fluid: 'water' }), null);
+  const fourEight = DeanRA.intelliquipFor(iq, curve('4 x 6 x 8.5'), { q_gpm: 700, h_ft: 250, fluid: 'water' });
+  assert.strictEqual(fourEight.source, 'IntelliQuip');
+  assert.strictEqual(fourEight.head_actual_ft, 250.6);
+  assert.strictEqual(fourEight.efficiency_pct, 79.21);
+  assert.strictEqual(fourEight.npshr_ft, 14.63);
+  assert.strictEqual(fourEight.impeller_in, 8.13);
+  assert.strictEqual(fourEight.power_rated_hp, 55.92);
+  assert.strictEqual(fourEight.power_max_hp, 67.32);
+  assert.strictEqual(fourEight.motor_hp, 75);
+  assert.strictEqual(fourEight.motor_kw, 55.93);
+  assert.strictEqual(DeanRA.intelliquipFor(iq, curve('4 x 6 x 8.5'), { q_gpm: 400, h_ft: 200, fluid: 'water' }), null);
+  const fourTen = DeanRA.intelliquipFor(iq, curve('4 x 6 x 10 #1'), { q_gpm: 800, h_ft: 350, fluid: 'water' });
+  assert.strictEqual(fourTen.source, 'IntelliQuip');
+  assert.strictEqual(fourTen.curve ? fourTen.curve.rpm : fourTen.rpm, 3500);
+  assert.strictEqual(fourTen.head_actual_ft, 360.6);
+  assert.strictEqual(fourTen.efficiency_pct, 69.03);
+  assert.strictEqual(fourTen.npshr_ft, 19);
+  assert.strictEqual(fourTen.impeller_in, 9.5);
+  assert.strictEqual(fourTen.power_rated_hp, 103);
+  assert.strictEqual(fourTen.power_max_hp, 141);
+  assert.strictEqual(fourTen.motor_hp, 150);
+  assert.strictEqual(fourTen.motor_kw, 112);
+  assert.strictEqual(DeanRA.intelliquipFor(iq, curve('4 x 6 x 10 #1'), { q_gpm: 800, h_ft: 350, fluid: 'eg50' }), null);
+  assert.strictEqual(DeanRA.intelliquipFor(iq, curve('4 x 6 x 10 #2', 1750), { q_gpm: 800, h_ft: 350, fluid: 'water' }), null);
+  const fourTenSlow = DeanRA.intelliquipFor(iq, curve('4 x 6 x 10 #2', 1750), { q_gpm: 600, h_ft: 90, fluid: 'water' });
+  assert.strictEqual(fourTenSlow.source, 'IntelliQuip');
+  assert.strictEqual(fourTenSlow.rpm, 1750);
+  assert.strictEqual(fourTenSlow.head_actual_ft, 91.04);
+  assert.strictEqual(fourTenSlow.efficiency_pct, 72.71);
+  assert.strictEqual(fourTenSlow.npshr_ft, 5.09);
+  assert.strictEqual(fourTenSlow.impeller_in, 9.75);
+  assert.strictEqual(fourTenSlow.power_rated_hp, 18.75);
+  assert.strictEqual(fourTenSlow.power_max_hp, 27.61);
+  assert.strictEqual(fourTenSlow.motor_hp, 30);
+  assert.strictEqual(fourTenSlow.motor_kw, 22.37);
+  assert.strictEqual(DeanRA.intelliquipFor(iq, curve('4 x 6 x 10 #1'), { q_gpm: 600, h_ft: 90, fluid: 'water' }), null);
+  const at400 = pick(400, 150);
+  const row = findModel(at400, 'R3085-A1');
+  assert.strictEqual(row.kind, 'catalog');
+  assert.strictEqual(row.diameter_in, 6.5);
+  const sixFive = catalog.curves.find(function (c) { return c.model === 'R3085-A1'; })
+    .impellers.find(function (imp) { return imp.diameter_in === 6.5; });
+  assert.ok(Math.abs(row.head_ft - DeanRA.smoothHead(sixFive.points, 400).h) < 1e-6);
+  assert.ok(row.head_ft > 150 && row.head_ft < 160);
+  const at100 = pick(100, 250);
+  const small = findModel(at100, 'RA1080-A2');
+  assert.strictEqual(small.diameter_in, 7.5);
+  assert.strictEqual(small.kind, 'trim');
 }
 
 console.log('dean-ra-select tests passed');
