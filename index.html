@@ -416,10 +416,13 @@ function fixedNum(n, digits) {
   if (!isFinite(v)) return '';
   return v.toFixed(digits);
 }
+function trimFixed(n, digits) {
+  return fixedNum(n, digits).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+}
 function iqMarkup(rec) {
   if (!rec) return '';
   var src = rec.source || 'IntelliQuip';
-  var parts = ['impeller ' + fixedNum(rec.impeller_in, 2) + ' in', 'head actual ' + fixedNum(rec.head_actual_ft, 1) + ' ft'];
+  var parts = ['impeller ' + fixedNum(rec.impeller_in, 2) + ' in', 'head actual ' + trimFixed(rec.head_actual_ft, 2) + ' ft'];
   if (rec.efficiency_pct != null) parts.push('efficiency ' + fixedNum(rec.efficiency_pct, 2) + '%');
   if (rec.npshr_ft != null) parts.push('NPSHr ' + fixedNum(rec.npshr_ft, 2) + ' ft');
   if (rec.power_rated_hp != null) parts.push('power rated ' + fixedNum(rec.power_rated_hp, 2) + ' hp');
@@ -574,11 +577,11 @@ function drawDeanSelection() {
   curve.impellers.forEach(function (imp) {
     var pts = imp.points.slice().sort(function (a, b) { return a.q_gpm - b.q_gpm; });
     var hot = !!highlight[imp.diameter_in];
-    ctx.lineWidth = hot ? 2.25 : 1.15;
+    ctx.lineWidth = hot ? 2.4 : 1.35;
     ctx.strokeStyle = hot ? '#141414' : '#8a8a8a';
     ctx.globalAlpha = 1;
     ctx.setLineDash([]);
-    strokeCurve(ctx, X, Y, pts);
+    strokeSmooth(ctx, X, Y, pts);
     pts.forEach(function (p) {
       if (!p.inferred) return;
       ctx.beginPath();
@@ -589,15 +592,12 @@ function drawDeanSelection() {
       ctx.fill();
       ctx.stroke();
     });
-    var last = pts[pts.length - 1];
-    ctx.fillStyle = hot ? '#141414' : '#5c5c5c';
-    ctx.fillText(DeanRA.formatDia(imp.diameter_in) + ' in', X(last.q_gpm) + 6, Y(last.h_ft) - 6);
   });
 
   if (samples.length > 1) {
     ctx.beginPath();
     ctx.setLineDash([7, 4]);
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.25;
     ctx.strokeStyle = '#141414';
     samples.forEach(function (p, i) {
       if (i === 0) ctx.moveTo(X(p.q), Y(p.h));
@@ -605,32 +605,154 @@ function drawDeanSelection() {
     });
     ctx.stroke();
     ctx.setLineDash([]);
-    var mid = samples[Math.floor(samples.length / 2)];
-    ctx.fillStyle = '#141414';
-    ctx.fillText(DeanRA.formatDia(hit.diameter_in) + ' in trim', X(mid.q) + 8, Y(mid.h) - 8);
   }
 
+  var dutyX = X(qDuty), dutyY = Y(hDuty);
   ctx.beginPath();
   ctx.fillStyle = '#FCB02C';
   ctx.strokeStyle = '#141414';
   ctx.lineWidth = 1.5;
-  ctx.arc(X(qDuty), Y(hDuty), 6, 0, Math.PI * 2);
+  ctx.arc(dutyX, dutyY, 6, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
-  ctx.fillStyle = '#141414';
-  ctx.fillText('duty', X(qDuty) + 10, Y(hDuty) - 10);
+  ctx.font = '12px Exo, Helvetica, sans-serif';
+  placeCurveLabels(ctx, {
+    X: X, Y: Y, curve: curve, highlight: highlight, samples: samples, hit: hit,
+    dutyX: dutyX, dutyY: dutyY,
+    bounds: {x: pad.l + 4, y: pad.t + 2, w: pw - 8, h: ph - 6}
+  });
   ctx.fillStyle = '#5c5c5c';
   ctx.fillText('Open circles are inferred catalog points (±3 ft).', pad.l, 16);
 }
-function strokeCurve(ctx, X, Y, points) {
-  if (!points || points.length < 2) return;
+function strokeSmooth(ctx, X, Y, points) {
+  var pieces = DeanRA.smoothPieces(points);
+  if (!pieces.length) {
+    if (!points || points.length < 2) return;
+    ctx.beginPath();
+    points.forEach(function (p, i) {
+      var x = X(p.q_gpm), y = Y(p.h_ft);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    return;
+  }
   ctx.beginPath();
-  points.forEach(function (p, i) {
-    var x = X(p.q_gpm), y = Y(p.h_ft);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+  ctx.moveTo(X(pieces[0].q0), Y(pieces[0].h0));
+  pieces.forEach(function (seg) {
+    var dx = seg.q1 - seg.q0;
+    var c1q = seg.q0 + dx / 3;
+    var c1h = seg.h0 + seg.m0 * dx / 3;
+    var c2q = seg.q1 - dx / 3;
+    var c2h = seg.h1 - seg.m1 * dx / 3;
+    ctx.bezierCurveTo(X(c1q), Y(c1h), X(c2q), Y(c2h), X(seg.q1), Y(seg.h1));
   });
   ctx.stroke();
+}
+function placeCurveLabels(ctx, spec) {
+  var bounds = spec.bounds;
+  var dutyX = spec.dutyX, dutyY = spec.dutyY;
+  var occupied = [{x: dutyX - 9, y: dutyY - 9, w: 18, h: 18}];
+  var placed = [];
+  function boxAt(text, x, y) {
+    return {x: x, y: y - 12, w: ctx.measureText(text).width, h: 15, text: text};
+  }
+  function hits(b) {
+    if (b.x < bounds.x || b.y < bounds.y || b.x + b.w > bounds.x + bounds.w || b.y + b.h > bounds.y + bounds.h) return true;
+    for (var i = 0; i < occupied.length; i++) {
+      var o = occupied[i];
+      if (b.x < o.x + o.w + 10 && b.x + b.w + 10 > o.x && b.y < o.y + o.h + 10 && b.y + b.h + 10 > o.y) return true;
+    }
+    return false;
+  }
+  function coversPoint(b, p) {
+    return p.x >= b.x - 3 && p.x <= b.x + b.w + 3 && p.y >= b.y - 3 && p.y <= b.y + b.h + 3;
+  }
+  function commit(b, color) {
+    occupied.push(b);
+    placed.push(b);
+    ctx.fillStyle = color;
+    ctx.fillText(b.text, b.x, b.y + 12);
+    return true;
+  }
+  function placeBeside(text, anchor, color) {
+    var w = ctx.measureText(text).width;
+    var candidates = [];
+    var dy, dx;
+    for (dy = -16; dy >= -78; dy -= 14) candidates.push([10, dy]);
+    for (dy = 18; dy <= 78; dy += 14) candidates.push([10, dy]);
+    candidates.push([-w - 10, -16], [-w - 10, 18]);
+    for (dx = 24; dx <= 120; dx += 24) {
+      candidates.push([dx, -16], [dx, 18], [-w - dx, -16]);
+    }
+    var best = null, bestDist = 1e9;
+    candidates.forEach(function (off) {
+      var b = boxAt(text, anchor.x + off[0], anchor.y + off[1]);
+      if (hits(b) || coversPoint(b, anchor) || coversPoint(b, {x: dutyX, y: dutyY})) return;
+      var dist = Math.hypot(off[0], off[1]) + (off[1] < 0 ? -6 : 8);
+      if (dist < bestDist) { bestDist = dist; best = b; }
+    });
+    if (!best) return false;
+    return commit(best, color);
+  }
+  var imps = spec.curve.impellers.slice().sort(function (a, b) { return b.diameter_in - a.diameter_in; });
+  imps.forEach(function (imp) {
+    var pts = imp.points.slice().sort(function (a, b) { return a.q_gpm - b.q_gpm; });
+    if (!pts.length) return;
+    var first = pts[0];
+    var color = spec.highlight[imp.diameter_in] ? '#141414' : '#5c5c5c';
+    placeBeside(DeanRA.formatDia(imp.diameter_in) + ' in', {x: spec.X(first.q_gpm), y: spec.Y(first.h_ft)}, color);
+  });
+  if (spec.samples.length > 1) {
+    var trimText = DeanRA.formatDia(spec.hit.diameter_in) + ' in trim';
+    var ranked = spec.samples.map(function (p) {
+      var x = spec.X(p.q), y = spec.Y(p.h);
+      var score = Math.hypot(x - dutyX, y - dutyY);
+      occupied.forEach(function (o) {
+        var gap = Math.hypot(x - (o.x + o.w / 2), y - (o.y + o.h / 2));
+        if (gap < 90) score -= (90 - gap) * 3;
+      });
+      return {x: x, y: y, d: score};
+    }).sort(function (a, b) { return b.d - a.d; });
+    var step = Math.max(1, Math.floor(ranked.length / 10));
+    var parked = false;
+    for (var i = 0; i < ranked.length && !parked; i += step) {
+      if (ranked[i].d < 36) continue;
+      parked = placeBeside(trimText, ranked[i], '#141414');
+    }
+    if (!parked) placeBeside(trimText, ranked[0], '#141414');
+  }
+  var dutyWord = 'duty';
+  var dw = ctx.measureText(dutyWord).width;
+  var rings = [22, 36, 52, 70];
+  var dirs = [[1, -1], [-1, -1], [1, 1], [-1, 1], [0, -1], [1, 0], [0, 1], [-1, 0]];
+  var dutyBox = null;
+  for (var r = 0; r < rings.length && !dutyBox; r++) {
+    for (var d = 0; d < dirs.length && !dutyBox; d++) {
+      var ox = dirs[d][0] * rings[r];
+      var oy = dirs[d][1] * rings[r] * 0.75;
+      var x = dutyX + (dirs[d][0] < 0 ? ox - dw : ox + 4);
+      var y = dutyY + oy;
+      var b = boxAt(dutyWord, x, y);
+      if (!hits(b)) dutyBox = b;
+    }
+  }
+  if (dutyBox) {
+    var cx = dutyBox.x + dutyBox.w / 2;
+    var cy = dutyBox.y + dutyBox.h / 2;
+    var ldx = cx - dutyX, ldy = cy - dutyY;
+    var llen = Math.hypot(ldx, ldy) || 1;
+    if (llen > 20) {
+      ctx.strokeStyle = '#141414';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(dutyX + ldx / llen * 8, dutyY + ldy / llen * 8);
+      ctx.lineTo(cx - ldx / llen * (dutyBox.w / 2 + 3), cy - ldy / llen * (dutyBox.h / 2 + 3));
+      ctx.stroke();
+    }
+    commit(dutyBox, '#141414');
+  }
 }
 function betweenSamples(hit) {
   if (hit.kind !== 'trim') return [];
