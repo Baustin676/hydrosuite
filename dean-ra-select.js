@@ -7,9 +7,13 @@
    A duty between two lines is an eighth-inch trim from diameter-squared
    affinity, not a linear diameter. Does not extrapolate or speed-scale.
    A duty returns every catalog size that can meet it. The order is where the
-   requested flow sits on that size's real catalog flow range, not efficiency.
+   flow sits on that size's real catalog flow range, not efficiency.
    The middle-right of the range ranks first. A duty on the left, or at the
-   far right end, ranks lower. */
+   far right end, ranks lower.
+   A non-water fluid corrects that water curve with the Hydraulic Institute
+   preliminary method (ANSI/HI 9.6.7 section 9.6.7.4.6). It does not invent
+   catalog heads, efficiency, BHP, or NPSHr. The list is then ordered by where
+   that corrected water flow sits on the catalog range. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.DeanRA = factory();
@@ -474,17 +478,26 @@
   function select(catalog, duty) {
     var q = Number(duty.q_gpm);
     var h = Number(duty.h_ft);
+    var correction = correctDuty(duty);
+    var qUse = q;
+    var hUse = h;
+    if (correction.applied) {
+      qUse = correction.qWater;
+      hUse = correction.hWater;
+    }
     var found = [];
     (catalog.curves || []).forEach(function (curve) {
-      var hit = evaluateCurve(curve, q, h);
+      var hit = evaluateCurve(curve, qUse, hUse);
       if (hit) found.push(hit);
     });
-    found.sort(function (a, b) { return compareSelections(a, b, q); });
+    found.sort(function (a, b) { return compareSelections(a, b, qUse); });
     return {
       covered: found.length > 0,
       selections: found,
       pick: found[0] || null,
-      matchCount: found.length
+      matchCount: found.length,
+      matches: found,
+      correction: correction
     };
   }
 
@@ -563,6 +576,55 @@
       ' in and ' + formatDia(hit.between[1]) + ' in catalog lines. At ' + formatGpm(q) +
       ' gpm the trim is ' + formatFt(head) + ' ft, ' + rel + ', with ' + end + '.';
   }
+  // Properties already printed on the fluid menu. Nothing here is guessed.
+  // temp/unit is the condition those viscosity and specific-gravity values belong to.
+  var FLUIDS = {
+    water: { name: 'Water', sg: 1.000, visc: 1.002, temp: 68, unit: 'F' },
+    water60: { name: 'Water', sg: 0.983, visc: 0.467, temp: 140, unit: 'F' },
+    water80: { name: 'Water', sg: 0.972, visc: 0.354, temp: 176, unit: 'F' },
+    water100: { name: 'Water', sg: 0.958, visc: 0.282, temp: 212, unit: 'F' },
+    water121: { name: 'Water', sg: 0.943, visc: 0.230, temp: 250, unit: 'F' },
+    water150: { name: 'Water', sg: 0.917, visc: 0.183, temp: 302, unit: 'F' },
+    water180: { name: 'Water', sg: 0.887, visc: 0.150, temp: 356, unit: 'F' },
+    condensate: { name: 'Steam Condensate', sg: 0.965, visc: 0.314, temp: 90, unit: 'C' },
+    seawater: { name: 'Seawater', sg: 1.025, visc: 1.072, temp: 20, unit: 'C' },
+    eg30: { name: 'Ethylene Glycol 30%', sg: 1.055, visc: 2.50, temp: 20, unit: 'C' },
+    eg50: { name: 'Ethylene Glycol 50%', sg: 1.085, visc: 4.50, temp: 20, unit: 'C' },
+    eg50c: { name: 'Ethylene Glycol 50%', sg: 1.095, visc: 11.5, temp: -10, unit: 'C' },
+    pg30: { name: 'Propylene Glycol 30%', sg: 1.034, visc: 2.80, temp: 20, unit: 'C' },
+    pg50: { name: 'Propylene Glycol 50%', sg: 1.057, visc: 7.50, temp: 20, unit: 'C' },
+    dowthermA: { name: 'Dowtherm A', sg: 0.980, visc: 0.910, temp: 150, unit: 'C' },
+    dowthermA260: { name: 'Dowtherm A', sg: 0.899, visc: 0.430, temp: 260, unit: 'C' },
+    dowthermQ: { name: 'Dowtherm Q', sg: 0.960, visc: 1.650, temp: 100, unit: 'C' },
+    dowthermQ200: { name: 'Dowtherm Q', sg: 0.893, visc: 0.680, temp: 200, unit: 'C' },
+    therminol55: { name: 'Therminol 55', sg: 0.847, visc: 1.200, temp: 100, unit: 'C' },
+    therminol66: { name: 'Therminol 66', sg: 0.963, visc: 1.850, temp: 150, unit: 'C' },
+    therminol66h: { name: 'Therminol 66', sg: 0.856, visc: 0.560, temp: 300, unit: 'C' },
+    therminolVP1: { name: 'Therminol VP-1', sg: 0.973, visc: 0.510, temp: 200, unit: 'C' },
+    syltherm800: { name: 'Syltherm 800', sg: 0.820, visc: 0.540, temp: 200, unit: 'C' },
+    syltherm800h: { name: 'Syltherm 800', sg: 0.726, visc: 0.280, temp: 350, unit: 'C' },
+    xlt: { name: 'Syltherm XLT', sg: 0.985, visc: 12.00, temp: -40, unit: 'C' },
+    mineralOil100: { name: 'Mineral Oil HTF', sg: 0.840, visc: 5.500, temp: 100, unit: 'C' },
+    mineralOil200: { name: 'Mineral Oil HTF', sg: 0.780, visc: 1.800, temp: 200, unit: 'C' },
+    crude: { name: 'Light Crude Oil', sg: 0.870, visc: 5.00, temp: 68, unit: 'F' },
+    crudemed: { name: 'Medium Crude Oil', sg: 0.900, visc: 15.0, temp: 68, unit: 'F' },
+    diesel: { name: 'Diesel / No.2 Fuel Oil', sg: 0.850, visc: 3.00, temp: 68, unit: 'F' },
+    fo6: { name: 'Fuel Oil No.6', sg: 0.990, visc: 300, temp: 122, unit: 'F' },
+    gasoline: { name: 'Gasoline', sg: 0.720, visc: 0.50, temp: 68, unit: 'F' },
+    jetA: { name: 'Jet Fuel A', sg: 0.800, visc: 1.50, temp: 68, unit: 'F' },
+    isovg32: { name: 'Lube Oil ISO VG 32', sg: 0.860, visc: 32.0, temp: 104, unit: 'F' },
+    isovg68: { name: 'Lube Oil ISO VG 68', sg: 0.870, visc: 68.0, temp: 104, unit: 'F' },
+    hcl: { name: 'HCl 20%', sg: 1.100, visc: 1.60, temp: 68, unit: 'F' },
+    sulfuric: { name: 'H₂SO₄ 98%', sg: 1.840, visc: 26.0, temp: 68, unit: 'F' },
+    sulfuric10: { name: 'H₂SO₄ 10%', sg: 1.065, visc: 1.30, temp: 68, unit: 'F' },
+    naoh: { name: 'NaOH 10%', sg: 1.110, visc: 1.50, temp: 68, unit: 'F' },
+    methanol: { name: 'Methanol', sg: 0.791, visc: 0.59, temp: 68, unit: 'F' },
+    ethanol: { name: 'Ethanol', sg: 0.789, visc: 1.20, temp: 68, unit: 'F' },
+    ammonia: { name: 'Liquid Ammonia', sg: 0.610, visc: 0.16, temp: -33, unit: 'C' }
+  };
+
+  var AMBIENT = 'Water at ambient is the reference these curves were drawn for.';
+  var DISCLAIMER = "These curves are not a direct duplicate of Dean's and are for reference only.";
 
   function fluidClass(fluid) {
     var f = String(fluid || '').toLowerCase();
@@ -577,12 +639,200 @@
     return f === 'water' || /^water\d+$/.test(f);
   }
 
-  // Ambient water is the reference the curves were drawn for.
-  // Any other fluid still plots that catalog water curve. No viscosity correction.
-  function fluidNote(fluid) {
-    var ambient = 'Water at ambient is the reference these curves were drawn for.';
-    if (isWaterFluid(fluid)) return ambient;
-    return ambient + ' The plotted curve is still the catalog water curve.';
+  function formatMu(n) {
+    var rounded = Math.round(Number(n) * 1000) / 1000;
+    return rounded.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+  }
+
+  function formatSg(n) {
+    return Number(n).toFixed(3);
+  }
+
+  function formatNu(n) {
+    return (Math.round(Number(n) * 100) / 100).toFixed(2);
+  }
+
+  function formatB(n) {
+    return (Math.round(Number(n) * 100) / 100).toFixed(2);
+  }
+
+  function formatFactor(n) {
+    return (Math.round(Number(n) * 10000) / 10000).toFixed(4);
+  }
+
+  function formatDutyNum(n) {
+    var r = Math.round(Number(n) * 10) / 10;
+    if (Math.abs(r - Math.round(r)) < 1e-9) return String(Math.round(r));
+    return r.toFixed(1);
+  }
+
+  function formatStoredTemp(rec) {
+    return String(rec.temp) + ' °' + rec.unit;
+  }
+
+  function toFahrenheit(temp, unit) {
+    var n = Number(temp);
+    if (unit === 'C') return n * 9 / 5 + 32;
+    return n;
+  }
+
+  // A missing temperature means "use the stored condition."
+  // A different temperature has no stored viscosity, so it does not match.
+  function temperatureMatches(rec, temp, unit) {
+    if (temp == null || temp === '' || unit == null || unit === '') return true;
+    var n = Number(temp);
+    if (!isFinite(n)) return false;
+    var entered = unit === 'C' || unit === 'F' ? toFahrenheit(n, unit) : NaN;
+    if (!isFinite(entered)) return false;
+    return Math.abs(entered - toFahrenheit(rec.temp, rec.unit)) <= 0.25;
+  }
+
+  // ANSI/HI 9.6.7-2004 section 9.6.7.4.6, USCS.
+  // B = 4.70 * V^0.5 / (Q^0.25 * H^0.125), V in cSt, Q in gpm, H in ft.
+  // CQ = CH = 2.71^(-0.165 * (log10 B)^3.15) when 1 < B < 40.
+  // Qw = Qvis / CQ, Hw = Hvis / CH. B ≤ 1 leaves head and flow unchanged.
+  // B ≥ 40 is outside the published fit and is not applied.
+  function hiPreliminary(qGpm, hFt, nuCst) {
+    var q = Number(qGpm);
+    var h = Number(hFt);
+    var nu = Number(nuCst);
+    var B = 4.70 * Math.sqrt(nu) / (Math.pow(q, 0.25) * Math.pow(h, 0.125));
+    if (!(B > 1)) {
+      return { B: B, CQ: 1, CH: 1, qWater: q, hWater: h, range: 'low' };
+    }
+    if (B >= 40) {
+      return { B: B, CQ: null, CH: null, qWater: null, hWater: null, range: 'high' };
+    }
+    var logB = Math.log(B) / Math.LN10;
+    var CQ = Math.pow(2.71, -0.165 * Math.pow(logB, 3.15));
+    return { B: B, CQ: CQ, CH: CQ, qWater: q / CQ, hWater: h / CQ, range: 'ok' };
+  }
+
+  function propertyClause(rec, nu) {
+    return 'Viscosity ' + formatMu(rec.visc) + ' cP and specific gravity ' + formatSg(rec.sg) +
+      ' (' + formatNu(nu) + ' cSt) at ' + formatStoredTemp(rec) + '. ';
+  }
+
+  function correctDuty(duty) {
+    duty = duty || {};
+    var fluid = duty.fluid;
+    if (fluid == null || fluid === '' || isWaterFluid(fluid)) {
+      return { status: 'water', applied: false, note: AMBIENT };
+    }
+    var rec = FLUIDS[fluid];
+    if (!rec || rec.sg == null || rec.visc == null || !(rec.sg > 0) || !(rec.visc > 0)) {
+      return {
+        status: 'missing',
+        applied: false,
+        note: AMBIENT + ' No viscosity or specific gravity is stored for this fluid, so no correction is applied. ' + DISCLAIMER
+      };
+    }
+    if (!temperatureMatches(rec, duty.temp, duty.unit)) {
+      return {
+        status: 'temperature',
+        applied: false,
+        note: AMBIENT + ' Viscosity and specific gravity for this fluid are stored at ' + formatStoredTemp(rec) +
+          ', not at the temperature entered. They are not used here, and no correction is applied. ' + DISCLAIMER
+      };
+    }
+    var q = Number(duty.q_gpm);
+    var h = Number(duty.h_ft);
+    var nu = rec.visc / rec.sg;
+    var base = AMBIENT + ' Hydraulic Institute correction of the catalog water curve (ANSI/HI 9.6.7), not a Dean sheet. ' +
+      propertyClause(rec, nu);
+    var props = { sg: rec.sg, visc: rec.visc, nu: nu, temp: rec.temp, unit: rec.unit, name: rec.name };
+    if (!(q > 0) || !(h > 0)) {
+      return Object.assign({ status: 'ready', applied: false, note: base + DISCLAIMER }, props);
+    }
+    var hi = hiPreliminary(q, h, nu);
+    if (hi.range === 'high') {
+      return Object.assign({
+        status: 'out-of-range',
+        applied: false,
+        B: hi.B,
+        note: base + 'Parameter B is ' + formatB(hi.B) + ', outside the published range below 40, so head and flow are not corrected. ' + DISCLAIMER
+      }, props);
+    }
+    if (hi.range === 'low') {
+      return Object.assign({
+        status: 'unchanged',
+        applied: false,
+        B: hi.B,
+        CQ: 1,
+        CH: 1,
+        qWater: q,
+        hWater: h,
+        note: base + 'Parameter B is ' + formatB(hi.B) + ', so corrected head and flow stay on the catalog water curve. ' + DISCLAIMER
+      }, props);
+    }
+    return Object.assign({
+      status: 'corrected',
+      applied: true,
+      B: hi.B,
+      CQ: hi.CQ,
+      CH: hi.CH,
+      qWater: hi.qWater,
+      hWater: hi.hWater,
+      note: base + 'Corrected flow ' + formatDutyNum(hi.qWater) + ' gpm (CQ = ' + formatFactor(hi.CQ) +
+        ') and corrected head ' + formatDutyNum(hi.hWater) + ' ft (CH = ' + formatFactor(hi.CH) +
+        '), from parameter B = ' + formatB(hi.B) + '. ' + DISCLAIMER
+    }, props);
+  }
+
+  function correctionTag(corr) {
+    if (!corr || corr.status === 'water') return [];
+    if (corr.status === 'missing') {
+      return ['No viscosity or specific gravity stored', 'Catalog water curve, no correction'];
+    }
+    if (corr.status === 'temperature') {
+      return ['No viscosity at this temperature', 'Catalog water curve, no correction'];
+    }
+    if (corr.status === 'out-of-range') {
+      return [
+        'HI correction of the water curve',
+        'μ ' + formatMu(corr.visc) + ' cP · SG ' + formatSg(corr.sg),
+        'B = ' + formatB(corr.B) + ', outside the published range'
+      ];
+    }
+    if (!corr.applied) {
+      return [
+        'HI correction of the water curve',
+        'μ ' + formatMu(corr.visc) + ' cP · SG ' + formatSg(corr.sg),
+        'B = ' + formatB(corr.B) + ', head and flow unchanged'
+      ];
+    }
+    return [
+      'HI correction of the water curve',
+      'μ ' + formatMu(corr.visc) + ' cP · SG ' + formatSg(corr.sg),
+      'CQ ' + formatFactor(corr.CQ) + ' · CH ' + formatFactor(corr.CH)
+    ];
+  }
+
+  // Scale a catalog water curve by the HI flow and head factors. Slopes follow dh/dq.
+  function correctedPieces(points, cq, ch) {
+    var pieces = smoothPieces(points);
+    if (!(cq > 0) || !(ch > 0)) return [];
+    return pieces.map(function (p) {
+      return {
+        q0: p.q0 * cq,
+        h0: p.h0 * ch,
+        m0: p.m0 * ch / cq,
+        q1: p.q1 * cq,
+        h1: p.h1 * ch,
+        m1: p.m1 * ch / cq
+      };
+    });
+  }
+
+  function fluidNote(fluid, duty) {
+    var spec = { fluid: fluid };
+    if (duty) {
+      spec.q_gpm = duty.q_gpm;
+      spec.h_ft = duty.h_ft;
+      spec.temp = duty.temp;
+      spec.unit = duty.unit;
+    }
+    return correctDuty(spec).note;
   }
 
   function impellerLabel(hit) {
@@ -630,6 +880,7 @@
 
   return {
     ON_LINE_FT: ON_LINE_FT,
+    DISCLAIMER: DISCLAIMER,
     CATALOG_LIMIT_NOTE: CATALOG_LIMIT_NOTE,
     RANK_NOTE: RANK_NOTE,
     SHARED_CURVE_NOTE: SHARED_CURVE_NOTE,
@@ -637,6 +888,11 @@
     select: select,
     fluidClass: fluidClass,
     fluidNote: fluidNote,
+    fluids: FLUIDS,
+    correctDuty: correctDuty,
+    correctionTag: correctionTag,
+    hiPreliminary: hiPreliminary,
+    correctedPieces: correctedPieces,
     impellerLabel: impellerLabel,
     formatDia: formatDia,
     affinityHead: affinityHead,
