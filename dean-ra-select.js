@@ -1,7 +1,13 @@
 /* Dean RA catalog selector.
-   Uses only digitized head-capacity points. Interpolates along one impeller
-   line. A duty between two lines is an eighth-inch trim from diameter-squared
+   Uses digitized head-capacity points. A monotone cubic spline supplies
+   intermediate points inside each impeller's measured flow range; those
+   points are marked interpolated and are not new sheet readings.
+   The spline passes through every catalog head and falls or stays level
+   as flow increases. It is not extended past the first or last catalog flow.
+   A duty between two lines is an eighth-inch trim from diameter-squared
    affinity, not a linear diameter. Does not extrapolate or speed-scale.
+   A duty returns every catalog size that can meet it. The order is hydraulic
+   fit, not efficiency.
    A non-water fluid corrects that water curve with the Hydraulic Institute
    preliminary method (ANSI/HI 9.6.7 section 9.6.7.4.6). It does not invent
    catalog heads, efficiency, BHP, or NPSHr. */
@@ -33,11 +39,20 @@
     return points.slice().sort(function (a, b) { return a.q_gpm - b.q_gpm; });
   }
 
+  // Sheet readings only. Interpolated samples are not catalog points.
+  function measuredPoints(points) {
+    var list = [];
+    for (var i = 0; i < (points || []).length; i++) {
+      if (!points[i].interpolated) list.push(points[i]);
+    }
+    return sortedPoints(list);
+  }
+
   /** Head on one impeller line. Null when q is outside the real points.
       An exact catalog flow uses that point's own inferred flag. A flow
       between two points is inferred when either real point was. */
   function headAt(points, q) {
-    var pts = sortedPoints(points);
+    var pts = measuredPoints(points);
     if (!pts.length) return null;
     var qMin = pts[0].q_gpm;
     var qMax = pts[pts.length - 1].q_gpm;
@@ -81,15 +96,11 @@
     return hLo + (hHi - hLo) * (d * d - dLo * dLo) / denom;
   }
 
-  // Fritsch–Carlson / PCHIP endpoint slope. Keeps a monotone interpolant from leaving the interval.
-  function edgeSlope(h0, h1, d0, d1) {
-    var d = ((2 * h0 + h1) * d0 - h0 * d1) / (h0 + h1);
-    if (d * d0 <= 0) return 0;
-    if (d0 * d1 < 0 && Math.abs(d) > Math.abs(3 * d0)) return 3 * d0;
-    return d;
-  }
-
-  function pchipSlopes(pts) {
+  // Natural cubic spline slopes, then clamped so each cubic piece stays monotone.
+  // The harmonic-mean slopes of a piecewise cubic hug each chord, so a long
+  // gap between catalog readings looks like a straight segment. The spline
+  // keeps one continuous bow through the same readings.
+  function monotoneSlopes(pts) {
     var n = pts.length;
     var m = new Array(n);
     if (n < 2) {
@@ -97,27 +108,79 @@
       return m;
     }
     var h = [];
-    var d = [];
+    var s = [];
     for (var i = 0; i < n - 1; i++) {
       var dq = pts[i + 1].q_gpm - pts[i].q_gpm;
       h.push(dq);
-      d.push(dq === 0 ? 0 : (pts[i + 1].h_ft - pts[i].h_ft) / dq);
+      s.push(dq === 0 ? 0 : (pts[i + 1].h_ft - pts[i].h_ft) / dq);
     }
     if (n === 2) {
-      m[0] = d[0];
-      m[1] = d[0];
+      m[0] = s[0];
+      m[1] = s[0];
       return m;
     }
-    for (var k = 1; k < n - 1; k++) {
-      if (d[k - 1] * d[k] <= 0) m[k] = 0;
-      else {
-        var w1 = 2 * h[k] + h[k - 1];
-        var w2 = h[k] + 2 * h[k - 1];
-        m[k] = (w1 + w2) / (w1 / d[k - 1] + w2 / d[k]);
-      }
+    var lower = new Array(n);
+    var diag = new Array(n);
+    var upper = new Array(n);
+    var rhs = new Array(n);
+    for (var z = 0; z < n; z++) {
+      lower[z] = 0;
+      diag[z] = 0;
+      upper[z] = 0;
+      rhs[z] = 0;
     }
-    m[0] = edgeSlope(h[0], h[1], d[0], d[1]);
-    m[n - 1] = edgeSlope(h[n - 2], h[n - 3], d[n - 2], d[n - 3]);
+    diag[0] = 1;
+    rhs[0] = 0;
+    diag[n - 1] = 1;
+    rhs[n - 1] = 0;
+    for (var row = 1; row < n - 1; row++) {
+      lower[row] = h[row - 1];
+      diag[row] = 2 * (h[row - 1] + h[row]);
+      upper[row] = h[row];
+      rhs[row] = 6 * (s[row] - s[row - 1]);
+    }
+    for (var k = 1; k < n; k++) {
+      var w = diag[k - 1] === 0 ? 0 : lower[k] / diag[k - 1];
+      diag[k] -= w * upper[k - 1];
+      rhs[k] -= w * rhs[k - 1];
+    }
+    var second = new Array(n);
+    second[n - 1] = diag[n - 1] === 0 ? 0 : rhs[n - 1] / diag[n - 1];
+    for (var back = n - 2; back >= 0; back--) {
+      second[back] = diag[back] === 0 ? 0 : (rhs[back] - upper[back] * second[back + 1]) / diag[back];
+    }
+    m[0] = s[0] - h[0] * (2 * second[0] + second[1]) / 6;
+    for (var p = 1; p < n - 1; p++) {
+      m[p] = s[p - 1] + h[p - 1] * (2 * second[p] + second[p - 1]) / 6;
+    }
+    m[n - 1] = s[n - 2] + h[n - 2] * (second[n - 2] + 2 * second[n - 1]) / 6;
+    function clampSlope(index, secants) {
+      var lo = -Infinity;
+      var hi = Infinity;
+      for (var c = 0; c < secants.length; c++) {
+        var sec = secants[c];
+        if (Math.abs(sec) < 1e-12) {
+          m[index] = 0;
+          return;
+        }
+        if (sec < 0) {
+          lo = Math.max(lo, 3 * sec);
+          hi = Math.min(hi, 0);
+        } else {
+          lo = Math.max(lo, 0);
+          hi = Math.min(hi, 3 * sec);
+        }
+      }
+      if (!(lo <= hi)) {
+        m[index] = 0;
+        return;
+      }
+      if (m[index] < lo) m[index] = lo;
+      if (m[index] > hi) m[index] = hi;
+    }
+    clampSlope(0, [s[0]]);
+    for (var t = 1; t < n - 1; t++) clampSlope(t, [s[t - 1], s[t]]);
+    clampSlope(n - 1, [s[n - 2]]);
     return m;
   }
 
@@ -134,7 +197,7 @@
 
   /** Head on the smooth monotone curve through one impeller. Null outside the real points. */
   function smoothHead(points, q) {
-    var pts = sortedPoints(points);
+    var pts = measuredPoints(points);
     if (!pts.length) return null;
     var qMin = pts[0].q_gpm;
     var qMax = pts[pts.length - 1].q_gpm;
@@ -145,7 +208,7 @@
       }
     }
     if (pts.length < 2) return null;
-    var slopes = pchipSlopes(pts);
+    var slopes = monotoneSlopes(pts);
     for (var j = 0; j < pts.length - 1; j++) {
       if (q > pts[j].q_gpm && q < pts[j + 1].q_gpm) {
         return {
@@ -160,9 +223,9 @@
 
   /** Cubic pieces of that curve, from the first real point to the last. No extension. */
   function smoothPieces(points) {
-    var pts = sortedPoints(points);
+    var pts = measuredPoints(points);
     if (pts.length < 2) return [];
-    var slopes = pchipSlopes(pts);
+    var slopes = monotoneSlopes(pts);
     var out = [];
     for (var i = 0; i < pts.length - 1; i++) {
       if (pts[i + 1].q_gpm <= pts[i].q_gpm) continue;
@@ -176,6 +239,43 @@
       });
     }
     return out;
+  }
+
+  /** Samples of the smooth fit, strictly inside the measured flow range.
+      Each sample is marked interpolated. Heads are not invented past the
+      first or last catalog flow, and the sequence does not rise with flow. */
+  function interpolatedPoints(points) {
+    var pts = measuredPoints(points);
+    var out = [];
+    if (pts.length < 2) return out;
+    var prevH = pts[0].h_ft;
+    for (var i = 0; i < pts.length - 1; i++) {
+      var q0 = pts[i].q_gpm;
+      var q1 = pts[i + 1].q_gpm;
+      var hNext = pts[i + 1].h_ft;
+      var dq = q1 - q0;
+      if (!(dq > 0)) continue;
+      var n = Math.max(3, Math.round(dq / 8));
+      for (var s = 1; s <= n; s++) {
+        var q = Math.round((q0 + dq * s / (n + 1)) * 10) / 10;
+        if (q <= q0 + 1e-9 || q >= q1 - 1e-9) continue;
+        if (out.length && Math.abs(out[out.length - 1].q_gpm - q) < 1e-6) continue;
+        var sm = smoothHead(pts, q);
+        if (!sm) continue;
+        var h = Math.round(sm.h * 100) / 100;
+        if (h > prevH) h = Math.round(prevH * 100) / 100;
+        if (h < hNext) h = hNext;
+        if (h > prevH) h = prevH;
+        prevH = h;
+        out.push({ q_gpm: q, h_ft: h, interpolated: true });
+      }
+      prevH = hNext;
+    }
+    return out;
+  }
+
+  function curvePoints(points) {
+    return sortedPoints(measuredPoints(points).concat(interpolatedPoints(points)));
   }
 
   function offeredDiameters(curve) {
@@ -207,6 +307,7 @@
     var hUpper = upper.at.h;
     var hLower = null;
     var lowerDiameter = null;
+    var headFt = upper.at.h;
     if (lower) {
       qMax = Math.min(qMax, lower.at.qMax);
       qMin = Math.max(qMin, lower.at.qMin);
@@ -217,6 +318,7 @@
       gap = Math.abs(upper.at.h - lower.at.h);
       hLower = lower.at.h;
       lowerDiameter = lower.imp.diameter_in;
+      headFt = affinityHead(hLower, hUpper, lowerDiameter, upper.imp.diameter_in, trimD);
     }
     return {
       curve: curve,
@@ -231,7 +333,8 @@
       hUpper: hUpper,
       hLower: hLower,
       upperDiameter: upper.imp.diameter_in,
-      lowerDiameter: lowerDiameter
+      lowerDiameter: lowerDiameter,
+      head_ft: headFt
     };
   }
 
@@ -262,7 +365,7 @@
     var imps = byDiameterDesc(curve);
     var readings = [];
     for (var i = 0; i < imps.length; i++) {
-      readings.push({ imp: imps[i], at: headAt(imps[i].points, q) });
+      readings.push({ imp: imps[i], at: readingAt(imps[i].points, q) });
     }
     var nearest = null;
     readings.forEach(function (reading) {
@@ -283,32 +386,46 @@
       if (!coversHead(h, hi.at.h, lo.at.h)) continue;
       var hit = solveTrim(curve, q, h, hi, lo);
       if (!hit) continue;
-      if (!best || compareHits(hit, best) < 0) best = hit;
+      if (!best || compareHits(hit, best, h) < 0) best = hit;
     }
-    return best;
+    if (best) return best;
+    return minimumDiameterHit(readings, curve, q, h);
   }
 
-  /** Higher is a better fit. End margin matters until about half the line is left;
-      extra unused capacity on a much larger pump does not outrank a duty that
-      already sits inside a smaller curve with room before the last point. */
-  function scoreHit(hit) {
-    var span = Math.max(hit.qMax - hit.qMin, 1);
-    var endFrac = hit.endMargin / span;
-    var q = hit.qMax - hit.endMargin;
-    var pos = (q - hit.qMin) / span;
-    var marginScore = Math.min(Math.max(endFrac, 0), 0.45) / 0.45;
-    var fit = 1 - Math.min(1, Math.abs(pos - 0.55) / 0.55);
-    var catalogBonus = hit.kind === 'catalog' ? 0.12 : 0;
-    return marginScore * 2 + fit + catalogBonus;
+  // The duty is under every drawn line. Keep the smallest digitized diameter
+  // when that line still meets the head and one eighth smaller would not.
+  // That diameter is not invented below the catalog, and a line that stays
+  // above the duty even after an eighth-inch cut is not a match.
+  function minimumDiameterHit(readings, curve, q, h) {
+    var lowest = null;
+    for (var i = 0; i < readings.length; i++) {
+      if (!readings[i].at) continue;
+      if (!lowest || readings[i].imp.diameter_in < lowest.imp.diameter_in) lowest = readings[i];
+    }
+    if (!lowest || lowest.at.h + 1e-6 < h) return null;
+    var d = lowest.imp.diameter_in;
+    var dDown = d - EIGHTH;
+    if (dDown <= 0) return makeHit(curve, q, h, lowest, null);
+    var hDown = lowest.at.h * (dDown * dDown) / (d * d);
+    if (hDown + 1e-6 >= h) return null;
+    return makeHit(curve, q, h, lowest, null);
   }
 
-  /** Lower return means a is the better recommendation. */
-  function compareHits(a, b) {
-    var ds = scoreHit(b) - scoreHit(a);
-    if (Math.abs(ds) > 0.02) return ds;
-    if (a.kind !== b.kind) return a.kind === 'catalog' ? -1 : 1;
-    if (Math.abs(a.gap - b.gap) > 0.5) return a.gap - b.gap;
-    if (a.qMax !== b.qMax) return a.qMax - b.qMax;
+  /** Lower return means a ranks first.
+      Closest trim that still meets the duty. Head differences inside the
+      sheet-reading tolerance are the same fit, so the pump with more flow
+      left before the curve ends ranks first. This is not an efficiency ranking. */
+  function compareHits(a, b, dutyH) {
+    var ea = a.head_ft - dutyH;
+    var eb = b.head_ft - dutyH;
+    var aMeets = ea >= -1e-6;
+    var bMeets = eb >= -1e-6;
+    if (aMeets !== bMeets) return aMeets ? -1 : 1;
+    if (Math.abs(ea - eb) > CATALOG_FT) return aMeets ? ea - eb : eb - ea;
+    if (Math.abs(a.endMargin - b.endMargin) > 1) return b.endMargin - a.endMargin;
+    var size = String(a.curve.size).localeCompare(String(b.curve.size), undefined, { numeric: true });
+    if (size) return size;
+    if (a.curve.rpm !== b.curve.rpm) return a.curve.rpm - b.curve.rpm;
     return String(a.curve.model).localeCompare(String(b.curve.model));
   }
 
@@ -327,9 +444,10 @@
       var hit = evaluateCurve(curve, qUse, hUse);
       if (hit) found.push(hit);
     });
-    found.sort(compareHits);
+    found.sort(function (a, b) { return compareHits(a, b, hUse); });
     return {
       covered: found.length > 0,
+      selections: found,
       pick: found[0] || null,
       matchCount: found.length,
       matches: found,
@@ -337,6 +455,81 @@
     };
   }
 
+  // Head used for selection is the smooth curve. The inferred flag still
+  // comes from the catalog segment, not from an interpolated sample.
+  function readingAt(points, q) {
+    var linear = headAt(points, q);
+    var smooth = smoothHead(points, q);
+    if (!linear || !smooth) return null;
+    return {
+      h: smooth.h,
+      inferred: !!linear.inferred,
+      qMin: smooth.qMin,
+      qMax: smooth.qMax
+    };
+  }
+
+  var CATALOG_LIMIT_NOTE = 'This catalog does not include pumps larger than 10 in, so a better Dean size may exist above that.';
+  var RANK_NOTE = 'The list is ranked by how closely the trim meets the requested head on the catalog water curve. Head differences inside the 3 ft sheet-reading tolerance count as the same fit, and those pumps are then ordered by how much flow is left before the curve ends. It is not ranked by efficiency. The curve sheets do not include efficiency, so this list can differ from IntelliQuip.';
+  var SHARED_CURVE_NOTE = 'RA and RWA share the same head-capacity curve.';
+
+  function normalizeSize(s) {
+    return String(s || '').toLowerCase().replace(/\s+/g, '').replace(/×/g, 'x');
+  }
+
+  // Duty-specific IntelliQuip values Blake supplied. Not a curve-sheet reading.
+  // A record applies only to that size, speed, and duty. Other fluids do not use it.
+  function intelliquipFor(records, curve, duty) {
+    if (!curve || !duty) return null;
+    if (duty.fluid && String(duty.fluid) !== 'water') return null;
+    var list = records && records.records ? records.records : records;
+    if (!list || !list.length) return null;
+    var q = Number(duty.q_gpm);
+    var h = Number(duty.h_ft);
+    var size = normalizeSize(curve.size);
+    for (var i = 0; i < list.length; i++) {
+      var rec = list[i];
+      if (!rec || normalizeSize(rec.size) !== size) continue;
+      if (Number(rec.rpm) !== Number(curve.rpm)) continue;
+      if (Math.abs(Number(rec.q_gpm) - q) > 0.05) continue;
+      if (Math.abs(Number(rec.h_ft) - h) > 0.05) continue;
+      return rec;
+    }
+    return null;
+  }
+
+  function formatFt(h) {
+    var n = Math.round(Number(h) * 10) / 10;
+    if (Math.abs(n - Math.round(n)) < 1e-9) return String(Math.round(n));
+    return n.toFixed(1);
+  }
+
+  function formatGpm(q) {
+    var n = Math.round(Number(q) * 10) / 10;
+    if (Math.abs(n - Math.round(n)) < 1e-9) return String(Math.round(n));
+    return n.toFixed(1);
+  }
+
+  // Where the duty sits on this catalog curve. Not an efficiency statement.
+  function dutySeat(hit, q, h) {
+    if (!hit) return '';
+    var head = hit.head_ft;
+    var above = head - h;
+    var rel;
+    if (above >= -0.05) {
+      rel = Math.abs(above) < 0.05 ? 'level with the duty' : formatFt(above) + ' ft above the duty';
+    } else {
+      rel = formatFt(-above) + ' ft below the duty, inside the 3 ft sheet-reading tolerance';
+    }
+    var end = formatGpm(hit.endMargin) + ' gpm left before the curve ends';
+    if (hit.kind === 'catalog') {
+      return 'On the ' + formatDia(hit.diameter_in) + ' in catalog line. At ' + formatGpm(q) +
+        ' gpm that line is ' + formatFt(head) + ' ft, ' + rel + ', with ' + end + '.';
+    }
+    return formatDia(hit.diameter_in) + ' in trim between the ' + formatDia(hit.between[0]) +
+      ' in and ' + formatDia(hit.between[1]) + ' in catalog lines. At ' + formatGpm(q) +
+      ' gpm the trim is ' + formatFt(head) + ' ft, ' + rel + ', with ' + end + '.';
+  }
   // Properties already printed on the fluid menu. Nothing here is guessed.
   // temp/unit is the condition those viscosity and specific-gravity values belong to.
   var FLUIDS = {
@@ -642,6 +835,9 @@
   return {
     ON_LINE_FT: ON_LINE_FT,
     DISCLAIMER: DISCLAIMER,
+    CATALOG_LIMIT_NOTE: CATALOG_LIMIT_NOTE,
+    RANK_NOTE: RANK_NOTE,
+    SHARED_CURVE_NOTE: SHARED_CURVE_NOTE,
     headAt: headAt,
     select: select,
     fluidClass: fluidClass,
@@ -656,8 +852,13 @@
     affinityHead: affinityHead,
     smoothHead: smoothHead,
     smoothPieces: smoothPieces,
+    interpolatedPoints: interpolatedPoints,
+    curvePoints: curvePoints,
+    measuredPoints: measuredPoints,
     offeredDiameters: offeredDiameters,
     powerFrame: powerFrame,
-    frameLine: frameLine
+    frameLine: frameLine,
+    intelliquipFor: intelliquipFor,
+    dutySeat: dutySeat
   };
 });
