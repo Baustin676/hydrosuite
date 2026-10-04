@@ -851,6 +851,127 @@
     return (millis / 1000).toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
   }
 
+  var FULL_SIZED_TRIM = 'Full Sized Impeller (No Trim)';
+
+  // Pages that sell these sizes. Labels match the option text: no spaces around x,
+  // and the # mark keeps a space ("4x6x10 #2"). 4x6x10 #2 is sold on the RA3146
+  // page. Trim options are eighth-inch labels, or the full-size sentence above.
+  // trimMin/trimMax are the numeric option ends, not the full catalog diameter.
+  var STORE_PAGES = [
+    {
+      url: 'https://pumpresource.us/dean-ra2096-pump/',
+      sizes: { '1x1.5x6': true, '1.5x3x6': true, '1x1.5x8': true },
+      trimMin: 4,
+      trimMax: 7.875
+    },
+    {
+      url: 'https://pumpresource.us/dean-ra3146-pump/',
+      sizes: {
+        '1x3x8.5': true,
+        '1.5x3x8.5': true,
+        '2x3x8.5': true,
+        '3x4x8.5': true,
+        '4x6x8.5': true,
+        '1.5x3x10': true,
+        '2x3x10': true,
+        '3x4x10': true,
+        '4x6x10 #2': true
+      },
+      trimMin: 5.5,
+      trimMax: 9.875
+    },
+    {
+      url: 'https://pumpresource.us/dean-ra3186-pump/',
+      sizes: { '4x6x10 #1': true },
+      trimMin: 8,
+      trimMax: 9.875
+    }
+  ];
+
+  function storeSizeLabel(size) {
+    var raw = String(size || '').replace(/×/g, 'x').trim();
+    var hashAt = raw.indexOf('#');
+    var body = hashAt >= 0 ? raw.slice(0, hashAt) : raw;
+    var mark = hashAt >= 0 ? raw.slice(hashAt + 1).replace(/\s+/g, '') : '';
+    body = body.replace(/\s+/g, '');
+    if (!body) return '';
+    return mark ? body + ' #' + mark : body;
+  }
+
+  function eighthTrimSet(minDia, maxDia) {
+    var set = {};
+    var i0 = Math.round(minDia / EIGHTH);
+    var i1 = Math.round(maxDia / EIGHTH);
+    for (var i = i0; i <= i1; i++) set[formatDia(i * EIGHTH)] = true;
+    return set;
+  }
+
+  var storePagesReady = null;
+  function storePages() {
+    if (storePagesReady) return storePagesReady;
+    storePagesReady = STORE_PAGES.map(function (page) {
+      return {
+        url: page.url,
+        sizes: page.sizes,
+        trims: eighthTrimSet(page.trimMin, page.trimMax)
+      };
+    });
+    return storePagesReady;
+  }
+
+  function pageForStoreSize(label) {
+    var pages = storePages();
+    for (var i = 0; i < pages.length; i++) {
+      if (pages[i].sizes[label]) return pages[i];
+    }
+    return null;
+  }
+
+  function catalogMaxDia(curve) {
+    var max = null;
+    var imps = (curve && curve.impellers) || [];
+    for (var i = 0; i < imps.length; i++) {
+      var d = Number(imps[i].diameter_in);
+      if (!isFinite(d)) continue;
+      if (max === null || d > max) max = d;
+    }
+    return max;
+  }
+
+  // The trim query is the store option a script can match.
+  // Full catalog diameter → "Full Sized Impeller (No Trim)".
+  // Any other shown eighth-inch label that the page lists → that label, such as "7.375".
+  // Anything else is omitted. The parenthetical notes on some options are not part of the label.
+  function storeTrimLabel(curve, diameterIn, page) {
+    var d = Number(diameterIn);
+    if (!isFinite(d)) return null;
+    var max = catalogMaxDia(curve);
+    if (max !== null && formatDia(d) === formatDia(max)) return FULL_SIZED_TRIM;
+    var label = formatDia(d);
+    if (page.trims[label]) return label;
+    return null;
+  }
+
+  /** Link to the pump product page for this size, carrying the size and shown trim.
+      Null when the size is not sold on one of those pages. */
+  function productLink(curve, diameterIn) {
+    if (!curve) return null;
+    var size = storeSizeLabel(curve.size);
+    var page = pageForStoreSize(size);
+    if (!page) return null;
+    var trim = storeTrimLabel(curve, diameterIn, page);
+    var href = page.url + '?size=' + encodeURIComponent(size);
+    if (trim) href += '&trim=' + encodeURIComponent(trim);
+    return { href: href, size: size, trim: trim };
+  }
+
+  function productLinkText(link) {
+    if (!link) return '';
+    if (!link.trim) return 'View ' + link.size;
+    if (link.trim === FULL_SIZED_TRIM) return 'View ' + link.size + ', ' + link.trim;
+    return 'View ' + link.size + ', ' + link.trim + ' in';
+  }
+
   var POWER_FRAMES = { RA2096: true, RA3146: true, RA3186: true };
 
   // The model on screen is the RA power frame printed on the sheet.
@@ -895,6 +1016,8 @@
     correctedPieces: correctedPieces,
     impellerLabel: impellerLabel,
     formatDia: formatDia,
+    productLink: productLink,
+    productLinkText: productLinkText,
     affinityHead: affinityHead,
     smoothHead: smoothHead,
     smoothPieces: smoothPieces,

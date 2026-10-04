@@ -93,6 +93,7 @@ header h1 {
 .select-btn:focus-visible,
 .chip:focus-visible,
 .sel-row:focus-visible,
+.sel-store:focus-visible,
 .field input:focus-visible,
 .field select:focus-visible,
 details summary:focus-visible {
@@ -161,17 +162,31 @@ details summary:focus-visible {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+.sel-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.sel-card.active { border-color: var(--amber); box-shadow: inset 3px 0 0 var(--amber); }
 .sel-row {
   display: block;
   width: 100%;
   text-align: left;
-  background: var(--white);
-  border: 1px solid var(--line);
+  background: transparent;
+  border: 0;
   border-radius: 4px;
   padding: 10px 12px;
   cursor: pointer;
 }
-.sel-row.active { border-color: var(--amber); box-shadow: inset 3px 0 0 var(--amber); }
+.sel-card.has-store .sel-row { padding-bottom: 2px; }
+.sel-store {
+  display: inline-block;
+  margin: 2px 12px 10px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-underline-offset: 2px;
+}
 .sel-top { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
 .sel-rank { color: var(--muted); font-size: 13px; font-weight: 600; min-width: 1.4rem; }
 .sel-frame { font-size: 18px; font-weight: 700; }
@@ -545,13 +560,20 @@ function renderDeanSelection() {
     var curve = hit.curve;
     var frame = DeanRA.powerFrame(curve);
     var iq = DeanRA.intelliquipFor(DEAN_IQ, curve, { q_gpm: q, h_ft: h, fluid: fluid });
-    html += '<button type="button" class="sel-row' + (i === (DEAN_LAST.active || 0) ? ' active' : '') + '" data-i="' + i + '" aria-pressed="' + (i === (DEAN_LAST.active || 0) ? 'true' : 'false') + '">' +
+    var on = i === (DEAN_LAST.active || 0);
+    var link = DeanRA.productLink(curve, hit.diameter_in);
+    var store = '';
+    if (link) {
+      store = '<a class="sel-store" href="' + esc(link.href) + '" target="_top">' + esc(DeanRA.productLinkText(link)) + '</a>';
+    }
+    html += '<div class="sel-card' + (on ? ' active' : '') + (link ? ' has-store' : '') + '">' +
+      '<button type="button" class="sel-row" data-i="' + i + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
       '<span class="sel-top"><span class="sel-rank">' + (i + 1) + '</span><span class="sel-frame">' + esc(frame) + '</span>' +
       '<span class="sel-size">' + esc(curve.size) + '</span><span class="sel-rpm">' + esc(curve.rpm) + ' rpm</span></span>' +
       '<p class="sel-trim">' + esc(DeanRA.impellerLabel(hit)) + '</p>' +
       '<p class="sel-seat">' + esc(DeanRA.dutySeat(hit, seatQ, seatH)) + '</p>' +
       iqMarkup(iq) +
-      '</button>';
+      '</button>' + store + '</div>';
   });
   listEl.innerHTML = html;
   var hit = activeHit();
