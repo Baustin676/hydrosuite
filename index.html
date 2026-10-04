@@ -224,6 +224,14 @@ details summary:focus-visible {
   color: var(--muted);
   font-size: 13px;
 }
+.chart-correction {
+  margin: 0;
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.45;
+}
 details { margin-top: 14px; }
 details summary {
   cursor: pointer;
@@ -353,8 +361,9 @@ th { font-weight: 600; }
         <canvas id="sel-canvas"></canvas>
         <p class="chart-disclaimer" id="chart-disclaimer">These curves are not intended to be a direct duplicate of the curves provided by Dean. They are for reference only.</p>
         <p class="chart-legend" id="chart-legend"></p>
+        <p class="chart-correction" id="chart-correction" hidden></p>
         <div class="sheet-sizes">
-          <p class="list-kicker">Sizes that meet this duty</p>
+          <p class="list-kicker" id="list-kicker">Sizes that meet this duty</p>
           <div id="rec-list" class="sel-list"></div>
         </div>
       </div>
@@ -422,15 +431,11 @@ function setTemperatureUnit(unit) {
 }
 function applyFluidTemperature() {
   var spec = FLUID_TEMP[document.getElementById('sel-fluid').value];
-  if (!spec) return;
-  setTemperatureUnit(spec[1]);
-  document.getElementById('sel-t').value = String(spec[0]);
-  if (DEAN_LAST) {
-    DEAN_LAST.t = spec[0];
-    DEAN_LAST.unit = TEMP_UNIT;
-    DEAN_LAST.fluid = document.getElementById('sel-fluid').value;
-    renderDeanSelection();
+  if (spec) {
+    setTemperatureUnit(spec[1]);
+    document.getElementById('sel-t').value = String(spec[0]);
   }
+  if (selNum('sel-q') != null && selNum('sel-h') != null && DEAN_CATALOG) runDeanSelect();
 }
 function syncChips() {
   var q = document.getElementById('sel-q').value;
@@ -450,7 +455,7 @@ function runDeanSelect() {
   if (q == null || h == null || t == null) { err.textContent = 'Enter flow, head, and temperature.'; return; }
   if (q <= 0 || h <= 0) { err.textContent = 'Flow and head need to be greater than zero.'; return; }
   DEAN_LAST = {
-    result: DeanRA.select(DEAN_CATALOG, {q_gpm: q, h_ft: h}),
+    result: DeanRA.select(DEAN_CATALOG, {q_gpm: q, h_ft: h, fluid: fluid, temp: t, unit: TEMP_UNIT}),
     q: q, h: h, t: t, unit: TEMP_UNIT, fluid: fluid, active: 0
   };
   renderDeanSelection();
@@ -498,13 +503,22 @@ function renderDeanSelection() {
   var chartTitle = document.getElementById('chart-title');
   var chartDuty = document.getElementById('chart-duty');
   var legend = document.getElementById('chart-legend');
+  var chartCorrection = document.getElementById('chart-correction');
+  var listKicker = document.getElementById('list-kicker');
   var result = DEAN_LAST.result;
   var q = DEAN_LAST.q, h = DEAN_LAST.h, t = DEAN_LAST.t, fluid = DEAN_LAST.fluid;
   var dutyTemp = fluidName() + ', ' + formatTemp(t, DEAN_LAST.unit || TEMP_UNIT);
+  var corr = result.correction;
+  var showCorrection = corr && corr.status && corr.status !== 'water';
+  var fluidLine = DeanRA.fluidNote(fluid, { q_gpm: q, h_ft: h, temp: t, unit: DEAN_LAST.unit });
   var notesHtml = '<p class="note">' + esc(DeanRA.CATALOG_LIMIT_NOTE) + '</p>' +
     '<p class="note">' + esc(DeanRA.RANK_NOTE) + '</p>' +
     '<p class="note">' + esc(DeanRA.SHARED_CURVE_NOTE) + '</p>' +
-    '<p class="note">' + esc(DeanRA.fluidNote(fluid)) + '</p>';
+    (showCorrection ? '' : '<p class="note">' + esc(fluidLine) + '</p>');
+  if (chartCorrection) {
+    chartCorrection.hidden = !showCorrection;
+    chartCorrection.textContent = showCorrection ? corr.note : '';
+  }
   if (!result.covered) {
     wrap.hidden = true;
     points.innerHTML = '';
@@ -516,8 +530,16 @@ function renderDeanSelection() {
   }
   var selections = result.selections;
   var n = selections.length;
+  var seatQ = q, seatH = h;
+  if (corr && corr.applied) {
+    seatQ = corr.qWater;
+    seatH = corr.hWater;
+  }
   lead.textContent = q + ' gpm at ' + h + ' ft';
   meta.textContent = (n === 1 ? '1 size in this catalog can meet this duty.' : (n + ' sizes in this catalog can meet this duty.')) + ' ' + dutyTemp;
+  if (listKicker) {
+    listKicker.textContent = corr && corr.applied ? 'Sizes that meet the corrected water duty' : 'Sizes that meet this duty';
+  }
   var html = '';
   selections.forEach(function (hit, i) {
     var curve = hit.curve;
@@ -527,7 +549,7 @@ function renderDeanSelection() {
       '<span class="sel-top"><span class="sel-rank">' + (i + 1) + '</span><span class="sel-frame">' + esc(frame) + '</span>' +
       '<span class="sel-size">' + esc(curve.size) + '</span><span class="sel-rpm">' + esc(curve.rpm) + ' rpm</span></span>' +
       '<p class="sel-trim">' + esc(DeanRA.impellerLabel(hit)) + '</p>' +
-      '<p class="sel-seat">' + esc(DeanRA.dutySeat(hit, q, h)) + '</p>' +
+      '<p class="sel-seat">' + esc(DeanRA.dutySeat(hit, seatQ, seatH)) + '</p>' +
       iqMarkup(iq) +
       '</button>';
   });
@@ -1040,12 +1062,8 @@ document.querySelectorAll('[data-ex]').forEach(function (btn) {
 });
 document.getElementById('sel-fluid').addEventListener('change', applyFluidTemperature);
 document.getElementById('sel-t').addEventListener('input', function () {
-  if (!DEAN_LAST) return;
-  var t = selNum('sel-t');
-  if (t == null) return;
-  DEAN_LAST.t = t;
-  DEAN_LAST.unit = TEMP_UNIT;
-  renderDeanSelection();
+  if (selNum('sel-t') == null) return;
+  if (selNum('sel-q') != null && selNum('sel-h') != null && DEAN_CATALOG) runDeanSelect();
 });
 window.addEventListener('resize', function () {
   if (DEAN_LAST && DEAN_LAST.result.covered) drawDeanSelection();
