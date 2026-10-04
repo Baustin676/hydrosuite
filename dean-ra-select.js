@@ -6,8 +6,10 @@
    as flow increases. It is not extended past the first or last catalog flow.
    A duty between two lines is an eighth-inch trim from diameter-squared
    affinity, not a linear diameter. Does not extrapolate or speed-scale.
-   A duty returns every catalog size that can meet it. The order is hydraulic
-   fit, not efficiency. */
+   A duty returns every catalog size that can meet it. The order is where the
+   requested flow sits on that size's real catalog flow range, not efficiency.
+   The middle-right of the range ranks first. A duty on the left, or at the
+   far right end, ranks lower. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.DeanRA = factory();
@@ -383,7 +385,7 @@
       if (!coversHead(h, hi.at.h, lo.at.h)) continue;
       var hit = solveTrim(curve, q, h, hi, lo);
       if (!hit) continue;
-      if (!best || compareHits(hit, best, h) < 0) best = hit;
+      if (!best || compareTrimFits(hit, best, h) < 0) best = hit;
     }
     if (best) return best;
     return minimumDiameterHit(readings, curve, q, h);
@@ -408,11 +410,10 @@
     return makeHit(curve, q, h, lowest, null);
   }
 
-  /** Lower return means a ranks first.
-      Closest trim that still meets the duty. Head differences inside the
-      sheet-reading tolerance are the same fit, so the pump with more flow
-      left before the curve ends ranks first. This is not an efficiency ranking. */
-  function compareHits(a, b, dutyH) {
+  /** Which trim to keep on one size. Closest trim that still meets the duty.
+      Head differences inside the sheet-reading tolerance are the same fit.
+      This does not order the list of sizes. */
+  function compareTrimFits(a, b, dutyH) {
     var ea = a.head_ft - dutyH;
     var eb = b.head_ft - dutyH;
     var aMeets = ea >= -1e-6;
@@ -426,6 +427,50 @@
     return String(a.curve.model).localeCompare(String(b.curve.model));
   }
 
+  // Where the requested flow sits on the catalog flow range of the impeller
+  // that meets the duty. For a trim, that range is the overlap of the two
+  // catalog lines the trim sits between. 0 is the left end, 1 is the right end.
+  // A span of one point has no left or right, so it sits at the preferred place.
+  function flowFraction(hit, q) {
+    var span = hit.qMax - hit.qMin;
+    if (!(span > 1e-9)) return 0.62;
+    var f = (q - hit.qMin) / span;
+    if (f < 0) return 0;
+    if (f > 1) return 1;
+    return f;
+  }
+
+  // Lower is a better seat. The preferred place is the middle-right of the
+  // catalog flow range: from the middle of the curve through about three
+  // quarters of the way to the end. Left of that is far from where best
+  // efficiency would be. Past the right edge is the end of the curve.
+  // The number is only a sort key. It is not efficiency, power, or NPSHr.
+  function seatScore(fraction) {
+    var lo = 0.5;
+    var hi = 0.75;
+    var at = 0.62;
+    var outside = 0;
+    if (fraction < lo) outside = lo - fraction;
+    else if (fraction > hi) outside = fraction - hi;
+    return outside * outside * 4 + Math.abs(fraction - at) * 0.02;
+  }
+
+  function sameCurveOrder(a, b) {
+    var size = String(a.curve.size).localeCompare(String(b.curve.size), undefined, { numeric: true });
+    if (size) return size;
+    if (a.curve.rpm !== b.curve.rpm) return a.curve.rpm - b.curve.rpm;
+    return String(a.curve.model).localeCompare(String(b.curve.model));
+  }
+
+  /** Lower return means a ranks first. Order is the seat of the duty on each
+      size's real catalog flow range, for every duty. */
+  function compareSelections(a, b, q) {
+    var sa = seatScore(flowFraction(a, q));
+    var sb = seatScore(flowFraction(b, q));
+    if (Math.abs(sa - sb) > 1e-12) return sa - sb;
+    return sameCurveOrder(a, b);
+  }
+
   function select(catalog, duty) {
     var q = Number(duty.q_gpm);
     var h = Number(duty.h_ft);
@@ -434,7 +479,7 @@
       var hit = evaluateCurve(curve, q, h);
       if (hit) found.push(hit);
     });
-    found.sort(function (a, b) { return compareHits(a, b, h); });
+    found.sort(function (a, b) { return compareSelections(a, b, q); });
     return {
       covered: found.length > 0,
       selections: found,
@@ -457,8 +502,8 @@
     };
   }
 
-  var CATALOG_LIMIT_NOTE = 'This catalog does not include pumps larger than 10 in, so a better Dean size may exist above that.';
-  var RANK_NOTE = 'The list is ranked by how closely the trim meets the requested head on the catalog water curve. Head differences inside the 3 ft sheet-reading tolerance count as the same fit, and those pumps are then ordered by how much flow is left before the curve ends. It is not ranked by efficiency. The curve sheets do not include efficiency, so this list can differ from IntelliQuip.';
+  var CATALOG_LIMIT_NOTE = 'This catalog does not include pumps larger than 10 in, so a better Dean size may still exist above 10 in.';
+  var RANK_NOTE = 'The list is ordered by where the duty sits on the curve. It is not ranked by efficiency. A duty in the middle-right of that size\'s catalog flow range comes first. A duty on the left side of the curve ranks lower, and a duty at the far right end ranks lower too. The curve sheets do not include efficiency, so this list can differ from IntelliQuip.';
   var SHARED_CURVE_NOTE = 'RA and RWA share the same head-capacity curve.';
 
   function normalizeSize(s) {
@@ -604,6 +649,8 @@
     powerFrame: powerFrame,
     frameLine: frameLine,
     intelliquipFor: intelliquipFor,
-    dutySeat: dutySeat
+    dutySeat: dutySeat,
+    flowFraction: flowFraction,
+    seatScore: seatScore
   };
 });

@@ -49,11 +49,9 @@ function assertCovered(result, q, h) {
   assert.strictEqual(result.pick, result.selections[0]);
   result.selections.forEach(function (hit) { assertHit(hit, q, h); });
   for (let i = 1; i < result.selections.length; i++) {
-    const prev = result.selections[i - 1].head_ft - h;
-    const cur = result.selections[i].head_ft - h;
-    if (prev >= -1e-6 && cur >= -1e-6) {
-      assert.ok(cur + DeanRA.ON_LINE_FT + 0.05 >= prev, 'closer trim ranked after a looser one');
-    }
+    const prev = DeanRA.seatScore(DeanRA.flowFraction(result.selections[i - 1], q));
+    const cur = DeanRA.seatScore(DeanRA.flowFraction(result.selections[i], q));
+    assert.ok(cur + 1e-9 >= prev, 'a worse seat on the curve ranked ahead of a better one');
   }
 }
 
@@ -129,12 +127,20 @@ function assertCovered(result, q, h) {
   assert.ok(next < 90);
 }
 
-// High head at the same flow stays on the 3500 rpm #1 curve.
+// High head at the same flow is a 3500 rpm curve. The 1750 rpm #2 cannot make it.
+// The 4x6x10 #1 can, but the duty sits left of the middle of that curve, so a
+// smaller 3500 rpm size whose duty is middle-right ranks ahead of it.
 {
   const r = pick(500, 360);
   assertCovered(r, 500, 360);
-  assert.strictEqual(r.pick.curve.model, 'R40100-A1');
-  assert.strictEqual(r.pick.curve.rpm, 3500);
+  assert.ok(r.selections.every(function (s) { return s.curve.model !== 'R40100-B2'; }));
+  const big = findModel(r, 'R40100-A1');
+  assert.strictEqual(big.curve.rpm, 3500);
+  assert.strictEqual(DeanRA.powerFrame(big.curve), 'RA3186');
+  const smaller = findModel(r, 'R30100-A1');
+  assert.strictEqual(smaller.curve.rpm, 3500);
+  assert.ok(DeanRA.flowFraction(smaller, 500) > DeanRA.flowFraction(big, 500));
+  assert.ok(r.selections.indexOf(smaller) < r.selections.indexOf(big));
 }
 
 // No 1150 rpm curve is in the catalog or the results.
@@ -165,7 +171,7 @@ function assertCovered(result, q, h) {
   assert.strictEqual(throughLabel.pick.curve.model, 'R40100-B2');
   assert.strictEqual(throughLabel.pick.inferred, true);
   const onSix = pick(80, 147);
-  assert.strictEqual(onSix.pick.inferred, false);
+  assert.strictEqual(findModel(onSix, 'RA1060-A2').inferred, false);
 }
 
 // Page 11 (RA1080-A2) uses the corrected sheet heads, and dropped flows stay absent.
@@ -270,9 +276,9 @@ function assertCovered(result, q, h) {
   });
   const high = pick(500, 360);
   assertCovered(high, 500, 360);
-  assert.strictEqual(high.pick.curve.model, 'R40100-A1');
-  assert.strictEqual(high.pick.curve.rpm, 3500);
-  assert.strictEqual(DeanRA.powerFrame(high.pick.curve), 'RA3186');
+  const page22 = findModel(high, 'R40100-A1');
+  assert.strictEqual(page22.curve.rpm, 3500);
+  assert.strictEqual(DeanRA.powerFrame(page22.curve), 'RA3186');
 }
 
 // Do not extrapolate past the last real point of a line.
@@ -499,9 +505,12 @@ function assertCovered(result, q, h) {
     assert.ok(DeanRA.dutySeat(s, 400, 200).indexOf('400 gpm') >= 0);
     assert.ok(DeanRA.dutySeat(s, 400, 200).toLowerCase().indexOf('efficiency') < 0);
   });
+  assert.ok(DeanRA.RANK_NOTE.toLowerCase().indexOf('where the duty sits on the curve') >= 0);
   assert.ok(DeanRA.RANK_NOTE.toLowerCase().indexOf('not ranked by efficiency') >= 0);
+  assert.ok(DeanRA.RANK_NOTE.toLowerCase().indexOf('middle-right') >= 0);
   assert.ok(DeanRA.RANK_NOTE.indexOf('IntelliQuip') >= 0);
   assert.ok(DeanRA.CATALOG_LIMIT_NOTE.indexOf('10 in') >= 0);
+  assert.ok(DeanRA.CATALOG_LIMIT_NOTE.indexOf('may still exist') >= 0);
   assert.ok(DeanRA.SHARED_CURVE_NOTE.indexOf('RA and RWA share the same head-capacity curve') >= 0);
 }
 
@@ -667,6 +676,100 @@ function assertCovered(result, q, h) {
   const small = findModel(at100, 'RA1080-A2');
   assert.strictEqual(small.diameter_in, 7.5);
   assert.strictEqual(small.kind, 'trim');
+}
+
+// The preferred seat is the middle-right of a size's catalog flow range.
+// A duty on the left, and a duty at the far right end, both score worse.
+// The score is not an efficiency.
+{
+  assert.ok(DeanRA.seatScore(0.62) < DeanRA.seatScore(0.08));
+  assert.ok(DeanRA.seatScore(0.62) < DeanRA.seatScore(0.98));
+  assert.ok(DeanRA.seatScore(0.56) < DeanRA.seatScore(0.15));
+  assert.ok(DeanRA.seatScore(0.65) < DeanRA.seatScore(1));
+  assert.ok(DeanRA.seatScore(0.70) < DeanRA.seatScore(0.20));
+  const note = DeanRA.RANK_NOTE.toLowerCase();
+  assert.ok(note.indexOf('efficiency') >= 0);
+  assert.ok(note.indexOf('%') < 0);
+}
+
+// Several duties. An oversized pump with the duty on the left ranks below a
+// smaller pump whose duty sits in the middle-right. A duty at the far right
+// of a curve also ranks below a middle-right fit. Every size that can meet
+// the duty stays in the list. 190 gpm at 210 ft is one example, not a special case.
+{
+  function fraction(hit, q) {
+    return (q - hit.qMin) / (hit.qMax - hit.qMin);
+  }
+  const duties = [
+    [190, 210],
+    [80, 130],
+    [100, 250],
+    [80, 250],
+    [250, 300],
+    [400, 200],
+    [200, 140],
+    [100, 130],
+    [120, 100],
+    [500, 360]
+  ];
+  let leftCases = 0;
+  let rightCases = 0;
+  duties.forEach(function (duty) {
+    const q = duty[0];
+    const h = duty[1];
+    const r = pick(q, h);
+    assertCovered(r, q, h);
+    const seen = {};
+    r.selections.forEach(function (s) {
+      const key = s.curve.size + '@' + s.curve.rpm;
+      assert.ok(!seen[key], 'duplicate size ' + key);
+      seen[key] = true;
+    });
+    const rows = r.selections.map(function (s, i) {
+      return { i: i, f: fraction(s, q), s: s };
+    });
+    rows.forEach(function (mid) {
+      if (mid.f < 0.5 || mid.f > 0.72) return;
+      rows.forEach(function (other) {
+        if (other.i === mid.i) return;
+        if (other.f <= 0.25) {
+          assert.ok(
+            mid.i < other.i,
+            q + ' gpm at ' + h + ' ft: ' + other.s.curve.size +
+              ' at ' + other.f.toFixed(2) + ' of its curve ranked above ' +
+              mid.s.curve.size + ' at ' + mid.f.toFixed(2)
+          );
+          leftCases += 1;
+        }
+        if (other.f >= 0.9) {
+          assert.ok(
+            mid.i < other.i,
+            q + ' gpm at ' + h + ' ft: ' + other.s.curve.size +
+              ' at ' + other.f.toFixed(2) + ' of its curve ranked above ' +
+              mid.s.curve.size + ' at ' + mid.f.toFixed(2)
+          );
+          rightCases += 1;
+        }
+      });
+    });
+  });
+  assert.ok(leftCases >= 4, 'expected several left-side versus middle-right rankings');
+  assert.ok(rightCases >= 3, 'expected several far-right versus middle-right rankings');
+
+  const example = pick(190, 210);
+  const good = findModel(example, 'R2085-A2');
+  const oversized = findModel(example, 'R40100-A1');
+  assert.strictEqual(good.curve.size, '2 x 3 x 8.5');
+  assert.strictEqual(good.curve.rpm, 3500);
+  assert.strictEqual(oversized.curve.size, '4 x 6 x 10 #1');
+  assert.strictEqual(oversized.curve.rpm, 3500);
+  const goodAt = fraction(good, 190);
+  const bigAt = fraction(oversized, 190);
+  assert.ok(goodAt > 0.5 && goodAt < 0.75, '2 x 3 x 8.5 should sit middle-right, got ' + goodAt);
+  assert.ok(bigAt < 0.2, '4 x 6 x 10 #1 should sit on the left, got ' + bigAt);
+  assert.ok(example.selections.indexOf(good) + 2 <= example.selections.indexOf(oversized));
+  assert.strictEqual(example.selections.length, 7);
+  assert.ok(example.selections.indexOf(oversized) >= 0);
 }
 
 console.log('dean-ra-select tests passed');
