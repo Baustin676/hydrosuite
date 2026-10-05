@@ -935,4 +935,113 @@ function assertCovered(result, q, h) {
   assert.ok(example.selections.indexOf(oversized) >= 0);
 }
 
+// Each capable size links to the product page that sells it, with the shown trim.
+// 4x6x10 #2 stays on the RA3146 page. A size that page does not sell has no link.
+{
+  const pages = {
+    'RA1060-A2': 'https://pumpresource.us/dean-ra2096-pump/',
+    'RA1560-A2': 'https://pumpresource.us/dean-ra2096-pump/',
+    'RA1080-A2': 'https://pumpresource.us/dean-ra2096-pump/',
+    'R1085-A2': 'https://pumpresource.us/dean-ra3146-pump/',
+    'R1585-A2': 'https://pumpresource.us/dean-ra3146-pump/',
+    'R2085-A2': 'https://pumpresource.us/dean-ra3146-pump/',
+    'R3085-A1': 'https://pumpresource.us/dean-ra3146-pump/',
+    'R4085-A1': 'https://pumpresource.us/dean-ra3146-pump/',
+    'R15100-A2': 'https://pumpresource.us/dean-ra3146-pump/',
+    'R20100-A2': 'https://pumpresource.us/dean-ra3146-pump/',
+    'R30100-A1': 'https://pumpresource.us/dean-ra3146-pump/',
+    'R40100-B2': 'https://pumpresource.us/dean-ra3146-pump/',
+    'R40100-A1': 'https://pumpresource.us/dean-ra3186-pump/'
+  };
+  const labels = {
+    'RA1060-A2': '1x1.5x6',
+    'RA1560-A2': '1.5x3x6',
+    'RA1080-A2': '1x1.5x8',
+    'R1085-A2': '1x3x8.5',
+    'R1585-A2': '1.5x3x8.5',
+    'R2085-A2': '2x3x8.5',
+    'R3085-A1': '3x4x8.5',
+    'R4085-A1': '4x6x8.5',
+    'R15100-A2': '1.5x3x10',
+    'R20100-A2': '2x3x10',
+    'R30100-A1': '3x4x10',
+    'R40100-B2': '4x6x10 #2',
+    'R40100-A1': '4x6x10 #1'
+  };
+  catalog.curves.forEach(function (curve) {
+    let max = curve.impellers[0].diameter_in;
+    curve.impellers.forEach(function (imp) {
+      if (imp.diameter_in > max) max = imp.diameter_in;
+    });
+    const link = DeanRA.productLink(curve, max);
+    assert.ok(link, 'missing product link for ' + curve.size);
+    assert.strictEqual(link.size, labels[curve.model]);
+    assert.strictEqual(link.trim, 'Full Sized Impeller (No Trim)');
+    assert.strictEqual(link.href.indexOf(pages[curve.model] + '?size='), 0);
+    assert.ok(link.href.indexOf('trim=') > 0);
+    assert.ok(link.href.toLowerCase().indexOf('rwa') < 0, curve.size + ' must not use an RWA page');
+    assert.strictEqual(
+      DeanRA.productLinkText(link),
+      'View ' + labels[curve.model] + ', Full Sized Impeller (No Trim)'
+    );
+  });
+
+  const two = catalog.curves.find(function (c) { return c.model === 'R2085-A2'; });
+  const at7375 = DeanRA.productLink(two, 7.375);
+  assert.deepStrictEqual(at7375, {
+    href: 'https://pumpresource.us/dean-ra3146-pump/?size=2x3x8.5&trim=7.375',
+    size: '2x3x8.5',
+    trim: '7.375'
+  });
+  assert.strictEqual(DeanRA.productLinkText(at7375), 'View 2x3x8.5, 7.375 in');
+
+  const slow = catalog.curves.find(function (c) { return c.model === 'R40100-B2'; });
+  assert.strictEqual(slow.frame, 'RWA4166');
+  const hash2 = DeanRA.productLink(slow, 9.375);
+  assert.strictEqual(hash2.size, '4x6x10 #2');
+  assert.strictEqual(hash2.trim, '9.375');
+  assert.strictEqual(
+    hash2.href,
+    'https://pumpresource.us/dean-ra3146-pump/?size=' + encodeURIComponent('4x6x10 #2') + '&trim=9.375'
+  );
+
+  const eight = catalog.curves.find(function (c) { return c.model === 'RA1080-A2'; });
+  assert.strictEqual(DeanRA.productLink(eight, 6).trim, '6');
+  assert.strictEqual(
+    DeanRA.productLink(eight, 6).href,
+    'https://pumpresource.us/dean-ra2096-pump/?size=1x1.5x8&trim=6'
+  );
+
+  const big = catalog.curves.find(function (c) { return c.model === 'R40100-A1'; });
+  const under = DeanRA.productLink(big, 7.875);
+  assert.strictEqual(under.size, '4x6x10 #1');
+  assert.strictEqual(under.trim, null);
+  assert.strictEqual(under.href, 'https://pumpresource.us/dean-ra3186-pump/?size=' + encodeURIComponent('4x6x10 #1'));
+  assert.strictEqual(DeanRA.productLinkText(under), 'View 4x6x10 #1');
+
+  const odd = DeanRA.productLink(two, 3.875);
+  assert.strictEqual(odd.trim, null);
+  assert.strictEqual(odd.href, 'https://pumpresource.us/dean-ra3146-pump/?size=2x3x8.5');
+
+  assert.strictEqual(DeanRA.productLink({ size: '1 x 2 x 11.5', frame: 'RA3146', impellers: [{ diameter_in: 11.5 }] }, 11.5), null);
+  assert.strictEqual(DeanRA.productLink({ size: '6 x 8 x 13', frame: 'RA3186', impellers: [{ diameter_in: 13 }] }, 12.5), null);
+  assert.strictEqual(DeanRA.productLink(null, 7.375), null);
+
+  const shown = pick(80, 130);
+  const small = findModel(shown, 'RA1060-A2');
+  assert.strictEqual(small.diameter_in, 5.75);
+  const smallLink = DeanRA.productLink(small.curve, small.diameter_in);
+  assert.strictEqual(smallLink.trim, DeanRA.formatDia(small.diameter_in));
+  assert.strictEqual(smallLink.href, 'https://pumpresource.us/dean-ra2096-pump/?size=1x1.5x6&trim=5.75');
+
+  const onFull = findModel(pick(80, 147), 'RA1060-A2');
+  assert.strictEqual(onFull.kind, 'catalog');
+  assert.strictEqual(DeanRA.productLink(onFull.curve, onFull.diameter_in).trim, 'Full Sized Impeller (No Trim)');
+
+  const page = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+  assert.ok(page.indexOf('DeanRA.productLink(curve, hit.diameter_in)') > 0);
+  assert.ok(page.indexOf('target="_top"') > 0);
+  assert.ok(page.indexOf('DeanRA.productLinkText(link)') > 0);
+}
+
 console.log('dean-ra-select tests passed');
