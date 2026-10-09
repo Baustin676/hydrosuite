@@ -408,8 +408,9 @@ function esc(s) {
     return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[ch];
   });
 }
-// Suite fluid temperatures. Water presets that print °F stay in °F.
-// A fluid printed only in °C stays in °C. This number is not a viscosity correction.
+// Suite fluid temperatures: the reference temperature printed for each fluid, in the
+// unit it is printed in. The page keeps the user's unit (°F by default) and converts
+// this value into it. This number is not a viscosity correction.
 var FLUID_TEMP = {
   water: [68, 'F'], water60: [140, 'F'], water80: [176, 'F'], water100: [212, 'F'],
   water121: [250, 'F'], water150: [302, 'F'], water180: [356, 'F'],
@@ -425,6 +426,8 @@ var FLUID_TEMP = {
   methanol: [68, 'F'], ethanol: [68, 'F'], ammonia: [-33, 'C']
 };
 var TEMP_UNIT = 'F';
+// True once the user types a temperature. A fluid change then leaves that value alone.
+var TEMP_TYPED = false;
 
 function fluidName() {
   var opt = document.getElementById('sel-fluid').selectedOptions[0];
@@ -444,11 +447,18 @@ function setTemperatureUnit(unit) {
   TEMP_UNIT = unit === 'C' ? 'C' : 'F';
   document.querySelector('label[for="sel-t"]').textContent = 'Temperature (°' + TEMP_UNIT + ')';
 }
+function convertTemp(t, from, to) {
+  var n = Number(t);
+  if (from === to) return n;
+  var v = to === 'C' ? (n - 32) * 5 / 9 : n * 9 / 5 + 32;
+  return Math.round(v * 10) / 10;
+}
 function applyFluidTemperature() {
   var spec = FLUID_TEMP[document.getElementById('sel-fluid').value];
-  if (spec) {
-    setTemperatureUnit(spec[1]);
-    document.getElementById('sel-t').value = String(spec[0]);
+  if (spec && !TEMP_TYPED) {
+    // Keep the unit the page is in and convert the fluid's reference temperature into it.
+    var v = convertTemp(spec[0], spec[1], TEMP_UNIT);
+    document.getElementById('sel-t').value = String(v);
   }
   if (selNum('sel-q') != null && selNum('sel-h') != null && DEAN_CATALOG) runDeanSelect();
 }
@@ -1084,6 +1094,8 @@ document.querySelectorAll('[data-ex]').forEach(function (btn) {
 });
 document.getElementById('sel-fluid').addEventListener('change', applyFluidTemperature);
 document.getElementById('sel-t').addEventListener('input', function () {
+  // An emptied field lets the next fluid fill in its reference temperature again.
+  TEMP_TYPED = document.getElementById('sel-t').value !== '';
   if (selNum('sel-t') == null) return;
   if (selNum('sel-q') != null && selNum('sel-h') != null && DEAN_CATALOG) runDeanSelect();
 });

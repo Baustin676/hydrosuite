@@ -81,6 +81,11 @@ function assertCovered(result, q, h) {
   assert.ok(label.indexOf('5.75 in') === 0);
   assert.ok(label.indexOf('calculated between the 5.5 in and 6 in catalog diameters') >= 0);
   assert.ok(label.indexOf('not a published curve') >= 0);
+  const seat = DeanRA.dutySeat(hit, 80, 130);
+  assert.ok(seat.indexOf('At 80 gpm the trim is ') === 0, seat);
+  assert.ok(seat.indexOf('gpm left before the curve ends.') > 0, seat);
+  assert.ok(seat.indexOf('between the') < 0, seat);
+  assert.ok(seat.indexOf('5.75') < 0, seat);
 }
 
 // Within 3 ft of a catalog line, keep that diameter instead of solving a trim.
@@ -90,6 +95,10 @@ function assertCovered(result, q, h) {
   const hit = findModel(r, 'RA1060-A2');
   assert.strictEqual(hit.kind, 'catalog');
   assert.strictEqual(hit.diameter_in, 6);
+  const seat = DeanRA.dutySeat(hit, 80, 145);
+  assert.ok(seat.indexOf('At 80 gpm the catalog line is ') === 0, seat);
+  assert.ok(seat.indexOf('On the ') < 0, seat);
+  assert.ok(seat.indexOf('6 in catalog') < 0, seat);
 }
 
 // Above every published line.
@@ -399,6 +408,24 @@ function assertCovered(result, q, h) {
 
   const xlt = DeanRA.select(catalog, { q_gpm: 400, h_ft: 200, fluid: 'xlt', temp: -40, unit: 'C' });
   assert.strictEqual(xlt.correction.status, 'corrected');
+  // -40 °C is -40 °F. The page may show either unit; both must correct the same way.
+  const xltF = DeanRA.select(catalog, { q_gpm: 190, h_ft: 210, fluid: 'xlt', temp: -40, unit: 'F' });
+  const xltC = DeanRA.select(catalog, { q_gpm: 190, h_ft: 210, fluid: 'xlt', temp: -40, unit: 'C' });
+  assert.strictEqual(xltF.correction.status, 'corrected');
+  assert.ok(Math.abs(xltF.correction.qWater - 191.2) < 0.05);
+  assert.ok(Math.abs(xltF.correction.hWater - 211.3) < 0.05);
+  assert.ok(Math.abs(xltF.correction.B - 2.265) < 0.001);
+  assert.strictEqual(xltF.correction.qWater, xltC.correction.qWater);
+  assert.strictEqual(xltF.correction.hWater, xltC.correction.hWater);
+  assert.strictEqual(xltF.selections.length, 7);
+  xltF.selections.forEach(function (hit, i) {
+    assert.strictEqual(hit.curve.model, xltC.selections[i].curve.model);
+    assert.strictEqual(hit.diameter_in, xltC.selections[i].diameter_in);
+    assert.strictEqual(DeanRA.productLink(hit.curve, hit.diameter_in).href, DeanRA.productLink(xltC.selections[i].curve, xltC.selections[i].diameter_in).href);
+    const seat = DeanRA.dutySeat(hit, xltF.correction.qWater, xltF.correction.hWater);
+    assert.ok(seat.indexOf('between the') < 0, seat);
+    assert.ok(seat.indexOf(hit.kind === 'catalog' ? 'the catalog line is ' : 'the trim is ') > 0, seat);
+  });
   assert.strictEqual(xlt.correction.applied, true);
   assert.strictEqual(xlt.correction.sg, 0.985);
   assert.strictEqual(xlt.correction.visc, 12);
