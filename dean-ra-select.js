@@ -568,13 +568,12 @@
       rel = formatFt(-above) + ' ft below the duty, inside the 3 ft sheet-reading tolerance';
     }
     var end = formatGpm(hit.endMargin) + ' gpm left before the curve ends';
+    // The row already names the diameter with impellerLabel(), so this line only
+    // says where the duty sits on that line and does not repeat the trim.
     if (hit.kind === 'catalog') {
-      return 'On the ' + formatDia(hit.diameter_in) + ' in catalog line. At ' + formatGpm(q) +
-        ' gpm that line is ' + formatFt(head) + ' ft, ' + rel + ', with ' + end + '.';
+      return 'At ' + formatGpm(q) + ' gpm the catalog line is ' + formatFt(head) + ' ft, ' + rel + ', with ' + end + '.';
     }
-    return formatDia(hit.diameter_in) + ' in trim between the ' + formatDia(hit.between[0]) +
-      ' in and ' + formatDia(hit.between[1]) + ' in catalog lines. At ' + formatGpm(q) +
-      ' gpm the trim is ' + formatFt(head) + ' ft, ' + rel + ', with ' + end + '.';
+    return 'At ' + formatGpm(q) + ' gpm the trim is ' + formatFt(head) + ' ft, ' + rel + ', with ' + end + '.';
   }
   // Properties already printed on the fluid menu. Nothing here is guessed.
   // temp/unit is the condition those viscosity and specific-gravity values belong to.
