@@ -1,0 +1,590 @@
+[
+  {
+    "model": "RA1080-A2",
+    "rpm": 3500,
+    "diameter_in": 8,
+    "q_gpm": 170,
+    "h_ft": 259
+  },
+  {
+    "model": "R1085-A2",
+    "rpm": 3500,
+    "diameter_in": 5.5,
+    "q_gpm": 90,
+    "h_ft": 96
+  },
+  {
+    "model": "R1085-A2",
+    "rpm": 3500,
+    "diameter_in": 5.5,
+    "q_gpm": 100,
+    "h_ft": 89
+  },
+  {
+    "model": "R1085-A2",
+    "rpm": 3500,
+    "diameter_in": 5.5,
+    "q_gpm": 107,
+    "h_ft": 82
+  },
+  {
+    "model": "RA1560-A2",
+    "rpm": 3500,
+    "diameter_in": 6,
+    "q_gpm": 240,
+    "h_ft": 114
+  },
+  {
+    "model": "RA1560-A2",
+    "rpm": 3500,
+    "diameter_in": 6,
+    "q_gpm": 250,
+    "h_ft": 110
+  },
+  {
+    "model": "RA1560-A2",
+    "rpm": 3500,
+    "diameter_in": 5.5,
+    "q_gpm": 120,
+    "h_ft": 113
+  },
+  {
+    "model": "RA1560-A2",
+    "rpm": 3500,
+    "diameter_in": 5.5,
+    "q_gpm": 230,
+    "h_ft": 84
+  },
+  {
+    "model": "R1585-A2",
+    "rpm": 3500,
+    "diameter_in": 8.5,
+    "q_gpm": 30,
+    "h_ft": 288
+  },
+  {
+    "model": "R1585-A2",
+    "rpm": 3500,
+    "diameter_in": 6.5,
+    "q_gpm": 195,
+    "h_ft": 92
+  },
+  {
+    "model": "R1585-A2",
+    "rpm": 3500,
+    "diameter_in": 5.5,
+    "q_gpm": 130,
+    "h_ft": 83
+  },
+  {
+    "model": "R1585-A2",
+    "rpm": 3500,
+    "diameter_in": 5.5,
+    "q_gpm": 150,
+    "h_ft": 70
+  },
+  {
+    "model": "R1585-A2",
+    "rpm": 3500,
+    "diameter_in": 5.5,
+    "q_gpm": 167,
+    "h_ft": 59
+  },
+  {
+    "model": "R15100-A2",
+    "rpm": 3500,
+    "diameter_in": 9,
+    "q_gpm": 0,
+    "h_ft": 339
+  },
+  {
+    "model": "R15100-A2",
+    "rpm": 3500,
+    "diameter_in": 9,
+    "q_gpm": 210,
+    "h_ft": 258
+  },
+  {
+    "model": "R15100-A2",
+    "rpm": 3500,
+    "diameter_in": 9,
+    "q_gpm": 220,
+    "h_ft": 242
+  },
+  {
+    "model": "R15100-A2",
+    "rpm": 3500,
+    "diameter_in": 9,
+    "q_gpm": 228,
+    "h_ft": 230
+  },
+  {
+    "model": "R2085-A2",
+    "rpm": 3500,
+    "diameter_in": 8.5,
+    "q_gpm": 330,
+    "h_ft": 252
+  },
+  {
+    "model": "R2085-A2",
+    "rpm": 3500,
+    "diameter_in": 8.5,
+    "q_gpm": 350,
+    "h_ft": 236
+  },
+  {
+    "model": "R2085-A2",
+    "rpm": 3500,
+    "diameter_in": 8.5,
+    "q_gpm": 378,
+    "h_ft": 209
+  },
+  {
+    "model": "R2085-A2",
+    "rpm": 3500,
+    "diameter_in": 7.5,
+    "q_gpm": 334,
+    "h_ft": 163
+  },
+  {
+    "model": "R2085-A2",
+    "rpm": 3500,
+    "diameter_in": 6.5,
+    "q_gpm": 288,
+    "h_ft": 113
+  },
+  {
+    "model": "R2085-A2",
+    "rpm": 3500,
+    "diameter_in": 5.5,
+    "q_gpm": 250,
+    "h_ft": 82
+  },
+  {
+    "model": "R20100-A2",
+    "rpm": 3500,
+    "diameter_in": 9,
+    "q_gpm": 0,
+    "h_ft": 332
+  },
+  {
+    "model": "R20100-A2",
+    "rpm": 3500,
+    "diameter_in": 9,
+    "q_gpm": 340,
+    "h_ft": 224
+  },
+  {
+    "model": "R20100-A2",
+    "rpm": 3500,
+    "diameter_in": 9,
+    "q_gpm": 380,
+    "h_ft": 197
+  },
+  {
+    "model": "R3085-A1",
+    "rpm": 3500,
+    "diameter_in": 8.5,
+    "q_gpm": 910,
+    "h_ft": 162
+  },
+  {
+    "model": "R3085-A1",
+    "rpm": 3500,
+    "diameter_in": 7.5,
+    "q_gpm": 650,
+    "h_ft": 170
+  },
+  {
+    "model": "R3085-A1",
+    "rpm": 3500,
+    "diameter_in": 7.5,
+    "q_gpm": 700,
+    "h_ft": 155
+  },
+  {
+    "model": "R3085-A1",
+    "rpm": 3500,
+    "diameter_in": 7.5,
+    "q_gpm": 750,
+    "h_ft": 136
+  },
+  {
+    "model": "R3085-A1",
+    "rpm": 3500,
+    "diameter_in": 6.5,
+    "q_gpm": 500,
+    "h_ft": 128
+  },
+  {
+    "model": "R3085-A1",
+    "rpm": 3500,
+    "diameter_in": 6.5,
+    "q_gpm": 550,
+    "h_ft": 114
+  },
+  {
+    "model": "R3085-A1",
+    "rpm": 3500,
+    "diameter_in": 6.5,
+    "q_gpm": 575,
+    "h_ft": 106
+  },
+  {
+    "model": "R3085-A1",
+    "rpm": 3500,
+    "diameter_in": 5.5,
+    "q_gpm": 390,
+    "h_ft": 90
+  },
+  {
+    "model": "R3085-A1",
+    "rpm": 3500,
+    "diameter_in": 5.5,
+    "q_gpm": 430,
+    "h_ft": 80
+  },
+  {
+    "model": "R30100-A1",
+    "rpm": 3500,
+    "diameter_in": 8,
+    "q_gpm": 650,
+    "h_ft": 218
+  },
+  {
+    "model": "R30100-A1",
+    "rpm": 3500,
+    "diameter_in": 8,
+    "q_gpm": 720,
+    "h_ft": 200
+  },
+  {
+    "model": "R30100-A1",
+    "rpm": 3500,
+    "diameter_in": 7,
+    "q_gpm": 580,
+    "h_ft": 147
+  },
+  {
+    "model": "R30100-A1",
+    "rpm": 3500,
+    "diameter_in": 7,
+    "q_gpm": 625,
+    "h_ft": 136
+  },
+  {
+    "model": "R4085-A1",
+    "rpm": 3500,
+    "diameter_in": 8.5,
+    "q_gpm": 1050,
+    "h_ft": 224
+  },
+  {
+    "model": "R4085-A1",
+    "rpm": 3500,
+    "diameter_in": 8.5,
+    "q_gpm": 1110,
+    "h_ft": 206
+  },
+  {
+    "model": "R4085-A1",
+    "rpm": 3500,
+    "diameter_in": 6.5,
+    "q_gpm": 840,
+    "h_ft": 89
+  },
+  {
+    "model": "R40100-B2",
+    "rpm": 1750,
+    "diameter_in": 10,
+    "q_gpm": 1100,
+    "h_ft": 85.5
+  },
+  {
+    "model": "R40100-B2",
+    "rpm": 1750,
+    "diameter_in": 10,
+    "q_gpm": 1375,
+    "h_ft": 70
+  },
+  {
+    "model": "R40100-B2",
+    "rpm": 1750,
+    "diameter_in": 8,
+    "q_gpm": 1035,
+    "h_ft": 32
+  },
+  {
+    "model": "R40100-A1",
+    "rpm": 3500,
+    "diameter_in": 9,
+    "q_gpm": 1200,
+    "h_ft": 273.5
+  },
+  {
+    "model": "R40100-A1",
+    "rpm": 3500,
+    "diameter_in": 9,
+    "q_gpm": 1420,
+    "h_ft": 244
+  },
+  {
+    "model": "R40100-A1",
+    "rpm": 3500,
+    "diameter_in": 9,
+    "q_gpm": 1440,
+    "h_ft": 241
+  },
+  {
+    "model": "R40100-A1",
+    "rpm": 3500,
+    "diameter_in": 9,
+    "q_gpm": 1500,
+    "h_ft": 229.2
+  },
+  {
+    "model": "RA1080-A2",
+    "rpm": 1750,
+    "diameter_in": 8,
+    "q_gpm": 80,
+    "h_ft": 67
+  },
+  {
+    "model": "RA1080-A2",
+    "rpm": 1750,
+    "diameter_in": 8,
+    "q_gpm": 85,
+    "h_ft": 65
+  },
+  {
+    "model": "R1085-A2",
+    "rpm": 1750,
+    "diameter_in": 8.5,
+    "q_gpm": 65,
+    "h_ft": 62
+  },
+  {
+    "model": "R1585-A2",
+    "rpm": 1750,
+    "diameter_in": 5.5,
+    "q_gpm": 77,
+    "h_ft": 14
+  },
+  {
+    "model": "R15100-A2",
+    "rpm": 1750,
+    "diameter_in": 10,
+    "q_gpm": 0,
+    "h_ft": 108
+  },
+  {
+    "model": "R15100-A2",
+    "rpm": 1750,
+    "diameter_in": 10,
+    "q_gpm": 60,
+    "h_ft": 103
+  },
+  {
+    "model": "R2085-A2",
+    "rpm": 1750,
+    "diameter_in": 8.5,
+    "q_gpm": 180,
+    "h_ft": 56
+  },
+  {
+    "model": "R2085-A2",
+    "rpm": 1750,
+    "diameter_in": 8.5,
+    "q_gpm": 198,
+    "h_ft": 47
+  },
+  {
+    "model": "R2085-A2",
+    "rpm": 1750,
+    "diameter_in": 7.5,
+    "q_gpm": 173,
+    "h_ft": 37
+  },
+  {
+    "model": "R2085-A2",
+    "rpm": 1750,
+    "diameter_in": 6.5,
+    "q_gpm": 151,
+    "h_ft": 28
+  },
+  {
+    "model": "R20100-A2",
+    "rpm": 1750,
+    "diameter_in": 10,
+    "q_gpm": 0,
+    "h_ft": 105
+  },
+  {
+    "model": "R20100-A2",
+    "rpm": 1750,
+    "diameter_in": 10,
+    "q_gpm": 100,
+    "h_ft": 98
+  },
+  {
+    "model": "R3085-A1",
+    "rpm": 1750,
+    "diameter_in": 8.5,
+    "q_gpm": 380,
+    "h_ft": 56
+  },
+  {
+    "model": "R3085-A1",
+    "rpm": 1750,
+    "diameter_in": 8.5,
+    "q_gpm": 420,
+    "h_ft": 49
+  },
+  {
+    "model": "R3085-A1",
+    "rpm": 1750,
+    "diameter_in": 8.5,
+    "q_gpm": 450,
+    "h_ft": 44
+  },
+  {
+    "model": "R3085-A1",
+    "rpm": 1750,
+    "diameter_in": 7.5,
+    "q_gpm": 340,
+    "h_ft": 40
+  },
+  {
+    "model": "R3085-A1",
+    "rpm": 1750,
+    "diameter_in": 7.5,
+    "q_gpm": 375,
+    "h_ft": 34
+  },
+  {
+    "model": "R3085-A1",
+    "rpm": 1750,
+    "diameter_in": 6.5,
+    "q_gpm": 250,
+    "h_ft": 32
+  },
+  {
+    "model": "R3085-A1",
+    "rpm": 1750,
+    "diameter_in": 6.5,
+    "q_gpm": 285,
+    "h_ft": 27
+  },
+  {
+    "model": "R3085-A1",
+    "rpm": 1750,
+    "diameter_in": 5.5,
+    "q_gpm": 220,
+    "h_ft": 20
+  },
+  {
+    "model": "R30100-A1",
+    "rpm": 1750,
+    "diameter_in": 8,
+    "q_gpm": 340,
+    "h_ft": 55
+  },
+  {
+    "model": "R30100-A1",
+    "rpm": 1750,
+    "diameter_in": 8,
+    "q_gpm": 395,
+    "h_ft": 48
+  },
+  {
+    "model": "R30100-A1",
+    "rpm": 1750,
+    "diameter_in": 7,
+    "q_gpm": 25,
+    "h_ft": 53
+  },
+  {
+    "model": "R30100-A1",
+    "rpm": 1750,
+    "diameter_in": 7,
+    "q_gpm": 345,
+    "h_ft": 35
+  },
+  {
+    "model": "R4085-A1",
+    "rpm": 1750,
+    "diameter_in": 6.5,
+    "q_gpm": 300,
+    "h_ft": 34
+  },
+  {
+    "model": "R4085-A1",
+    "rpm": 1750,
+    "diameter_in": 6.5,
+    "q_gpm": 350,
+    "h_ft": 30
+  },
+  {
+    "model": "R4085-A1",
+    "rpm": 1750,
+    "diameter_in": 6.5,
+    "q_gpm": 400,
+    "h_ft": 25.5
+  },
+  {
+    "model": "R40100-B2",
+    "rpm": 1150,
+    "diameter_in": 10,
+    "q_gpm": 600,
+    "h_ft": 40.0
+  },
+  {
+    "model": "R40100-B2",
+    "rpm": 1150,
+    "diameter_in": 10,
+    "q_gpm": 800,
+    "h_ft": 35.4
+  },
+  {
+    "model": "R40100-B2",
+    "rpm": 1150,
+    "diameter_in": 10,
+    "q_gpm": 1000,
+    "h_ft": 28.0
+  },
+  {
+    "model": "R40100-B2",
+    "rpm": 1150,
+    "diameter_in": 9,
+    "q_gpm": 600,
+    "h_ft": 28.0
+  },
+  {
+    "model": "R40100-B2",
+    "rpm": 1150,
+    "diameter_in": 9,
+    "q_gpm": 805,
+    "h_ft": 21.4
+  },
+  {
+    "model": "R40100-B2",
+    "rpm": 1150,
+    "diameter_in": 8,
+    "q_gpm": 640,
+    "h_ft": 14.0
+  },
+  {
+    "model": "R40100-A1",
+    "rpm": 1750,
+    "diameter_in": 9,
+    "q_gpm": 800,
+    "h_ft": 56.5
+  },
+  {
+    "model": "R40100-A1",
+    "rpm": 1750,
+    "diameter_in": 9,
+    "q_gpm": 860,
+    "h_ft": 53
+  }
+]

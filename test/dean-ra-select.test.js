@@ -214,4 +214,65 @@ function findSize(result, size) {
   assert.ok(html.indexOf('70 SSU') > 0);
 }
 
+// Every line falls and bows down. A larger trim stays above a smaller one.
+// Each stored fit passes within 2 ft of Cody's printed heads, and it stops
+// at the last of those heads.
+{
+  catalog.curves.forEach(function (curve) {
+    const offered = DeanRA.offeredDiameters(curve);
+    const lines = offered.map(function (dia) {
+      return { dia: dia, samples: DeanRA.diameterSamples(curve, dia, 48) };
+    }).filter(function (line) { return line.samples.length > 2; });
+    lines.forEach(function (line) {
+      for (let i = 1; i < line.samples.length; i++) {
+        assert.ok(line.samples[i].h < line.samples[i - 1].h - 1e-6, curve.model + ' ' + line.dia + ' rises');
+        if (i > 1) {
+          const d2 = line.samples[i].h - 2 * line.samples[i - 1].h + line.samples[i - 2].h;
+          assert.ok(d2 <= 0.2, curve.model + ' ' + line.dia + ' bows up at sample ' + i);
+        }
+      }
+    });
+    for (let i = 0; i < lines.length - 1; i++) {
+      const lower = lines[i];
+      const upper = lines[i + 1];
+      lower.samples.forEach(function (pt) {
+        let hi = null;
+        for (let k = 0; k < upper.samples.length - 1; k++) {
+          const a = upper.samples[k];
+          const b = upper.samples[k + 1];
+          if (pt.q + 1e-6 >= a.q && pt.q <= b.q + 1e-6) {
+            const t = (pt.q - a.q) / (b.q - a.q || 1);
+            hi = a.h + t * (b.h - a.h);
+            break;
+          }
+        }
+        if (hi == null) return;
+        assert.ok(pt.h <= hi + 0.5, curve.size + ' ' + curve.rpm + ' ' + lower.dia + ' crosses ' + upper.dia + ' at ' + pt.q.toFixed(0));
+      });
+    }
+  });
+
+  const anchors = JSON.parse(fs.readFileSync(path.join(__dirname, 'cody-anchors.json'), 'utf8'));
+  anchors.forEach(function (row) {
+    const curve = catalog.curves.find(function (c) { return c.model === row.model && c.rpm === row.rpm; });
+    const imp = curve.impellers.find(function (item) { return Math.abs(item.diameter_in - row.diameter_in) < 1e-6; });
+    assert.ok(row.q_gpm <= imp.fit.q1 + 0.2 && row.q_gpm >= imp.fit.q0 - 0.2, row.model + ' extrapolated');
+    const h = DeanRA.evalFit(imp.fit, row.q_gpm);
+    const err = h - row.h_ft;
+    assert.ok(Math.abs(err) <= 2, row.model + ' ' + row.rpm + ' ' + row.diameter_in + ' @ ' + row.q_gpm + ' is ' + err.toFixed(2) + ' ft off');
+  });
+
+  const slow = catalog.curves.find(function (c) { return c.model === 'R40100-B2' && c.rpm === 1150; });
+  assert.deepStrictEqual(slow.impellers.map(function (imp) { return imp.diameter_in; }), [10, 9, 8]);
+  const nine = slow.impellers.find(function (imp) { return imp.diameter_in === 9; });
+  const eight = slow.impellers.find(function (imp) { return imp.diameter_in === 8; });
+  assert.ok(Math.abs(nine.fit.q1 - 805) < 1);
+  assert.ok(Math.abs(eight.fit.q1 - 640) < 1);
+  assert.strictEqual(DeanRA.headAt(nine.points, 900), null);
+  const at775 = DeanRA.npshrAt(slow, 775);
+  assert.ok(at775 > 6 && at775 < 9, '1150 NPSHr at 775 gpm got ' + at775);
+  assert.strictEqual(DeanRA.npshrAt(slow, 200), null);
+  assert.strictEqual(DeanRA.npshrAt(slow, 1200), null);
+}
+
 console.log('dean-ra-select tests passed');

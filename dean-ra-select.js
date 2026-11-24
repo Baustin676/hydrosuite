@@ -588,6 +588,25 @@
     if (!n) return null;
     // Do not extrapolate, and do not scale NPSHr from another speed.
     if (q < n.q_min - 1e-6 || q > n.q_max + 1e-6) return null;
+    var knots = n.knots;
+    if (knots && knots.length >= 2) {
+      if (q <= knots[0].q) return knots[0].h;
+      for (var i = 0; i < knots.length - 1; i++) {
+        var a = knots[i];
+        var b = knots[i + 1];
+        if (q <= b.q + 1e-9) {
+          var dx = b.q - a.q;
+          var t = dx === 0 ? 0 : (q - a.q) / dx;
+          var t2 = t * t;
+          var t3 = t2 * t;
+          return (2 * t3 - 3 * t2 + 1) * a.h +
+            (t3 - 2 * t2 + t) * dx * a.m +
+            (-2 * t3 + 3 * t2) * b.h +
+            (t3 - t2) * dx * b.m;
+        }
+      }
+      return knots[knots.length - 1].h;
+    }
     var v = n.c0 + n.c1 * q + n.c2 * q * q;
     if (n.floor != null && v < n.floor) v = n.floor;
     if (v < 0) v = 0;
@@ -638,8 +657,8 @@
     return hit;
   }
 
-  /** Lower return means a ranks first. Order is efficiency. Within about
-      2 points, a duty inside 70-120 percent of BEP ranks ahead of one outside it. */
+  /** Lower return means a ranks first. Order is efficiency. Within half a
+      point, a duty inside 70-120 percent of BEP ranks ahead of one outside it. */
   function compareSelections(a, b) {
     var ea = a.efficiency_pct;
     var eb = b.efficiency_pct;
