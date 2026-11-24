@@ -6,10 +6,10 @@
    as flow increases. It is not extended past the first or last catalog flow.
    A duty between two lines is an eighth-inch trim from diameter-squared
    affinity, not a linear diameter. Does not extrapolate or speed-scale.
-   A duty returns every catalog size that can meet it. The order is where the
-   flow sits on that size's real catalog flow range, not efficiency.
-   The middle-right of the range ranks first. A duty on the left, or at the
-   far right end, ranks lower.
+   A duty returns every catalog size at the selected speed that can meet it.
+   The order is efficiency. 70 to 120 percent of BEP is preferred, 50 to 130
+   is allowable, and anything under 50 percent of BEP is flagged. A size
+   outside 20 to 150 percent of BEP is left off the list.
    A non-water fluid corrects that water curve with the Hydraulic Institute
    preliminary method (ANSI/HI 9.6.7 section 9.6.7.4.6). It does not invent
    catalog heads, efficiency, BHP, or NPSHr. The list is then ordered by where
@@ -198,8 +198,39 @@
       (t3 - t2) * dx * m1;
   }
 
-  /** Head on the smooth monotone curve through one impeller. Null outside the real points. */
+  function pieceAt(fit, q) {
+    var pieces = fit.pieces || [];
+    for (var i = 0; i < pieces.length; i++) {
+      if (q <= pieces[i].q1 + 1e-6 || i === pieces.length - 1) return pieces[i];
+    }
+    return null;
+  }
+
+  function evalFit(fit, q) {
+    var piece = fit.pieces ? pieceAt(fit, q) : null;
+    if (piece) {
+      var u = q - piece.q0;
+      return piece.h0 + piece.m0 * u + piece.c * u * u;
+    }
+    return fit.a + fit.b * q + fit.c * q * q + (fit.d || 0) * q * q * q;
+  }
+
+  function fitSlope(fit, q) {
+    var piece = fit.pieces ? pieceAt(fit, q) : null;
+    if (piece) return piece.m0 + 2 * piece.c * (q - piece.q0);
+    return fit.b + 2 * fit.c * q + 3 * (fit.d || 0) * q * q;
+  }
+
+  /** Head on the smooth curve. A stored fit is the concave polynomial.
+      Otherwise the monotone spline through the measured points is used. */
   function smoothHead(points, q) {
+    var fit = points && points.fit;
+    if (fit && (isFinite(fit.a) || fit.pieces)) {
+      var qLo = fit.q0;
+      var qHi = fit.q1;
+      if (q < qLo - 1e-9 || q > qHi + 1e-9) return null;
+      return { h: evalFit(fit, q), qMin: qLo, qMax: qHi };
+    }
     var pts = measuredPoints(points);
     if (!pts.length) return null;
     var qMin = pts[0].q_gpm;
@@ -224,8 +255,27 @@
     return null;
   }
 
-  /** Cubic pieces of that curve, from the first real point to the last. No extension. */
+  /** Cubic pieces of that curve, from the first real point to the last. No extension.
+      A polynomial fit is drawn as short pieces that match its value and slope. */
   function smoothPieces(points) {
+    var fit = points && points.fit;
+    if (fit && (isFinite(fit.a) || fit.pieces) && fit.q1 > fit.q0) {
+      var pieces = [];
+      var n = 16;
+      for (var i = 0; i < n; i++) {
+        var q0 = fit.q0 + (fit.q1 - fit.q0) * i / n;
+        var q1 = fit.q0 + (fit.q1 - fit.q0) * (i + 1) / n;
+        pieces.push({
+          q0: q0,
+          h0: evalFit(fit, q0),
+          m0: fitSlope(fit, q0),
+          q1: q1,
+          h1: evalFit(fit, q1),
+          m1: fitSlope(fit, q1)
+        });
+      }
+      return pieces;
+    }
     var pts = measuredPoints(points);
     if (pts.length < 2) return [];
     var slopes = monotoneSlopes(pts);
@@ -466,16 +516,239 @@
     return String(a.curve.model).localeCompare(String(b.curve.model));
   }
 
-  /** Lower return means a ranks first. Order is the seat of the duty on each
-      size's real catalog flow range, for every duty. */
-  function compareSelections(a, b, q) {
-    var sa = seatScore(flowFraction(a, q));
-    var sb = seatScore(flowFraction(b, q));
-    if (Math.abs(sa - sb) > 1e-12) return sa - sb;
+  function specificGravity(duty, correction) {
+    if (correction && correction.sg > 0) return correction.sg;
+    if (!duty || duty.fluid == null || duty.fluid === '' || isWaterFluid(duty.fluid)) return 1;
+    var rec = FLUIDS[duty.fluid];
+    return rec && rec.sg > 0 ? rec.sg : 1;
+  }
+
+  function viscosityCst(duty, correction) {
+    if (correction && correction.nu > 0) return correction.nu;
+    if (!duty || isWaterFluid(duty.fluid) || duty.fluid == null || duty.fluid === '') return 1;
+    var rec = FLUIDS[duty.fluid];
+    if (!rec || !(rec.sg > 0) || !(rec.visc > 0)) return null;
+    return rec.visc / rec.sg;
+  }
+
+  // About 70 SSU. The sheets stop at that viscosity.
+  var SSU_70_CST = 13.1;
+
+  function efficiencyAt(curve, q, diameter) {
+    var e = curve && curve.efficiency;
+    var bep = curve && curve.bep;
+    if (!e || !bep || !(e.qbep_gpm > 0) || !(bep.diameter_in > 0) || !(diameter > 0)) return null;
+    var x = q / (e.qbep_gpm * diameter / bep.diameter_in);
+    var eta = e.c0 + e.c1 * x + e.c2 * x * x + e.c3 * (diameter / bep.diameter_in);
+    if (e.peak_pct && eta > e.peak_pct) eta = e.peak_pct;
+    if (!(eta > 0)) return null;
+    return eta;
+  }
+
+  function pctBep(curve, q, diameter) {
+    var e = curve && curve.efficiency;
+    var bep = curve && curve.bep;
+    if (!e || !bep || !(e.qbep_gpm > 0) || !(diameter > 0)) return null;
+    return 100 * q / (e.qbep_gpm * diameter / bep.diameter_in);
+  }
+
+  // preferred 70-120, allowable 50-130. Lower is a better seat inside a tie.
+  function bepPenalty(pct) {
+    if (pct == null) return 1000;
+    if (pct >= 70 && pct <= 120) return 0;
+    if (pct < 70) return 70 - pct;
+    return pct - 120;
+  }
+
+  function bepZone(pct) {
+    if (pct == null) return '';
+    if (pct < 50) return 'low';
+    if (pct < 70) return 'allowable';
+    if (pct <= 120) return 'preferred';
+    if (pct <= 130) return 'allowable';
+    return 'high';
+  }
+
+  function brakeHorsepower(q, h, effPct, sg) {
+    if (!(q > 0) || !(h > 0) || !(effPct > 0)) return null;
+    var gravity = sg > 0 ? sg : 1;
+    return q * h * gravity / (3960 * (effPct / 100));
+  }
+
+  function motorHorsepower(bhp) {
+    if (!(bhp > 0)) return null;
+    for (var i = 0; i < MOTORS.length; i++) {
+      if (MOTORS[i] + 1e-9 >= bhp) return MOTORS[i];
+    }
+    return null;
+  }
+
+  function npshrAt(curve, q) {
+    var n = curve && curve.npshr_fit;
+    if (!n) return null;
+    // Do not extrapolate, and do not scale NPSHr from another speed.
+    if (q < n.q_min - 1e-6 || q > n.q_max + 1e-6) return null;
+    var knots = n.knots;
+    if (knots && knots.length >= 2) {
+      if (q <= knots[0].q) return knots[0].h;
+      for (var i = 0; i < knots.length - 1; i++) {
+        var a = knots[i];
+        var b = knots[i + 1];
+        if (q <= b.q + 1e-9) {
+          var dx = b.q - a.q;
+          var t = dx === 0 ? 0 : (q - a.q) / dx;
+          var t2 = t * t;
+          var t3 = t2 * t;
+          return (2 * t3 - 3 * t2 + 1) * a.h +
+            (t3 - 2 * t2 + t) * dx * a.m +
+            (-2 * t3 + 3 * t2) * b.h +
+            (t3 - t2) * dx * b.m;
+        }
+      }
+      return knots[knots.length - 1].h;
+    }
+    var v = n.c0 + n.c1 * q + n.c2 * q * q;
+    if (n.floor != null && v < n.floor) v = n.floor;
+    if (v < 0) v = 0;
+    return v;
+  }
+
+  function headOnTrim(hit, q) {
+    if (!hit) return null;
+    if (hit.kind !== 'trim') {
+      var imp = null;
+      (hit.curve.impellers || []).forEach(function (item) {
+        if (item.diameter_in === hit.diameter_in) imp = item;
+      });
+      var on = imp && smoothHead(imp.points, q);
+      return on ? on.h : null;
+    }
+    var upper = null;
+    var lower = null;
+    (hit.curve.impellers || []).forEach(function (item) {
+      if (item.diameter_in === hit.upperDiameter) upper = item;
+      if (item.diameter_in === hit.lowerDiameter) lower = item;
+    });
+    if (!upper || !lower) return null;
+    var a = smoothHead(upper.points, q);
+    var b = smoothHead(lower.points, q);
+    if (!a || !b) return null;
+    return affinityHead(b.h, a.h, hit.lowerDiameter, hit.upperDiameter, hit.diameter_in);
+  }
+
+  function decorateHit(hit, q, sg) {
+    var pct = pctBep(hit.curve, q, hit.diameter_in);
+    var eff = efficiencyAt(hit.curve, q, hit.diameter_in);
+    var hEnd = headOnTrim(hit, hit.qMax);
+    var effEnd = efficiencyAt(hit.curve, hit.qMax, hit.diameter_in);
+    var power = brakeHorsepower(q, hit.head_ft, eff, sg);
+    var powerEnd = brakeHorsepower(hit.qMax, hEnd, effEnd, sg);
+    var powerMax = power;
+    if (powerEnd != null && (powerMax == null || powerEnd > powerMax)) powerMax = powerEnd;
+    hit.pct_bep = pct;
+    hit.bep_zone = bepZone(pct);
+    hit.efficiency_pct = eff;
+    hit.bhp = power;
+    hit.bhp_end = powerEnd;
+    hit.bhp_max = powerMax;
+    hit.motor_hp = motorHorsepower(powerMax);
+    hit.npshr_ft = npshrAt(hit.curve, q);
+    hit.head_end_ft = hEnd;
+    return hit;
+  }
+
+  /** Lower return means a ranks first. Order is efficiency. Within half a
+      point, a duty inside 70-120 percent of BEP ranks ahead of one outside it. */
+  function compareSelections(a, b) {
+    var ea = a.efficiency_pct;
+    var eb = b.efficiency_pct;
+    if (ea == null && eb == null) return sameCurveOrder(a, b);
+    if (ea == null) return 1;
+    if (eb == null) return -1;
+    // A real efficiency lead wins. The BEP window only breaks a near tie.
+    if (Math.abs(ea - eb) <= 0.5) {
+      var da = bepPenalty(a.pct_bep);
+      var db = bepPenalty(b.pct_bep);
+      if (Math.abs(da - db) > 0.2) return da - db;
+    }
+    if (Math.abs(ea - eb) > 0.05) return eb - ea;
     return sameCurveOrder(a, b);
   }
 
+  function attachFits(catalog) {
+    (catalog.curves || []).forEach(function (curve) {
+      (curve.impellers || []).forEach(function (imp) {
+        if (imp.fit && imp.points) imp.points.fit = imp.fit;
+      });
+    });
+  }
+
+  /** Dense samples of one sold diameter. Printed lines use their polynomial.
+      A trim uses D squared between the two smoothed lines that bracket it. */
+  function diameterSamples(curve, diameter, n) {
+    attachFits({ curves: [curve] });
+    var imps = (curve.impellers || []).slice().sort(function (a, b) {
+      return a.diameter_in - b.diameter_in;
+    });
+    var count = n || 80;
+    var exact = null;
+    imps.forEach(function (imp) {
+      if (Math.abs(imp.diameter_in - diameter) < 1e-6) exact = imp;
+    });
+    function span(imp) {
+      var fit = imp.points && imp.points.fit;
+      if (fit) return [fit.q0, fit.q1];
+      var pts = measuredPoints(imp.points);
+      if (!pts.length) return null;
+      return [pts[0].q_gpm, pts[pts.length - 1].q_gpm];
+    }
+    function at(imp, q) {
+      var sm = smoothHead(imp.points, q);
+      return sm ? sm.h : null;
+    }
+    if (exact) {
+      var ends = span(exact);
+      if (!ends) return [];
+      var out = [];
+      for (var i = 0; i <= count; i++) {
+        var q = ends[0] + (ends[1] - ends[0]) * i / count;
+        var h = at(exact, q);
+        if (h != null) out.push({ q: q, h: h });
+      }
+      return out;
+    }
+    var lo = null;
+    var hi = null;
+    for (var j = 0; j < imps.length - 1; j++) {
+      if (imps[j].diameter_in < diameter - 1e-6 && imps[j + 1].diameter_in > diameter + 1e-6) {
+        lo = imps[j];
+        hi = imps[j + 1];
+      }
+    }
+    if (!lo || !hi) return [];
+    var a = span(lo);
+    var b = span(hi);
+    if (!a || !b) return [];
+    var q0 = Math.max(a[0], b[0]);
+    var q1 = Math.min(a[1], b[1]);
+    if (!(q1 > q0)) return [];
+    var trim = [];
+    var prev = 1e9;
+    for (var k = 0; k <= count; k++) {
+      var qq = q0 + (q1 - q0) * k / count;
+      var hl = at(lo, qq);
+      var hh = at(hi, qq);
+      if (hl == null || hh == null) continue;
+      var hv = affinityHead(hl, hh, lo.diameter_in, hi.diameter_in, diameter);
+      if (hv > prev) hv = prev;
+      prev = hv;
+      trim.push({ q: qq, h: hv });
+    }
+    return trim;
+  }
+
   function select(catalog, duty) {
+    attachFits(catalog);
     var q = Number(duty.q_gpm);
     var h = Number(duty.h_ft);
     var correction = correctDuty(duty);
@@ -485,12 +758,19 @@
       qUse = correction.qWater;
       hUse = correction.hWater;
     }
+    var rpm = duty.rpm == null || duty.rpm === '' ? null : Number(duty.rpm);
+    var sg = specificGravity(duty, correction);
     var found = [];
     (catalog.curves || []).forEach(function (curve) {
+      if (rpm != null && Number(curve.rpm) !== rpm) return;
       var hit = evaluateCurve(curve, qUse, hUse);
-      if (hit) found.push(hit);
+      if (!hit) return;
+      decorateHit(hit, qUse, sg);
+      var pct = hit.pct_bep;
+      if (pct != null && (pct < 20 || pct > 150)) return;
+      found.push(hit);
     });
-    found.sort(function (a, b) { return compareSelections(a, b, qUse); });
+    found.sort(function (a, b) { return compareSelections(a, b); });
     return {
       covered: found.length > 0,
       selections: found,
@@ -516,8 +796,11 @@
   }
 
   var CATALOG_LIMIT_NOTE = 'This catalog does not include pumps larger than 10 in, so a better Dean size may still exist above 10 in.';
-  var RANK_NOTE = 'The list is ordered by where the duty sits on the curve. It is not ranked by efficiency. A duty in the middle-right of that size\'s catalog flow range comes first. A duty on the left side of the curve ranks lower, and a duty at the far right end ranks lower too. The curve sheets do not include efficiency, so this list can differ from IntelliQuip.';
+  var RANK_NOTE = 'The list is ordered by efficiency. 70 to 120 percent of BEP is preferred. 50 to 130 percent is allowable. Below 50 percent of BEP is flagged, because low flow adds heat. A size outside 20 to 150 percent of BEP is not listed.';
   var SHARED_CURVE_NOTE = 'RA and RWA share the same head-capacity curve.';
+  var VISCOSITY_NOTE = 'These curves apply only up to 70 SSU.';
+  var NPSH_MARGIN_NOTE = 'For a hot liquid near its vapor pressure, keep NPSH available at least 3 to 5 ft above NPSHr, or about 1.1 to 1.3 times NPSHr, whichever is larger.';
+  var MOTORS = [0.5, 0.75, 1, 1.5, 2, 3, 5, 7.5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 100, 125, 150, 200, 250, 300, 350, 400, 450, 500];
 
   function normalizeSize(s) {
     return String(s || '').toLowerCase().replace(/\s+/g, '').replace(/×/g, 'x');
@@ -836,12 +1119,7 @@
 
   function impellerLabel(hit) {
     if (!hit) return '';
-    if (hit.kind === 'catalog') {
-      return formatDia(hit.diameter_in) + ' in catalog diameter';
-    }
-    var lo = formatDia(hit.between[0]);
-    var hi = formatDia(hit.between[1]);
-    return formatDia(hit.diameter_in) + ' in, calculated between the ' + lo + ' in and ' + hi + ' in catalog diameters, not a published curve';
+    return formatDia(hit.diameter_in) + ' in';
   }
 
   function formatDia(d) {
@@ -1004,6 +1282,14 @@
     CATALOG_LIMIT_NOTE: CATALOG_LIMIT_NOTE,
     RANK_NOTE: RANK_NOTE,
     SHARED_CURVE_NOTE: SHARED_CURVE_NOTE,
+    VISCOSITY_NOTE: VISCOSITY_NOTE,
+    NPSH_MARGIN_NOTE: NPSH_MARGIN_NOTE,
+    efficiencyAt: efficiencyAt,
+    pctBep: pctBep,
+    bepZone: bepZone,
+    brakeHorsepower: brakeHorsepower,
+    motorHorsepower: motorHorsepower,
+    npshrAt: npshrAt,
     headAt: headAt,
     select: select,
     fluidClass: fluidClass,
@@ -1020,6 +1306,9 @@
     affinityHead: affinityHead,
     smoothHead: smoothHead,
     smoothPieces: smoothPieces,
+    attachFits: attachFits,
+    diameterSamples: diameterSamples,
+    evalFit: evalFit,
     interpolatedPoints: interpolatedPoints,
     curvePoints: curvePoints,
     measuredPoints: measuredPoints,
