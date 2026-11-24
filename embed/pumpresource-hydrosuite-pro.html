@@ -1,0 +1,79 @@
+<!--
+  Paste this in place of the Hydrosuite iframe on
+  https://pumpresource.us/hydrosuite-pro/.
+  It keeps the Open Full Screen bar. The iframe has no fixed height.
+  HydroSuite tells this page how tall it is, and the page scrolls once.
+-->
+<div id="hydrosuite-wrap" style="width: 100%; display: block;">
+  <iframe id="hydrosuite-frame" title="Dean RA Pump Selector" src="https://baustin676.github.io/hydrosuite/" scrolling="no" allowfullscreen="allowfullscreen" style="display: block; width: 100%; min-height: 640px; border: 0;"></iframe>
+  <button type="button" onclick="openFullscreen()" style="display: block; width: 100%; height: 40px; margin-top: 0; background-color: #1e293b; color: #ffffff; border: 1px solid #334155; border-radius: 0 0 8px 8px; cursor: pointer; font-size: 14px; font-family: Arial,sans-serif;"> ⛶ Open Full Screen </button>
+</div>
+<script>
+function openFullscreen() {
+  var el = document.getElementById('hydrosuite-wrap');
+  if (el.requestFullscreen) { el.requestFullscreen(); }
+  else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); }
+  else if (el.mozRequestFullScreen) { el.mozRequestFullScreen(); }
+  else { window.open('https://baustin676.github.io/hydrosuite/', '_blank'); }
+}
+(function () {
+  var wrap = document.getElementById('hydrosuite-wrap');
+  var frame = document.getElementById('hydrosuite-frame');
+  var bar = wrap.querySelector('button');
+  var SOURCE = 'https://baustin676.github.io';
+  var lastHeight = 0;
+  function fullscreenElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+  }
+  function inFullscreen() {
+    return fullscreenElement() === wrap;
+  }
+  function applyHeight() {
+    if (inFullscreen() || !lastHeight) return;
+    frame.setAttribute('scrolling', 'no');
+    frame.style.height = lastHeight + 'px';
+  }
+  function enterFullscreenLayout() {
+    wrap.style.height = '100%';
+    wrap.style.overflow = 'auto';
+    wrap.style.background = '#fff';
+    if (bar) {
+      bar.style.position = 'sticky';
+      bar.style.bottom = '0';
+    }
+  }
+  function leaveFullscreenLayout() {
+    wrap.style.height = '';
+    wrap.style.overflow = '';
+    wrap.style.background = '';
+    if (bar) {
+      bar.style.position = '';
+      bar.style.bottom = '';
+    }
+    applyHeight();
+  }
+  window.addEventListener('message', function (ev) {
+    if (ev.origin !== SOURCE) return;
+    if (ev.source !== frame.contentWindow) return;
+    var data = ev.data;
+    if (!data || typeof data !== 'object') return;
+    if (data.type === 'hydrosuite:height') {
+      var height = Number(data.height);
+      if (!isFinite(height) || height < 1) return;
+      lastHeight = Math.min(50000, Math.ceil(height));
+      applyHeight();
+    } else if (data.type === 'hydrosuite:scroll-to-results') {
+      var top = Number(data.top);
+      if (!isFinite(top)) top = 0;
+      var y = frame.getBoundingClientRect().top + window.pageYOffset + top;
+      window.scrollTo(0, Math.max(0, y));
+    }
+  });
+  function onFullscreenChange() {
+    if (inFullscreen()) enterFullscreenLayout();
+    else leaveFullscreenLayout();
+  }
+  document.addEventListener('fullscreenchange', onFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+})();
+</script>
