@@ -192,7 +192,8 @@ details summary:focus-visible {
 .sel-frame { font-size: 18px; font-weight: 700; }
 .sel-size { font-size: 16px; font-weight: 600; }
 .sel-rpm { color: var(--muted); font-size: 14px; }
-.sel-trim, .sel-seat, .iq { margin: 6px 0 0; font-size: 14px; }
+.sel-trim, .sel-seat, .sel-perf, .sel-flag, .iq { margin: 6px 0 0; font-size: 14px; }
+.sel-flag { color: #7a4e10; font-weight: 600; }
 .chart-head {
   padding: 14px 16px 12px;
   border-bottom: 1px solid var(--line);
@@ -289,7 +290,15 @@ th { font-weight: 600; }
       </div>
       <div class="field">
         <label for="sel-h">Head (ft)</label>
-        <input id="sel-h" type="number" min="0" step="any" inputmode="decimal" placeholder="130">
+        <input id="sel-h" type="number" min="0" step="any" inputmode="decimal" placeholder="150">
+      </div>
+      <div class="field">
+        <label for="sel-rpm">Speed</label>
+        <select id="sel-rpm">
+          <option value="3500" selected>3500 rpm</option>
+          <option value="1750">1750 rpm</option>
+          <option value="1150">1150 rpm</option>
+        </select>
       </div>
       <div class="field">
         <label for="sel-fluid">Fluid</label>
@@ -385,7 +394,8 @@ th { font-weight: 600; }
       <div id="sel-points"></div>
       <div id="rec-notes">
         <p class="note">This catalog does not include pumps larger than 10 in, so a better Dean size may still exist above 10 in.</p>
-        <p class="note">The list is ordered by where the duty sits on the curve. It is not ranked by efficiency. A duty in the middle-right of that size's catalog flow range comes first. A duty on the left side of the curve ranks lower, and a duty at the far right end ranks lower too. The curve sheets do not include efficiency, so this list can differ from IntelliQuip.</p>
+        <p class="note">The list is ordered by efficiency. 70 to 120 percent of BEP is preferred. 50 to 130 percent is allowable. Below 50 percent of BEP is flagged, because low flow adds heat.</p>
+        <p class="note">These curves apply only up to 70 SSU.</p>
         <p class="note">RA and RWA share the same head-capacity curve.</p>
       </div>
     </section>
@@ -479,9 +489,10 @@ function runDeanSelect() {
   if (!DEAN_CATALOG) { err.textContent = 'Catalog is still loading.'; return; }
   if (q == null || h == null || t == null) { err.textContent = 'Enter flow, head, and temperature.'; return; }
   if (q <= 0 || h <= 0) { err.textContent = 'Flow and head need to be greater than zero.'; return; }
+  var rpm = Number(document.getElementById('sel-rpm').value);
   DEAN_LAST = {
-    result: DeanRA.select(DEAN_CATALOG, {q_gpm: q, h_ft: h, fluid: fluid, temp: t, unit: TEMP_UNIT}),
-    q: q, h: h, t: t, unit: TEMP_UNIT, fluid: fluid, active: 0
+    result: DeanRA.select(DEAN_CATALOG, {q_gpm: q, h_ft: h, fluid: fluid, temp: t, unit: TEMP_UNIT, rpm: rpm}),
+    q: q, h: h, t: t, unit: TEMP_UNIT, fluid: fluid, rpm: rpm, active: 0
   };
   renderDeanSelection();
 }
@@ -491,6 +502,28 @@ function activeHit() {
   var i = DEAN_LAST.active || 0;
   if (i < 0 || i >= list.length) i = 0;
   return list[i] || null;
+}
+function oneDecimal(n) {
+  if (n == null || !isFinite(Number(n))) return '';
+  var v = Math.round(Number(n) * 10) / 10;
+  return Math.abs(v - Math.round(v)) < 1e-9 ? String(Math.round(v)) : v.toFixed(1);
+}
+function perfLine(hit) {
+  var parts = [];
+  if (hit.efficiency_pct != null) parts.push(oneDecimal(hit.efficiency_pct) + '% efficient');
+  if (hit.pct_bep != null) parts.push(oneDecimal(hit.pct_bep) + '% of BEP');
+  if (hit.bhp != null) parts.push(oneDecimal(hit.bhp) + ' hp on this trim');
+  if (hit.bhp_end != null) parts.push(oneDecimal(hit.bhp_end) + ' hp at the end of the curve');
+  if (hit.motor_hp != null) parts.push(oneDecimal(hit.motor_hp) + ' hp motor');
+  if (hit.npshr_ft != null) parts.push('NPSHr ' + oneDecimal(hit.npshr_ft) + ' ft');
+  else parts.push('NPSHr is not scaled from another speed');
+  return parts.join('. ') + '.';
+}
+function flagLine(hit) {
+  if (hit.bep_zone === 'low') return 'Below 50% of BEP.';
+  if (hit.bep_zone === 'high') return 'Above 130% of BEP.';
+  if (hit.bep_zone === 'allowable') return 'Outside the preferred 70 to 120% of BEP.';
+  return '';
 }
 function fixedNum(n, digits) {
   var v = Number(n);
@@ -538,8 +571,14 @@ function renderDeanSelection() {
   var fluidLine = DeanRA.fluidNote(fluid, { q_gpm: q, h_ft: h, temp: t, unit: DEAN_LAST.unit });
   var notesHtml = '<p class="note">' + esc(DeanRA.CATALOG_LIMIT_NOTE) + '</p>' +
     '<p class="note">' + esc(DeanRA.RANK_NOTE) + '</p>' +
+    '<p class="note">' + esc(DeanRA.VISCOSITY_NOTE) + '</p>' +
+    '<p class="note">' + esc(DeanRA.NPSH_MARGIN_NOTE) + '</p>' +
     '<p class="note">' + esc(DeanRA.SHARED_CURVE_NOTE) + '</p>' +
     (showCorrection ? '' : '<p class="note">' + esc(fluidLine) + '</p>');
+  var nu = result.correction && result.correction.nu;
+  if (nu > 13.1) {
+    notesHtml += '<p class="note">This fluid is above 70 SSU, so these curves do not apply. Warm the liquid or pick a different curve.</p>';
+  }
   if (chartCorrection) {
     chartCorrection.hidden = !showCorrection;
     chartCorrection.textContent = showCorrection ? corr.note : '';
@@ -581,6 +620,8 @@ function renderDeanSelection() {
       '<span class="sel-top"><span class="sel-rank">' + (i + 1) + '</span><span class="sel-frame">' + esc(frame) + '</span>' +
       '<span class="sel-size">' + esc(curve.size) + '</span><span class="sel-rpm">' + esc(curve.rpm) + ' rpm</span></span>' +
       '<p class="sel-trim">' + esc(DeanRA.impellerLabel(hit)) + '</p>' +
+      '<p class="sel-perf">' + esc(perfLine(hit)) + '</p>' +
+      (hit.bep_zone && hit.bep_zone !== 'preferred' ? '<p class="sel-flag">' + esc(flagLine(hit)) + '</p>' : '') +
       '<p class="sel-seat">' + esc(DeanRA.dutySeat(hit, seatQ, seatH)) + '</p>' +
       iqMarkup(iq) +
       '</button>' + store + '</div>';
@@ -592,13 +633,20 @@ function renderDeanSelection() {
   if (hit.inferred) {
     extra += '<p class="note quiet">This part of the line uses a point marked inferred. It was read through a label or a crossing, about ±3 ft.</p>';
   }
-  extra += '<p class="note quiet">Sheet note: NPSH ' + esc(curve.npsh_ft_note) + ' ft. That is the note printed on the sheet, not an NPSHr curve.</p>';
+  if (hit.npshr_ft == null && curve.npsh_ft_note) {
+    extra += '<p class="note quiet">The sheet notes NPSH ' + esc(curve.npsh_ft_note) + ' ft. That note is not an NPSHr curve, and NPSHr is not scaled from another speed.</p>';
+  }
   if (curve.rpm_note) extra += '<p class="note quiet">' + esc(curve.rpm_note) + '</p>';
   notes.innerHTML = notesHtml + extra;
   var trimText = DeanRA.formatDia(hit.diameter_in) + (hit.kind === 'trim' ? ' in trim' : ' in');
   chartTitle.textContent = DeanRA.powerFrame(curve) + '  ·  ' + curve.size + '  ·  ' + curve.rpm + ' rpm';
   chartDuty.textContent = q + ' gpm at ' + h + ' ft  ·  ' + trimText;
-  caption.textContent = 'Catalog water curve.';
+  var cap = 'Catalog water curve, up to 70 SSU.';
+  if (hit.bhp != null) cap += ' ' + oneDecimal(hit.bhp) + ' hp at this flow.';
+  if (hit.bhp_end != null) cap += ' ' + oneDecimal(hit.bhp_end) + ' hp at the end of the curve.';
+  if (hit.motor_hp != null) cap += ' Motor ' + oneDecimal(hit.motor_hp) + ' hp.';
+  if (curve.speed_source === 'scaled') cap += ' Scaled, not catalog.';
+  caption.textContent = cap;
   legend.textContent = hit.kind === 'trim'
     ? 'The heavy line is the impeller for this size. Faded lines are the other catalog diameters. The crosshair is the duty you entered. Diameter labels sit beside the plot. Open circles were read through a label or a crossing, about ±3 ft.'
     : 'The heavy line is the catalog diameter for this size. Faded lines are the other diameters. The crosshair is the duty you entered. Diameter labels sit beside the plot. Open circles were read through a label or a crossing, about ±3 ft.';
@@ -1091,6 +1139,9 @@ document.querySelectorAll('[data-ex]').forEach(function (btn) {
 });
 ['sel-q', 'sel-h'].forEach(function (id) {
   document.getElementById(id).addEventListener('input', syncChips);
+});
+document.getElementById('sel-rpm').addEventListener('change', function () {
+  if (selNum('sel-q') != null && selNum('sel-h') != null && DEAN_CATALOG) runDeanSelect();
 });
 document.getElementById('sel-fluid').addEventListener('change', applyFluidTemperature);
 document.getElementById('sel-t').addEventListener('input', function () {

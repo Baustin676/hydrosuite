@@ -6,10 +6,10 @@
    as flow increases. It is not extended past the first or last catalog flow.
    A duty between two lines is an eighth-inch trim from diameter-squared
    affinity, not a linear diameter. Does not extrapolate or speed-scale.
-   A duty returns every catalog size that can meet it. The order is where the
-   flow sits on that size's real catalog flow range, not efficiency.
-   The middle-right of the range ranks first. A duty on the left, or at the
-   far right end, ranks lower.
+   A duty returns every catalog size at the selected speed that can meet it.
+   The order is efficiency. 70 to 120 percent of BEP is preferred, 50 to 130
+   is allowable, and anything under 50 percent of BEP is flagged. A size
+   outside 20 to 150 percent of BEP is left off the list.
    A non-water fluid corrects that water curve with the Hydraulic Institute
    preliminary method (ANSI/HI 9.6.7 section 9.6.7.4.6). It does not invent
    catalog heads, efficiency, BHP, or NPSHr. The list is then ordered by where
@@ -466,12 +466,142 @@
     return String(a.curve.model).localeCompare(String(b.curve.model));
   }
 
-  /** Lower return means a ranks first. Order is the seat of the duty on each
-      size's real catalog flow range, for every duty. */
-  function compareSelections(a, b, q) {
-    var sa = seatScore(flowFraction(a, q));
-    var sb = seatScore(flowFraction(b, q));
-    if (Math.abs(sa - sb) > 1e-12) return sa - sb;
+  function specificGravity(duty, correction) {
+    if (correction && correction.sg > 0) return correction.sg;
+    if (!duty || duty.fluid == null || duty.fluid === '' || isWaterFluid(duty.fluid)) return 1;
+    var rec = FLUIDS[duty.fluid];
+    return rec && rec.sg > 0 ? rec.sg : 1;
+  }
+
+  function viscosityCst(duty, correction) {
+    if (correction && correction.nu > 0) return correction.nu;
+    if (!duty || isWaterFluid(duty.fluid) || duty.fluid == null || duty.fluid === '') return 1;
+    var rec = FLUIDS[duty.fluid];
+    if (!rec || !(rec.sg > 0) || !(rec.visc > 0)) return null;
+    return rec.visc / rec.sg;
+  }
+
+  // About 70 SSU. The sheets stop at that viscosity.
+  var SSU_70_CST = 13.1;
+
+  function efficiencyAt(curve, q, diameter) {
+    var e = curve && curve.efficiency;
+    var bep = curve && curve.bep;
+    if (!e || !bep || !(e.qbep_gpm > 0) || !(bep.diameter_in > 0) || !(diameter > 0)) return null;
+    var x = q / (e.qbep_gpm * diameter / bep.diameter_in);
+    var eta = e.c0 + e.c1 * x + e.c2 * x * x + e.c3 * (diameter / bep.diameter_in);
+    if (e.peak_pct && eta > e.peak_pct) eta = e.peak_pct;
+    if (!(eta > 0)) return null;
+    return eta;
+  }
+
+  function pctBep(curve, q, diameter) {
+    var e = curve && curve.efficiency;
+    var bep = curve && curve.bep;
+    if (!e || !bep || !(e.qbep_gpm > 0) || !(diameter > 0)) return null;
+    return 100 * q / (e.qbep_gpm * diameter / bep.diameter_in);
+  }
+
+  // preferred 70-120, allowable 50-130. Lower is a better seat inside a tie.
+  function bepPenalty(pct) {
+    if (pct == null) return 1000;
+    if (pct >= 70 && pct <= 120) return 0;
+    if (pct < 70) return 70 - pct;
+    return pct - 120;
+  }
+
+  function bepZone(pct) {
+    if (pct == null) return '';
+    if (pct < 50) return 'low';
+    if (pct < 70) return 'allowable';
+    if (pct <= 120) return 'preferred';
+    if (pct <= 130) return 'allowable';
+    return 'high';
+  }
+
+  function brakeHorsepower(q, h, effPct, sg) {
+    if (!(q > 0) || !(h > 0) || !(effPct > 0)) return null;
+    var gravity = sg > 0 ? sg : 1;
+    return q * h * gravity / (3960 * (effPct / 100));
+  }
+
+  function motorHorsepower(bhp) {
+    if (!(bhp > 0)) return null;
+    for (var i = 0; i < MOTORS.length; i++) {
+      if (MOTORS[i] + 1e-9 >= bhp) return MOTORS[i];
+    }
+    return null;
+  }
+
+  function npshrAt(curve, q) {
+    var n = curve && curve.npshr_fit;
+    if (!n) return null;
+    // Do not extrapolate, and do not scale NPSHr from another speed.
+    if (q < n.q_min - 1e-6 || q > n.q_max + 1e-6) return null;
+    var v = n.c0 + n.c1 * q + n.c2 * q * q;
+    if (n.floor != null && v < n.floor) v = n.floor;
+    if (v < 0) v = 0;
+    return v;
+  }
+
+  function headOnTrim(hit, q) {
+    if (!hit) return null;
+    if (hit.kind !== 'trim') {
+      var imp = null;
+      (hit.curve.impellers || []).forEach(function (item) {
+        if (item.diameter_in === hit.diameter_in) imp = item;
+      });
+      var on = imp && smoothHead(imp.points, q);
+      return on ? on.h : null;
+    }
+    var upper = null;
+    var lower = null;
+    (hit.curve.impellers || []).forEach(function (item) {
+      if (item.diameter_in === hit.upperDiameter) upper = item;
+      if (item.diameter_in === hit.lowerDiameter) lower = item;
+    });
+    if (!upper || !lower) return null;
+    var a = smoothHead(upper.points, q);
+    var b = smoothHead(lower.points, q);
+    if (!a || !b) return null;
+    return affinityHead(b.h, a.h, hit.lowerDiameter, hit.upperDiameter, hit.diameter_in);
+  }
+
+  function decorateHit(hit, q, sg) {
+    var pct = pctBep(hit.curve, q, hit.diameter_in);
+    var eff = efficiencyAt(hit.curve, q, hit.diameter_in);
+    var hEnd = headOnTrim(hit, hit.qMax);
+    var effEnd = efficiencyAt(hit.curve, hit.qMax, hit.diameter_in);
+    var power = brakeHorsepower(q, hit.head_ft, eff, sg);
+    var powerEnd = brakeHorsepower(hit.qMax, hEnd, effEnd, sg);
+    var powerMax = power;
+    if (powerEnd != null && (powerMax == null || powerEnd > powerMax)) powerMax = powerEnd;
+    hit.pct_bep = pct;
+    hit.bep_zone = bepZone(pct);
+    hit.efficiency_pct = eff;
+    hit.bhp = power;
+    hit.bhp_end = powerEnd;
+    hit.bhp_max = powerMax;
+    hit.motor_hp = motorHorsepower(powerMax);
+    hit.npshr_ft = npshrAt(hit.curve, q);
+    hit.head_end_ft = hEnd;
+    return hit;
+  }
+
+  /** Lower return means a ranks first. Order is efficiency. Within about
+      2 points, a duty inside 70-120 percent of BEP ranks ahead of one outside it. */
+  function compareSelections(a, b) {
+    var ea = a.efficiency_pct;
+    var eb = b.efficiency_pct;
+    if (ea == null && eb == null) return sameCurveOrder(a, b);
+    if (ea == null) return 1;
+    if (eb == null) return -1;
+    if (Math.abs(ea - eb) <= 2) {
+      var da = bepPenalty(a.pct_bep);
+      var db = bepPenalty(b.pct_bep);
+      if (Math.abs(da - db) > 0.2) return da - db;
+    }
+    if (Math.abs(ea - eb) > 0.05) return eb - ea;
     return sameCurveOrder(a, b);
   }
 
@@ -485,12 +615,19 @@
       qUse = correction.qWater;
       hUse = correction.hWater;
     }
+    var rpm = duty.rpm == null || duty.rpm === '' ? null : Number(duty.rpm);
+    var sg = specificGravity(duty, correction);
     var found = [];
     (catalog.curves || []).forEach(function (curve) {
+      if (rpm != null && Number(curve.rpm) !== rpm) return;
       var hit = evaluateCurve(curve, qUse, hUse);
-      if (hit) found.push(hit);
+      if (!hit) return;
+      decorateHit(hit, qUse, sg);
+      var pct = hit.pct_bep;
+      if (pct != null && (pct < 20 || pct > 150)) return;
+      found.push(hit);
     });
-    found.sort(function (a, b) { return compareSelections(a, b, qUse); });
+    found.sort(function (a, b) { return compareSelections(a, b); });
     return {
       covered: found.length > 0,
       selections: found,
@@ -516,8 +653,11 @@
   }
 
   var CATALOG_LIMIT_NOTE = 'This catalog does not include pumps larger than 10 in, so a better Dean size may still exist above 10 in.';
-  var RANK_NOTE = 'The list is ordered by where the duty sits on the curve. It is not ranked by efficiency. A duty in the middle-right of that size\'s catalog flow range comes first. A duty on the left side of the curve ranks lower, and a duty at the far right end ranks lower too. The curve sheets do not include efficiency, so this list can differ from IntelliQuip.';
+  var RANK_NOTE = 'The list is ordered by efficiency. 70 to 120 percent of BEP is preferred. 50 to 130 percent is allowable. Below 50 percent of BEP is flagged, because low flow adds heat. A size outside 20 to 150 percent of BEP is not listed.';
   var SHARED_CURVE_NOTE = 'RA and RWA share the same head-capacity curve.';
+  var VISCOSITY_NOTE = 'These curves apply only up to 70 SSU.';
+  var NPSH_MARGIN_NOTE = 'For a hot liquid near its vapor pressure, keep NPSH available at least 3 to 5 ft above NPSHr, or about 1.1 to 1.3 times NPSHr, whichever is larger.';
+  var MOTORS = [0.5, 0.75, 1, 1.5, 2, 3, 5, 7.5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 100, 125, 150, 200, 250, 300, 350, 400, 450, 500];
 
   function normalizeSize(s) {
     return String(s || '').toLowerCase().replace(/\s+/g, '').replace(/×/g, 'x');
@@ -1004,6 +1144,14 @@
     CATALOG_LIMIT_NOTE: CATALOG_LIMIT_NOTE,
     RANK_NOTE: RANK_NOTE,
     SHARED_CURVE_NOTE: SHARED_CURVE_NOTE,
+    VISCOSITY_NOTE: VISCOSITY_NOTE,
+    NPSH_MARGIN_NOTE: NPSH_MARGIN_NOTE,
+    efficiencyAt: efficiencyAt,
+    pctBep: pctBep,
+    bepZone: bepZone,
+    brakeHorsepower: brakeHorsepower,
+    motorHorsepower: motorHorsepower,
+    npshrAt: npshrAt,
     headAt: headAt,
     select: select,
     fluidClass: fluidClass,
