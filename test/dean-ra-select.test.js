@@ -187,11 +187,12 @@ function findSize(result, size) {
     const link = DeanRA.productLink(curve, max);
     assert.ok(link.href.indexOf(pages[model]) === 0, model);
     assert.strictEqual(link.trim, 'Full Sized Impeller (No Trim)');
-    assert.ok(link.href.toLowerCase().indexOf('rwa') < 0);
+    assert.ok(link.href.split('?')[0].toLowerCase().indexOf('rwa') < 0);
+    assert.ok(link.href.indexOf('model=' + encodeURIComponent(curve.frame)) > 0);
   });
   const two = catalog.curves.find(function (c) { return c.model === 'R2085-A2' && c.rpm === 3500; });
   const at = DeanRA.productLink(two, 7.375);
-  assert.strictEqual(at.href, 'https://pumpresource.us/dean-ra3146-pump/?size=2x3x8.5&trim=7.375');
+  assert.strictEqual(at.href, 'https://pumpresource.us/dean-ra3146-pump/?size=2x3x8.5&trim=7.375&model=RA3146');
   assert.strictEqual(DeanRA.productLink({ size: '1 x 2 x 11.5', frame: 'RA3146', impellers: [{ diameter_in: 11.5 }] }, 11.5), null);
 }
 
@@ -212,6 +213,33 @@ function findSize(result, size) {
   assert.ok(html.indexOf('1750 rpm') > 0);
   assert.ok(html.indexOf('1150 rpm') > 0);
   assert.ok(html.indexOf('70 SSU') > 0);
+  assert.ok(html.indexOf('id="sel-model"') > 0);
+  assert.ok(html.indexOf('All models') > 0);
+}
+
+// A chosen frame lists only that model's sizes, still ranked by efficiency.
+{
+  const all = pick(100, 240);
+  assert.strictEqual(all.pick.curve.size.replace(/\s+/g, ''), '1x1.5x8');
+  assert.strictEqual(DeanRA.powerFrame(all.pick.curve), 'RA2096');
+  const framed = DeanRA.select(catalog, { q_gpm: 100, h_ft: 240, fluid: 'water', rpm: 3500, frame: 'RA3146' });
+  const expected = all.selections.filter(function (s) { return s.curve.frame === 'RA3146'; });
+  assert.ok(expected.length > 1);
+  assert.strictEqual(framed.selections.length, expected.length);
+  framed.selections.forEach(function (hit, i) {
+    assert.strictEqual(hit.curve.frame, 'RA3146');
+    assert.strictEqual(hit.curve.model, expected[i].curve.model);
+  });
+  assert.ok(framed.selections[0].efficiency_pct + 0.5 >= framed.selections[framed.selections.length - 1].efficiency_pct);
+  const same = DeanRA.select(catalog, { q_gpm: 100, h_ft: 240, fluid: 'water', rpm: 3500, frame: '' });
+  assert.strictEqual(same.selections.length, all.selections.length);
+  const miss = DeanRA.select(catalog, { q_gpm: 100, h_ft: 240, fluid: 'water', rpm: 3500, frame: 'RA3186' });
+  assert.strictEqual(miss.covered, false);
+  assert.strictEqual(miss.pick, null);
+  const names = DeanRA.frames(catalog);
+  ['RA2096', 'RA3146', 'RA3186', 'RWA4166'].forEach(function (name) {
+    assert.ok(names.indexOf(name) >= 0, name);
+  });
 }
 
 // Every line falls and bows down. A larger trim stays above a smaller one.
