@@ -108,6 +108,7 @@ header h1 {
 }
 .select-btn:hover { filter: brightness(0.96); }
 .select-btn:focus-visible,
+.pdf-btn:focus-visible,
 .sel-row:focus-visible,
 .sel-store:focus-visible,
 .field input:focus-visible,
@@ -192,12 +193,36 @@ details summary:focus-visible {
   padding: 14px 16px 12px;
   border-bottom: 1px solid var(--line);
 }
+.chart-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
 .chart-title {
   margin: 0;
+  flex: 1 1 auto;
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
+.pdf-btn {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 8px 14px;
+  min-height: 36px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--amber);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.pdf-btn:hover { filter: brightness(0.96); }
 .sel-price {
   margin: 8px 0 0;
   padding-top: 6px;
@@ -283,6 +308,8 @@ th { font-weight: 600; }
   .layout { grid-template-columns: 1fr; gap: 28px; }
   .rec-lead { font-size: 24px; }
   .chart-wrap canvas { height: 360px; }
+  .chart-head-row { flex-direction: column; align-items: stretch; }
+  .pdf-btn { width: 100%; min-height: 44px; }
 }
 </style>
 </head>
@@ -388,7 +415,10 @@ th { font-weight: 600; }
       <p class="rec-meta" id="rec-meta"></p>
       <div class="chart-wrap" id="sel-chart-wrap" hidden>
         <div class="chart-head">
-          <p class="chart-title" id="chart-title"></p>
+          <div class="chart-head-row" id="chart-head-row">
+            <p class="chart-title" id="chart-title"></p>
+            <button type="button" class="pdf-btn" id="pdf-btn">Download PDF</button>
+          </div>
           <p class="chart-duty" id="chart-duty"></p>
           <p class="chart-caption" id="chart-caption"></p>
         </div>
@@ -410,6 +440,7 @@ th { font-weight: 600; }
   </div>
 </div>
 <script src="dean-ra-select.js"></script>
+<script src="dean-ra-pdf.js"></script>
 <script>
 var DEAN_CATALOG = null;
 var DEAN_PRICES = null;
@@ -420,6 +451,8 @@ var embedded = false;
 try { embedded = window.parent !== window; } catch (e) { embedded = true; }
 if (embedded) document.documentElement.classList.add('embedded');
 var lastPostedHeight = 0;
+var parentCanDownload = false;
+var SSU_LIMIT = 'This fluid is above 70 SSU.';
 function contentHeight() {
   var page = document.querySelector('.page');
   if (!page) return 0;
@@ -460,6 +493,14 @@ function watchEmbedHeight() {
   }
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(postFrameHeight);
 }
+window.addEventListener('message', function (ev) {
+  if (!embedded) return;
+  if (EMBED_ORIGINS.indexOf(ev.origin) < 0) return;
+  if (ev.source !== window.parent) return;
+  var data = ev.data;
+  if (!data || data.type !== 'hydrosuite:ready' || !data.download) return;
+  parentCanDownload = true;
+});
 
 function selNum(id) {
   var el = document.getElementById(id);
@@ -636,7 +677,7 @@ function renderDeanSelection() {
     '<p class="note">' + esc(DeanRA.VISCOSITY_NOTE) + '</p>';
   var nu = result.correction && result.correction.nu;
   if (nu > 13.1) {
-    notesHtml += '<p class="note">This fluid is above 70 SSU.</p>';
+    notesHtml += '<p class="note">' + esc(SSU_LIMIT) + '</p>';
   }
   if (chartCorrection) {
     chartCorrection.hidden = !showCorrection;
@@ -718,19 +759,22 @@ function renderPointTable(curve) {
     '<table><thead><tr><th>Dia in</th><th>gpm</th><th>ft</th><th>Source</th></tr></thead><tbody>' +
     rows + '</tbody></table></details>';
 }
-function drawDeanSelection() {
+function drawDeanSelection(opts) {
   if (!DEAN_LAST || !DEAN_LAST.result.covered) return;
-  var canvas = document.getElementById('sel-canvas');
-  var parent = canvas.parentElement;
-  if (!canvas || !parent) return;
-  var hit = activeHit();
+  opts = opts || {};
+  var offscreen = !!opts.canvas;
+  var canvas = opts.canvas || document.getElementById('sel-canvas');
+  var parent = canvas ? canvas.parentElement : null;
+  if (!canvas || (!offscreen && !parent)) return;
+  var hit = opts.hit || activeHit();
   if (!hit) return;
-  var qDuty = DEAN_LAST.q, hDuty = DEAN_LAST.h;
+  var qDuty = opts.qDuty != null ? opts.qDuty : DEAN_LAST.q;
+  var hDuty = opts.hDuty != null ? opts.hDuty : DEAN_LAST.h;
   var curve = hit.curve;
-  var dpr = window.devicePixelRatio || 1;
-  var cssW = parent.clientWidth || 720;
-  var cssH = window.matchMedia('(max-width: 800px)').matches ? 360 : 480;
-  canvas.style.height = cssH + 'px';
+  var dpr = opts.dpr || window.devicePixelRatio || 1;
+  var cssW = opts.cssW || (parent && parent.clientWidth) || 720;
+  var cssH = opts.cssH || (window.matchMedia('(max-width: 800px)').matches ? 360 : 480);
+  if (!offscreen) canvas.style.height = cssH + 'px';
   canvas.width = Math.round(cssW * dpr);
   canvas.height = Math.round(cssH * dpr);
   var ctx = canvas.getContext('2d');
@@ -919,7 +963,7 @@ function drawDeanSelection() {
   });
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  postFrameHeight();
+  if (!offscreen) postFrameHeight();
 }
 function sampleCurve(points, X, Y) {
   var measured = DeanRA.measuredPoints(points);
@@ -1232,6 +1276,174 @@ document.getElementById('sel-t').addEventListener('input', function () {
   if (selNum('sel-t') == null) return;
   if (selNum('sel-q') != null && selNum('sel-h') != null && DEAN_CATALOG) runDeanSelect();
 });
+function sheetDate(d) {
+  var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+}
+function isIos() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function bytesToBase64(bytes) {
+  var parts = [];
+  var chunk = 4096;
+  for (var i = 0; i < bytes.length; i += chunk) {
+    var slice = bytes.subarray(i, i + chunk);
+    var s = '';
+    for (var j = 0; j < slice.length; j++) s += String.fromCharCode(slice[j]);
+    parts.push(s);
+  }
+  return btoa(parts.join(''));
+}
+function pdfFileName(hit) {
+  var frame = DeanRA.powerFrame(hit.curve) || 'Dean-RA';
+  var size = String(hit.curve.size || '').replace(/\s+/g, '');
+  return ('PumpResource-' + frame + (size ? '-' + size : '') + '.pdf').replace(/[^A-Za-z0-9._-]+/g, '-');
+}
+function chartJpeg(hit) {
+  var canvas = document.createElement('canvas');
+  drawDeanSelection({
+    canvas: canvas,
+    cssW: 720,
+    cssH: 480,
+    dpr: 3,
+    hit: hit,
+    qDuty: DEAN_LAST.q,
+    hDuty: DEAN_LAST.h
+  });
+  var url = canvas.toDataURL('image/jpeg', 0.95);
+  var bin = atob(url.slice(url.indexOf(',') + 1));
+  var bytes = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+function selectionPdfSpec(hit) {
+  var curve = hit.curve;
+  var frame = DeanRA.powerFrame(curve);
+  var trim = DeanRA.impellerLabel(hit);
+  var details = [
+    { label: 'Fluid', value: fluidName() },
+    { label: 'Temperature', value: formatTemp(DEAN_LAST.t, DEAN_LAST.unit || TEMP_UNIT) }
+  ];
+  if (curve.rpm) details.push({ label: 'Speed', value: curve.rpm + ' rpm' });
+  if (trim) details.push({ label: 'Impeller', value: trim });
+  if (hit.efficiency_pct != null) details.push({ label: 'Efficiency', value: oneDecimal(hit.efficiency_pct) + '%' });
+  if (hit.pct_bep != null) details.push({ label: 'BEP', value: oneDecimal(hit.pct_bep) + '%' });
+  if (hit.bhp != null) details.push({ label: 'Power', value: oneDecimal(hit.bhp) + ' hp' });
+  if (hit.motor_hp != null) details.push({ label: 'Motor', value: oneDecimal(hit.motor_hp) + ' hp' });
+  if (hit.npshr_ft != null) details.push({ label: 'NPSHr', value: oneDecimal(hit.npshr_ft) + ' ft' });
+  var quote = null;
+  if (DEAN_PRICES) quote = DeanRA.packageQuote(DEAN_PRICES, curve, hit.diameter_in, hit.motor_hp, curve.rpm);
+  var corr = DEAN_LAST.result && DEAN_LAST.result.correction;
+  var correction = '';
+  if (corr && corr.applied && corr.qWater != null && corr.hWater != null) {
+    correction = 'Corrected water duty ' + oneDecimal(corr.qWater) + ' gpm at ' + oneDecimal(corr.hWater) + ' ft.';
+  }
+  var noteEl = document.getElementById('chart-disclaimer');
+  return {
+    date: sheetDate(new Date()),
+    title: frame + '  \u00b7  ' + curve.size,
+    subtitle: DEAN_LAST.q + ' gpm at ' + DEAN_LAST.h + ' ft  \u00b7  ' + curve.rpm + ' rpm  \u00b7  ' + trim + ' impeller',
+    details: details,
+    flag: flagLine(hit),
+    correction: correction,
+    limitNote: corr && corr.nu > 13.1 ? SSU_LIMIT : '',
+    reference: noteEl ? noteEl.textContent.trim() : DeanPdf.REFERENCE,
+    freight: DeanPdf.FREIGHT,
+    chart: chartJpeg(hit),
+    quote: quote
+  };
+}
+function readScroll() {
+  try { return { x: window.pageXOffset || 0, y: window.pageYOffset || 0 }; }
+  catch (e) { return { x: 0, y: 0 }; }
+}
+function restoreScroll(pos) {
+  try { window.scrollTo(pos.x, pos.y); } catch (e) {}
+}
+function openPdfBlob(blob, filename, preferTab, pos) {
+  var url = URL.createObjectURL(blob);
+  if (preferTab) {
+    var opened = window.open(url, '_blank');
+    if (opened) {
+      restoreScroll(pos);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 120000);
+      return;
+    }
+  }
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;';
+  var host = document.getElementById('chart-head-row') || document.body;
+  host.appendChild(a);
+  a.click();
+  a.remove();
+  restoreScroll(pos);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 120000);
+}
+function savePdfLocally(bytes, filename) {
+  var blob = new Blob([bytes], { type: 'application/pdf' });
+  var pos = readScroll();
+  if (isIos()) {
+    var file = null;
+    try { file = new File([blob], filename, { type: 'application/pdf' }); } catch (e) {}
+    try {
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: 'PumpResource' }).then(function () {
+          restoreScroll(pos);
+        }).catch(function (err) {
+          restoreScroll(pos);
+          if (err && err.name === 'AbortError') return;
+          openPdfBlob(blob, filename, true, pos);
+        });
+        return;
+      }
+    } catch (e) {}
+    openPdfBlob(blob, filename, true, pos);
+    return;
+  }
+  openPdfBlob(blob, filename, false, pos);
+}
+function deliverPdf(bytes, filename) {
+  if (embedded && parentCanDownload) {
+    try {
+      postToParent({
+        type: 'hydrosuite:download',
+        filename: filename,
+        mime: 'application/pdf',
+        base64: bytesToBase64(bytes)
+      });
+      return;
+    } catch (e) {}
+  }
+  savePdfLocally(bytes, filename);
+}
+var pdfBusy = false;
+function downloadActivePdf() {
+  if (pdfBusy) return;
+  var hit = activeHit();
+  if (!hit || typeof DeanPdf === 'undefined') return;
+  pdfBusy = true;
+  try {
+    deliverPdf(DeanPdf.build(selectionPdfSpec(hit)), pdfFileName(hit));
+  } catch (e) {
+    var err = document.getElementById('sel-err');
+    if (err) err.textContent = 'Could not build the PDF.';
+  }
+  setTimeout(function () { pdfBusy = false; }, 600);
+}
+var pdfBtn = document.getElementById('pdf-btn');
+if (pdfBtn) {
+  pdfBtn.addEventListener('mousedown', function (ev) { ev.preventDefault(); });
+  pdfBtn.addEventListener('click', function (ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    downloadActivePdf();
+  });
+}
 window.addEventListener('resize', function () {
   if (DEAN_LAST && DEAN_LAST.result.covered) drawDeanSelection();
   postFrameHeight();
