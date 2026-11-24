@@ -74,7 +74,18 @@ header h1 {
   padding: 10px 12px;
   font-size: 16px;
 }
-.field select { background: var(--white); }
+.field select { background: var(--white); max-width: 100%; }
+.text-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
 .select-btn {
   display: block;
   width: 100%;
@@ -293,6 +304,12 @@ th { font-weight: 600; }
         <input id="sel-h" type="number" min="0" step="any" inputmode="decimal" placeholder="150">
       </div>
       <div class="field">
+        <label for="sel-model">Model</label>
+        <select id="sel-model">
+          <option value="">All models</option>
+        </select>
+      </div>
+      <div class="field">
         <label for="sel-rpm">Speed</label>
         <select id="sel-rpm">
           <option value="3500" selected>3500 rpm</option>
@@ -488,9 +505,10 @@ function runDeanSelect() {
   if (q == null || h == null || t == null) { err.textContent = 'Enter flow, head, and temperature.'; return; }
   if (q <= 0 || h <= 0) { err.textContent = 'Flow and head need to be greater than zero.'; return; }
   var rpm = Number(document.getElementById('sel-rpm').value);
+  var frame = document.getElementById('sel-model').value;
   DEAN_LAST = {
-    result: DeanRA.select(DEAN_CATALOG, {q_gpm: q, h_ft: h, fluid: fluid, temp: t, unit: TEMP_UNIT, rpm: rpm}),
-    q: q, h: h, t: t, unit: TEMP_UNIT, fluid: fluid, rpm: rpm, active: 0
+    result: DeanRA.select(DEAN_CATALOG, {q_gpm: q, h_ft: h, fluid: fluid, temp: t, unit: TEMP_UNIT, rpm: rpm, frame: frame}),
+    q: q, h: h, t: t, unit: TEMP_UNIT, fluid: fluid, rpm: rpm, frame: frame, active: 0
   };
   renderDeanSelection();
 }
@@ -580,8 +598,13 @@ function renderDeanSelection() {
     points.innerHTML = '';
     listEl.innerHTML = '';
     lead.textContent = q + ' gpm at ' + h + ' ft';
-    meta.textContent = 'No curve in this catalog covers this duty. ' + dutyTemp;
-    notes.innerHTML = notesHtml + '<p class="note">' + esc(q + ' gpm at ' + h + ' ft is outside every digitized Dean RA line.') + '</p>';
+    if (DEAN_LAST.frame) {
+      meta.textContent = 'No ' + DEAN_LAST.frame + ' size meets this duty.';
+      notes.innerHTML = notesHtml + '<p class="note"><button type="button" class="text-link" id="show-all-models">Show all models</button></p>';
+    } else {
+      meta.textContent = 'No curve in this catalog covers this duty. ' + dutyTemp;
+      notes.innerHTML = notesHtml + '<p class="note">' + esc(q + ' gpm at ' + h + ' ft is outside every digitized Dean RA line.') + '</p>';
+    }
     return;
   }
   var selections = result.selections;
@@ -592,7 +615,9 @@ function renderDeanSelection() {
     seatH = corr.hWater;
   }
   lead.textContent = q + ' gpm at ' + h + ' ft';
-  meta.textContent = (n === 1 ? '1 size in this catalog can meet this duty.' : (n + ' sizes in this catalog can meet this duty.')) + ' ' + dutyTemp;
+  var countLine = n === 1 ? '1 size' : (n + ' sizes');
+  if (DEAN_LAST.frame) countLine = n === 1 ? ('1 ' + DEAN_LAST.frame + ' size') : (n + ' ' + DEAN_LAST.frame + ' sizes');
+  meta.textContent = countLine + ' can meet this duty. ' + dutyTemp;
   if (listKicker) {
     listKicker.textContent = corr && corr.applied ? 'Sizes that meet the corrected water duty' : 'Sizes that meet this duty';
   }
@@ -1112,6 +1137,49 @@ document.querySelectorAll('[data-ex]').forEach(function (btn) {
 ['sel-q', 'sel-h'].forEach(function (id) {
   document.getElementById(id).addEventListener('input', syncChips);
 });
+function modelFromUrl() {
+  var raw = '';
+  try { raw = new URLSearchParams(window.location.search).get('model') || ''; } catch (e) { raw = ''; }
+  if (!raw || !DEAN_CATALOG) return '';
+  var want = raw.trim().toLowerCase();
+  var names = DeanRA.frames(DEAN_CATALOG);
+  for (var i = 0; i < names.length; i++) {
+    if (names[i].toLowerCase() === want) return names[i];
+  }
+  return '';
+}
+function writeModelParam(model) {
+  var params;
+  try { params = new URLSearchParams(window.location.search); } catch (e) { return; }
+  if (model) params.set('model', model);
+  else params.delete('model');
+  var query = params.toString();
+  var next = window.location.pathname + (query ? '?' + query : '') + window.location.hash;
+  if (next !== window.location.pathname + window.location.search + window.location.hash) {
+    history.replaceState(null, '', next);
+  }
+}
+function fillModels() {
+  var sel = document.getElementById('sel-model');
+  if (!sel || !DEAN_CATALOG) return;
+  var names = DeanRA.frames(DEAN_CATALOG);
+  var html = '<option value="">All models</option>';
+  names.forEach(function (name) {
+    html += '<option value="' + esc(name) + '">' + esc(name) + '</option>';
+  });
+  sel.innerHTML = html;
+  sel.value = modelFromUrl();
+}
+document.getElementById('rec-notes').addEventListener('click', function (ev) {
+  if (!ev.target.closest('#show-all-models')) return;
+  document.getElementById('sel-model').value = '';
+  writeModelParam('');
+  runDeanSelect();
+});
+document.getElementById('sel-model').addEventListener('change', function () {
+  writeModelParam(document.getElementById('sel-model').value);
+  if (selNum('sel-q') != null && selNum('sel-h') != null && DEAN_CATALOG) runDeanSelect();
+});
 document.getElementById('sel-rpm').addEventListener('change', function () {
   if (selNum('sel-q') != null && selNum('sel-h') != null && DEAN_CATALOG) runDeanSelect();
 });
@@ -1130,6 +1198,7 @@ fetch('data/dean-ra-curves.json').then(function (r) {
   return r.json();
 }).then(function (data) {
   DEAN_CATALOG = data;
+  fillModels();
   return fetch('data/intelliquip-selections.json');
 }).then(function (r) {
   if (!r || !r.ok) return null;

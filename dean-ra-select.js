@@ -759,10 +759,12 @@
       hUse = correction.hWater;
     }
     var rpm = duty.rpm == null || duty.rpm === '' ? null : Number(duty.rpm);
+    var frame = duty.frame == null ? '' : String(duty.frame).trim();
     var sg = specificGravity(duty, correction);
     var found = [];
     (catalog.curves || []).forEach(function (curve) {
       if (rpm != null && Number(curve.rpm) !== rpm) return;
+      if (frame && String(curve.frame || '') !== frame) return;
       var hit = evaluateCurve(curve, qUse, hUse);
       if (!hit) return;
       decorateHit(hit, qUse, sg);
@@ -1239,7 +1241,9 @@
     var trim = storeTrimLabel(curve, diameterIn, page);
     var href = page.url + '?size=' + encodeURIComponent(size);
     if (trim) href += '&trim=' + encodeURIComponent(trim);
-    return { href: href, size: size, trim: trim };
+    var model = curve.frame || powerFrame(curve);
+    if (model) href += '&model=' + encodeURIComponent(model);
+    return { href: href, size: size, trim: trim, model: model };
   }
 
   function productLinkText(link) {
@@ -1247,6 +1251,19 @@
     if (!link.trim) return 'View ' + link.size;
     if (link.trim === FULL_SIZED_TRIM) return 'View ' + link.size + ', ' + link.trim;
     return 'View ' + link.size + ', ' + link.trim + ' in';
+  }
+
+  function frames(catalog) {
+    var seen = {};
+    var out = [];
+    (catalog && catalog.curves || []).forEach(function (curve) {
+      var name = curve && curve.frame ? String(curve.frame) : '';
+      if (!name || seen[name]) return;
+      seen[name] = true;
+      out.push(name);
+    });
+    out.sort();
+    return out;
   }
 
   var POWER_FRAMES = { RA2096: true, RA3146: true, RA3186: true };
@@ -1313,6 +1330,7 @@
     curvePoints: curvePoints,
     measuredPoints: measuredPoints,
     offeredDiameters: offeredDiameters,
+    frames: frames,
     powerFrame: powerFrame,
     frameLine: frameLine,
     intelliquipFor: intelliquipFor,
