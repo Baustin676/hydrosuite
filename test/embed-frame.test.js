@@ -25,5 +25,7 @@ assert.ok(embed.indexOf('hydrosuite:height') > 0);
 assert.ok(embed.indexOf('hydrosuite:scroll-to-results') > 0);
 assert.ok(embed.indexOf('Open Full Screen') > 0);
 assert.ok(embed.indexOf('function openFullscreen()') > 0);
+assert.ok(embed.indexOf("wrap.style.overflow = 'auto'") > 0);
+assert.ok(embed.indexOf("bar.style.position = 'sticky'") > 0);
 
 console.log('embed-frame tests passed');

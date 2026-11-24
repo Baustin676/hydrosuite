@@ -19,6 +19,7 @@ function openFullscreen() {
 (function () {
   var wrap = document.getElementById('hydrosuite-wrap');
   var frame = document.getElementById('hydrosuite-frame');
+  var bar = wrap.querySelector('button');
   var SOURCE = 'https://baustin676.github.io';
   var lastHeight = 0;
   function fullscreenElement() {
@@ -34,13 +35,21 @@ function openFullscreen() {
   }
   function enterFullscreenLayout() {
     wrap.style.height = '100%';
+    wrap.style.overflow = 'auto';
     wrap.style.background = '#fff';
-    frame.setAttribute('scrolling', 'yes');
-    frame.style.height = 'calc(100% - 40px)';
+    if (bar) {
+      bar.style.position = 'sticky';
+      bar.style.bottom = '0';
+    }
   }
   function leaveFullscreenLayout() {
     wrap.style.height = '';
+    wrap.style.overflow = '';
     wrap.style.background = '';
+    if (bar) {
+      bar.style.position = '';
+      bar.style.bottom = '';
+    }
     applyHeight();
   }
   window.addEventListener('message', function (ev) {
