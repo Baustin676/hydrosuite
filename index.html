@@ -102,7 +102,6 @@ header h1 {
 }
 .select-btn:hover { filter: brightness(0.96); }
 .select-btn:focus-visible,
-.chip:focus-visible,
 .sel-row:focus-visible,
 .sel-store:focus-visible,
 .field input:focus-visible,
@@ -110,28 +109,6 @@ header h1 {
 details summary:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
-}
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 16px;
-}
-.chip {
-  border: 1px solid var(--line);
-  background: var(--white);
-  color: var(--muted);
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-.chip.active {
-  background: var(--amber);
-  border-color: var(--amber);
-  color: var(--ink);
-  font-weight: 600;
 }
 .err {
   min-height: 1.2em;
@@ -215,6 +192,23 @@ details summary:focus-visible {
   font-weight: 700;
   letter-spacing: -0.02em;
 }
+.sel-price {
+  margin: 8px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 400;
+}
+.sel-price div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.sel-price div span:first-child { flex: 1 1 auto; }
+.sel-price .amt { flex: 0 0 auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sel-price .total { font-weight: 700; margin-top: 2px; }
 .chart-duty {
   margin: 4px 0 0;
   font-size: 16px;
@@ -380,13 +374,6 @@ th { font-weight: 600; }
         <input id="sel-t" type="number" step="any" inputmode="decimal" value="68">
       </div>
       <button class="select-btn" id="sel-go" type="submit">SELECT PUMP</button>
-      <div class="chips" id="presets">
-        <button class="chip" type="button" data-ex="80,130">80 gpm · 130 ft</button>
-        <button class="chip" type="button" data-ex="80,147">80 gpm · 147 ft</button>
-        <button class="chip" type="button" data-ex="500,90">500 gpm · 90 ft</button>
-        <button class="chip" type="button" data-ex="400,200">400 gpm · 200 ft</button>
-        <button class="chip" type="button" data-ex="40,800">40 gpm · 800 ft</button>
-      </div>
       <p class="err" id="sel-err" role="status"></p>
     </form>
     <section id="result" aria-live="polite">
@@ -419,6 +406,7 @@ th { font-weight: 600; }
 <script src="dean-ra-select.js"></script>
 <script>
 var DEAN_CATALOG = null;
+var DEAN_PRICES = null;
 var DEAN_IQ = { records: [] };
 var DEAN_LAST = null;
 
@@ -487,20 +475,11 @@ function applyFluidTemperature() {
   }
   if (selNum('sel-q') != null && selNum('sel-h') != null && DEAN_CATALOG) runDeanSelect();
 }
-function syncChips() {
-  var q = document.getElementById('sel-q').value;
-  var h = document.getElementById('sel-h').value;
-  document.querySelectorAll('[data-ex]').forEach(function (btn) {
-    var p = btn.getAttribute('data-ex').split(',');
-    btn.classList.toggle('active', p[0] === String(q) && p[1] === String(h));
-  });
-}
 function runDeanSelect() {
   var err = document.getElementById('sel-err');
   err.textContent = '';
   var q = selNum('sel-q'), h = selNum('sel-h'), t = selNum('sel-t');
   var fluid = document.getElementById('sel-fluid').value;
-  syncChips();
   if (!DEAN_CATALOG) { err.textContent = 'Catalog is still loading.'; return; }
   if (q == null || h == null || t == null) { err.textContent = 'Enter flow, head, and temperature.'; return; }
   if (q <= 0 || h <= 0) { err.textContent = 'Flow and head need to be greater than zero.'; return; }
@@ -532,6 +511,24 @@ function perfLine(hit) {
   if (hit.motor_hp != null) parts.push(oneDecimal(hit.motor_hp) + ' hp motor');
   if (hit.npshr_ft != null) parts.push('NPSHr ' + oneDecimal(hit.npshr_ft) + ' ft');
   return parts.join(' · ');
+}
+function money(amount) {
+  if (amount == null || !isFinite(Number(amount))) return 'Call for price';
+  var v = Math.round(Number(amount));
+  return '$' + String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+function priceMarkup(hit) {
+  if (!hit || !DEAN_PRICES) return '';
+  var quote = DeanRA.packageQuote(DEAN_PRICES, hit.curve, hit.diameter_in, hit.motor_hp, hit.curve.rpm);
+  var html = '<div class="sel-price">';
+  quote.lines.forEach(function (line) {
+    var label = line.included ? line.name : (line.name + (line.detail ? ' ' + line.detail : ''));
+    var amount = line.included ? 'Included with pump' : money(line.amount);
+    html += '<div><span>' + esc(label) + '</span><span class="amt">' + esc(amount) + '</span></div>';
+  });
+  html += '<div class="total"><span>Package</span><span class="amt">' + esc(money(quote.total)) + '</span></div>';
+  html += '</div>';
+  return html;
 }
 function flagLine(hit) {
   if (hit.bep_zone === 'low') return 'Below 50% of BEP.';
@@ -638,12 +635,13 @@ function renderDeanSelection() {
       '<p class="sel-trim">' + esc(DeanRA.impellerLabel(hit)) + '</p>' +
       '<p class="sel-perf">' + esc(perfLine(hit)) + '</p>' +
       (hit.bep_zone && hit.bep_zone !== 'preferred' ? '<p class="sel-flag">' + esc(flagLine(hit)) + '</p>' : '') +
+      priceMarkup(hit) +
       '</button>' + store + '</div>';
   });
   listEl.innerHTML = html;
   var hit = activeHit();
   var curve = hit.curve;
-  notes.innerHTML = notesHtml;
+  notes.innerHTML = notesHtml + '<p class="note quiet">Freight is calculated at checkout.</p>';
   var trimText = DeanRA.formatDia(hit.diameter_in) + ' in';
   chartTitle.textContent = DeanRA.powerFrame(curve) + '  ·  ' + curve.size + '  ·  ' + curve.rpm + ' rpm';
   chartDuty.textContent = q + ' gpm at ' + h + ' ft  ·  ' + trimText;
@@ -1126,17 +1124,6 @@ document.getElementById('duty').addEventListener('submit', function (ev) {
   ev.preventDefault();
   runDeanSelect();
 });
-document.querySelectorAll('[data-ex]').forEach(function (btn) {
-  btn.addEventListener('click', function () {
-    var p = btn.getAttribute('data-ex').split(',');
-    document.getElementById('sel-q').value = p[0];
-    document.getElementById('sel-h').value = p[1];
-    runDeanSelect();
-  });
-});
-['sel-q', 'sel-h'].forEach(function (id) {
-  document.getElementById(id).addEventListener('input', syncChips);
-});
 function modelFromUrl() {
   var raw = '';
   try { raw = new URLSearchParams(window.location.search).get('model') || ''; } catch (e) { raw = ''; }
@@ -1193,6 +1180,15 @@ document.getElementById('sel-t').addEventListener('input', function () {
 window.addEventListener('resize', function () {
   if (DEAN_LAST && DEAN_LAST.result.covered) drawDeanSelection();
 });
+fetch('data/dean-ra-prices.json').then(function (r) {
+  if (!r.ok) return null;
+  return r.json();
+}).then(function (prices) {
+  if (prices && prices.products) {
+    DEAN_PRICES = prices;
+    if (DEAN_LAST) renderDeanSelection();
+  }
+}).catch(function () {});
 fetch('data/dean-ra-curves.json').then(function (r) {
   if (!r.ok) throw new Error('catalog ' + r.status);
   return r.json();
