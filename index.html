@@ -102,7 +102,6 @@ header h1 {
 }
 .select-btn:hover { filter: brightness(0.96); }
 .select-btn:focus-visible,
-.chip:focus-visible,
 .sel-row:focus-visible,
 .sel-store:focus-visible,
 .field input:focus-visible,
@@ -110,28 +109,6 @@ header h1 {
 details summary:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
-}
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 16px;
-}
-.chip {
-  border: 1px solid var(--line);
-  background: var(--white);
-  color: var(--muted);
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-.chip.active {
-  background: var(--amber);
-  border-color: var(--amber);
-  color: var(--ink);
-  font-weight: 600;
 }
 .err {
   min-height: 1.2em;
@@ -395,13 +372,6 @@ th { font-weight: 600; }
         <input id="sel-t" type="number" step="any" inputmode="decimal" value="68">
       </div>
       <button class="select-btn" id="sel-go" type="submit">SELECT PUMP</button>
-      <div class="chips" id="presets">
-        <button class="chip" type="button" data-ex="80,130">80 gpm · 130 ft</button>
-        <button class="chip" type="button" data-ex="80,147">80 gpm · 147 ft</button>
-        <button class="chip" type="button" data-ex="500,90">500 gpm · 90 ft</button>
-        <button class="chip" type="button" data-ex="400,200">400 gpm · 200 ft</button>
-        <button class="chip" type="button" data-ex="40,800">40 gpm · 800 ft</button>
-      </div>
       <p class="err" id="sel-err" role="status"></p>
     </form>
     <section id="result" aria-live="polite">
@@ -504,20 +474,11 @@ function applyFluidTemperature() {
   }
   if (selNum('sel-q') != null && selNum('sel-h') != null && DEAN_CATALOG) runDeanSelect();
 }
-function syncChips() {
-  var q = document.getElementById('sel-q').value;
-  var h = document.getElementById('sel-h').value;
-  document.querySelectorAll('[data-ex]').forEach(function (btn) {
-    var p = btn.getAttribute('data-ex').split(',');
-    btn.classList.toggle('active', p[0] === String(q) && p[1] === String(h));
-  });
-}
 function runDeanSelect() {
   var err = document.getElementById('sel-err');
   err.textContent = '';
   var q = selNum('sel-q'), h = selNum('sel-h'), t = selNum('sel-t');
   var fluid = document.getElementById('sel-fluid').value;
-  syncChips();
   if (!DEAN_CATALOG) { err.textContent = 'Catalog is still loading.'; return; }
   if (q == null || h == null || t == null) { err.textContent = 'Enter flow, head, and temperature.'; return; }
   if (q <= 0 || h <= 0) { err.textContent = 'Flow and head need to be greater than zero.'; return; }
@@ -1168,17 +1129,6 @@ document.getElementById('rec-list').addEventListener('click', function (ev) {
 document.getElementById('duty').addEventListener('submit', function (ev) {
   ev.preventDefault();
   runDeanSelect();
-});
-document.querySelectorAll('[data-ex]').forEach(function (btn) {
-  btn.addEventListener('click', function () {
-    var p = btn.getAttribute('data-ex').split(',');
-    document.getElementById('sel-q').value = p[0];
-    document.getElementById('sel-h').value = p[1];
-    runDeanSelect();
-  });
-});
-['sel-q', 'sel-h'].forEach(function (id) {
-  document.getElementById(id).addEventListener('input', syncChips);
 });
 function modelFromUrl() {
   var raw = '';
