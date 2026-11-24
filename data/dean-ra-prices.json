@@ -1,0 +1,1366 @@
+{
+  "taken": "2026-11-24",
+  "source": "pumpresource.us storefront option prices via /remote/v1/product-attributes/",
+  "note": "Motor, baseplate, and coupling amounts are the store's add-on over the bare full-size pump. Trim adder is the same for every trimmed impeller on that page. Economy Steel is the formed-steel baseplate.",
+  "pump_rpm_to_motor_rpm": {
+    "3500": 3600,
+    "1750": 1800,
+    "1150": 1200
+  },
+  "products": [
+    {
+      "url": "https://pumpresource.us/dean-ra2096-pump/",
+      "product_id": 30784,
+      "trim_adder_usd": 155,
+      "sizes": {
+        "1x1.5x6": 6994,
+        "1.5x3x6": 7269,
+        "1x1.5x8": 8174
+      },
+      "motors": [
+        {
+          "hp": 1.0,
+          "rpm": 1800,
+          "frame": "143T",
+          "label": "1hp 1800rpm 230-460V/3/60 143T TEFC PE",
+          "only": null,
+          "price_usd": 681
+        },
+        {
+          "hp": 1.5,
+          "rpm": 3600,
+          "frame": "143T",
+          "label": "1.5hp 3600rpm 230-460V/3/60 143T TEFC PE",
+          "only": null,
+          "price_usd": 664
+        },
+        {
+          "hp": 1.5,
+          "rpm": 1800,
+          "frame": "145T",
+          "label": "1.5hp 1800rpm 230-460V/3/60 145T TEFC PE",
+          "only": null,
+          "price_usd": 746
+        },
+        {
+          "hp": 2.0,
+          "rpm": 3600,
+          "frame": "145T",
+          "label": "2hp 3600rpm 230-460V/3/60 145T TEFC PE",
+          "only": null,
+          "price_usd": 864
+        },
+        {
+          "hp": 2.0,
+          "rpm": 1800,
+          "frame": "145T",
+          "label": "2hp 1800rpm 230-460V/3/60 145T TEFC PE",
+          "only": null,
+          "price_usd": 780
+        },
+        {
+          "hp": 3.0,
+          "rpm": 3600,
+          "frame": "182T",
+          "label": "3hp 3600rpm 230-460V/3/60 182T TEFC PE",
+          "only": null,
+          "price_usd": 893
+        },
+        {
+          "hp": 3.0,
+          "rpm": 1800,
+          "frame": "182T",
+          "label": "3hp 1800rpm 230-460V/3/60 182T TEFC PE",
+          "only": null,
+          "price_usd": 922
+        },
+        {
+          "hp": 5.0,
+          "rpm": 3600,
+          "frame": "184T",
+          "label": "5hp 3600rpm 230-460V/3/60 184T TEFC PE",
+          "only": null,
+          "price_usd": 1108
+        },
+        {
+          "hp": 5.0,
+          "rpm": 1800,
+          "frame": "184T",
+          "label": "5hp 1800rpm 230-460V/3/60 184T TEFC PE",
+          "only": null,
+          "price_usd": 1001
+        },
+        {
+          "hp": 7.5,
+          "rpm": 3600,
+          "frame": "213T",
+          "label": "7.5hp 3600rpm 230-460V/3/60 213T TEFC PE",
+          "only": null,
+          "price_usd": 1449
+        },
+        {
+          "hp": 7.5,
+          "rpm": 1800,
+          "frame": "213T",
+          "label": "7.5hp 1800rpm 230-460V/3/60 213T TEFC PE",
+          "only": null,
+          "price_usd": 1447
+        },
+        {
+          "hp": 10.0,
+          "rpm": 3600,
+          "frame": "215T",
+          "label": "10hp 3600rpm 230-460V/3/60 215T TEFC PE",
+          "only": null,
+          "price_usd": 1734
+        },
+        {
+          "hp": 10.0,
+          "rpm": 1800,
+          "frame": "215T",
+          "label": "10hp 1800rpm 230-460V/3/60 215T TEFC PE",
+          "only": null,
+          "price_usd": 1742
+        },
+        {
+          "hp": 15.0,
+          "rpm": 3600,
+          "frame": "254T",
+          "label": "15hp 3600rpm 230-460V/3/60 254T TEFC PE",
+          "only": null,
+          "price_usd": 2382
+        },
+        {
+          "hp": 15.0,
+          "rpm": 1800,
+          "frame": "254T",
+          "label": "15hp 1800rpm 230-460V/3/60 254T TEFC PE",
+          "only": null,
+          "price_usd": 2332
+        },
+        {
+          "hp": 20.0,
+          "rpm": 3600,
+          "frame": "256T",
+          "label": "20hp 3600rpm 230-460V/3/60 256T TEFC PE",
+          "only": null,
+          "price_usd": 2863
+        },
+        {
+          "hp": 20.0,
+          "rpm": 1800,
+          "frame": "256T",
+          "label": "20hp 1800rpm 230-460V/3/60 256T TEFC PE",
+          "only": null,
+          "price_usd": 2835
+        }
+      ],
+      "baseplates": {
+        "143T": {
+          "label": "Economy Formed Steel (143T )",
+          "price_usd": 969
+        },
+        "145T": {
+          "label": "Economy Formed Steel (145T)",
+          "price_usd": 969
+        },
+        "182T": {
+          "label": "Economy Formed Steel (182T)",
+          "price_usd": 969
+        },
+        "184T": {
+          "label": "Economy Formed Steel (184T)",
+          "price_usd": 969
+        },
+        "213T": {
+          "label": "Economy Formed Steel (213T)",
+          "price_usd": 969
+        },
+        "215T": {
+          "label": "Economy Formed Steel (215T)",
+          "price_usd": 969
+        },
+        "254T": {
+          "label": "Economy Formed Steel (254T)",
+          "price_usd": 1093
+        },
+        "256T": {
+          "label": "Economy Formed Steel (256T)",
+          "price_usd": 1093
+        }
+      },
+      "couplings": {}
+    },
+    {
+      "url": "https://pumpresource.us/dean-ra3146-pump/",
+      "product_id": 30785,
+      "trim_adder_usd": 155,
+      "sizes": {
+        "1x3x8.5": 10630,
+        "1.5x3x8.5": 11044,
+        "2x3x8.5": 11966,
+        "3x4x8.5": 12707,
+        "4x6x8.5": 13601,
+        "1.5x3x10": 12873,
+        "2x3x10": 13066,
+        "3x4x10": 14493,
+        "4x6x10 #2": 25318,
+        "1x2x11.5": 14085,
+        "1.5x3x11.5": 16104,
+        "2x3x11.5": 16803,
+        "3x4x11.5": 17320,
+        "4x6x11.5": 22026
+      },
+      "motors": [
+        {
+          "hp": 1.5,
+          "rpm": 1800,
+          "frame": "145T",
+          "label": "1.5hp 1800rpm 145T",
+          "only": null,
+          "price_usd": 746
+        },
+        {
+          "hp": 2.0,
+          "rpm": 1800,
+          "frame": "145T",
+          "label": "2hp 1800rpm 145T",
+          "only": null,
+          "price_usd": 780
+        },
+        {
+          "hp": 3.0,
+          "rpm": 1800,
+          "frame": "182T",
+          "label": "3hp 1800rpm 182T",
+          "only": null,
+          "price_usd": 922
+        },
+        {
+          "hp": 3.0,
+          "rpm": 1200,
+          "frame": "213T",
+          "label": "3hp 1200rpm 213T (4x6x10 #2 ONLY)",
+          "only": "(4x6x10#2",
+          "price_usd": 1253
+        },
+        {
+          "hp": 5.0,
+          "rpm": 3600,
+          "frame": "184T",
+          "label": "5hp 3600rpm 184T",
+          "only": null,
+          "price_usd": 1108
+        },
+        {
+          "hp": 5.0,
+          "rpm": 1800,
+          "frame": "184T",
+          "label": "5hp 1800rpm 184T",
+          "only": null,
+          "price_usd": 1001
+        },
+        {
+          "hp": 5.0,
+          "rpm": 1200,
+          "frame": "215T",
+          "label": "5hp 1200rpm 215T (4x6x10 #2 ONLY)",
+          "only": "(4x6x10#2",
+          "price_usd": 1835
+        },
+        {
+          "hp": 7.5,
+          "rpm": 3600,
+          "frame": "213T",
+          "label": "7.5hp 3600rpm 213T",
+          "only": null,
+          "price_usd": 1449
+        },
+        {
+          "hp": 7.5,
+          "rpm": 1800,
+          "frame": "213T",
+          "label": "7.5hp 1800rpm 213T",
+          "only": null,
+          "price_usd": 1447
+        },
+        {
+          "hp": 7.5,
+          "rpm": 1200,
+          "frame": "254T",
+          "label": "7.5hp 1200rpm 254T (4x6x10 #2 ONLY)",
+          "only": "(4x6x10#2",
+          "price_usd": 2483
+        },
+        {
+          "hp": 10.0,
+          "rpm": 3600,
+          "frame": "215T",
+          "label": "10hp 3600rpm 215T",
+          "only": null,
+          "price_usd": 1734
+        },
+        {
+          "hp": 10.0,
+          "rpm": 1800,
+          "frame": "215T",
+          "label": "10hp 1800rpm 215T",
+          "only": null,
+          "price_usd": 1742
+        },
+        {
+          "hp": 10.0,
+          "rpm": 1200,
+          "frame": "256T",
+          "label": "10hp 1200rpm 256T (4x6x10 #2 ONLY)",
+          "only": "(4x6x10#2",
+          "price_usd": 2918
+        },
+        {
+          "hp": 15.0,
+          "rpm": 3600,
+          "frame": "254T",
+          "label": "15hp 3600rpm 254T",
+          "only": null,
+          "price_usd": 2382
+        },
+        {
+          "hp": 15.0,
+          "rpm": 1800,
+          "frame": "254T",
+          "label": "15hp 1800rpm 254T",
+          "only": null,
+          "price_usd": 2332
+        },
+        {
+          "hp": 15.0,
+          "rpm": 1200,
+          "frame": "284T",
+          "label": "15hp 1200rpm 284T (4x6x10 #2 ONLY)",
+          "only": "(4x6x10#2",
+          "price_usd": 3869
+        },
+        {
+          "hp": 20.0,
+          "rpm": 3600,
+          "frame": "256T",
+          "label": "20hp 3600rpm 256T",
+          "only": null,
+          "price_usd": 2863
+        },
+        {
+          "hp": 20.0,
+          "rpm": 1800,
+          "frame": "256T",
+          "label": "20hp 1800rpm 256T",
+          "only": null,
+          "price_usd": 2835
+        },
+        {
+          "hp": 20.0,
+          "rpm": 1200,
+          "frame": "286T",
+          "label": "20hp 1200rpm 286T (4x6x10 #2 ONLY)",
+          "only": "(4x6x10#2",
+          "price_usd": 4705
+        },
+        {
+          "hp": 25.0,
+          "rpm": 3600,
+          "frame": "284TS",
+          "label": "25hp 3600rpm 284TS",
+          "only": null,
+          "price_usd": 3584
+        },
+        {
+          "hp": 25.0,
+          "rpm": 1800,
+          "frame": "284T",
+          "label": "25hp 1800rpm 284T",
+          "only": null,
+          "price_usd": 3448
+        },
+        {
+          "hp": 30.0,
+          "rpm": 3600,
+          "frame": "286TS",
+          "label": "30hp 3600rpm 286TS",
+          "only": null,
+          "price_usd": 4236
+        },
+        {
+          "hp": 30.0,
+          "rpm": 1800,
+          "frame": "286T",
+          "label": "30hp 1800rpm 286T",
+          "only": null,
+          "price_usd": 4081
+        },
+        {
+          "hp": 40.0,
+          "rpm": 3600,
+          "frame": "324TS",
+          "label": "40hp 3600rpm 324TS",
+          "only": null,
+          "price_usd": 5798
+        },
+        {
+          "hp": 40.0,
+          "rpm": 1800,
+          "frame": "324T",
+          "label": "40hp 1800rpm 324T",
+          "only": null,
+          "price_usd": 5546
+        },
+        {
+          "hp": 50.0,
+          "rpm": 3600,
+          "frame": "326TS",
+          "label": "50hp 3600rpm 326TS",
+          "only": null,
+          "price_usd": 7309
+        },
+        {
+          "hp": 50.0,
+          "rpm": 1800,
+          "frame": "326T",
+          "label": "50hp 1800rpm 326T",
+          "only": null,
+          "price_usd": 6523
+        },
+        {
+          "hp": 60.0,
+          "rpm": 3600,
+          "frame": "364TS",
+          "label": "60hp 3600rpm 364TS",
+          "only": null,
+          "price_usd": 10900
+        },
+        {
+          "hp": 75.0,
+          "rpm": 3600,
+          "frame": "365TS",
+          "label": "75hp 3600rpm 365TS",
+          "only": null,
+          "price_usd": 12976
+        },
+        {
+          "hp": 100.0,
+          "rpm": 3600,
+          "frame": "405TS",
+          "label": "100hp 3600rpm 405TS",
+          "only": null,
+          "price_usd": 16467
+        },
+        {
+          "hp": 125.0,
+          "rpm": 3600,
+          "frame": "444TS",
+          "label": "125hp 3600rpm 444TS",
+          "only": null,
+          "price_usd": 22850
+        }
+      ],
+      "baseplates": {
+        "143T": {
+          "label": "Economy Steel 143T",
+          "price_usd": 1355
+        },
+        "145T": {
+          "label": "Economy Steel 145T",
+          "price_usd": 1355
+        },
+        "182T": {
+          "label": "Economy Steel 182T",
+          "price_usd": 1355
+        },
+        "184T": {
+          "label": "Economy Steel 184T",
+          "price_usd": 1355
+        },
+        "213T": {
+          "label": "Economy Steel 213T",
+          "price_usd": 1355
+        },
+        "215T": {
+          "label": "Economy Steel 215T",
+          "price_usd": 1355
+        },
+        "254T": {
+          "label": "Economy Steel 254T",
+          "price_usd": 1513
+        },
+        "256T": {
+          "label": "Economy Steel 256T",
+          "price_usd": 1513
+        },
+        "284T": {
+          "label": "Economy Steel 284T",
+          "price_usd": 1513
+        },
+        "284TS": {
+          "label": "Economy Steel 284TS",
+          "price_usd": 1513
+        },
+        "286T": {
+          "label": "Economy Steel 286T",
+          "price_usd": 1513
+        },
+        "286TS": {
+          "label": "Economy Steel 286TS",
+          "price_usd": 1513
+        },
+        "324T": {
+          "label": "Economy Steel 324T",
+          "price_usd": 1934
+        },
+        "324TS": {
+          "label": "Economy Steel 324TS",
+          "price_usd": 1934
+        },
+        "326T": {
+          "label": "Economy Steel 326T",
+          "price_usd": 1934
+        },
+        "326TS": {
+          "label": "Economy Steel 326TS",
+          "price_usd": 1934
+        },
+        "364T": {
+          "label": "Economy Steel 364T",
+          "price_usd": 1934
+        },
+        "364TS": {
+          "label": "Economy Steel 364TS",
+          "price_usd": 1934
+        },
+        "365T": {
+          "label": "Economy Steel 365T",
+          "price_usd": 1934
+        },
+        "365TS": {
+          "label": "Economy Steel 365TS",
+          "price_usd": 1934
+        }
+      },
+      "couplings": {
+        "143T": {
+          "label": "Dodge D-Flex Spacer/Coupling 143T",
+          "price_usd": 371
+        },
+        "145T": {
+          "label": "Dodge D-Flex Spacer/Coupling 145T",
+          "price_usd": 371
+        },
+        "182T": {
+          "label": "Dodge D-Flex Spacer/Coupling 182T",
+          "price_usd": 371
+        },
+        "184T": {
+          "label": "Dodge D-Flex Spacer/Coupling 184T",
+          "price_usd": 371
+        },
+        "213T": {
+          "label": "Dodge D-Flex Spacer/Coupling 213T",
+          "price_usd": 371
+        },
+        "215T": {
+          "label": "Dodge D-Flex Spacer/Coupling 215T",
+          "price_usd": 371
+        },
+        "254T": {
+          "label": "Dodge D-Flex Spacer/Coupling 254T",
+          "price_usd": 501
+        },
+        "256T": {
+          "label": "Dodge D-Flex Spacer/Coupling 256T",
+          "price_usd": 501
+        },
+        "284T": {
+          "label": "Dodge D-Flex Spacer/Coupling 284T",
+          "price_usd": 501
+        },
+        "286T": {
+          "label": "Dodge D-Flex Spacer/Coupling 286T",
+          "price_usd": 501
+        },
+        "284TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 284TS",
+          "price_usd": 501
+        },
+        "324T": {
+          "label": "Dodge D-Flex Spacer/Coupling 324T",
+          "price_usd": 654
+        },
+        "286TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 286TS",
+          "price_usd": 501
+        },
+        "326T": {
+          "label": "Dodge D-Flex Spacer/Coupling 326T",
+          "price_usd": 654
+        },
+        "324TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 324TS",
+          "price_usd": 654
+        },
+        "364T": {
+          "label": "Dodge D-Flex Spacer/Coupling 364T",
+          "price_usd": 654
+        },
+        "326TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 326TS",
+          "price_usd": 654
+        },
+        "365T": {
+          "label": "Dodge D-Flex Spacer/Coupling 365T",
+          "price_usd": 654
+        },
+        "364TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 364TS",
+          "price_usd": 654
+        },
+        "365TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 365TS",
+          "price_usd": 654
+        },
+        "405TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 405TS",
+          "price_usd": 1497
+        },
+        "444TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 444TS",
+          "price_usd": 1677
+        }
+      }
+    },
+    {
+      "url": "https://pumpresource.us/dean-ra3186-pump/",
+      "product_id": 30786,
+      "trim_adder_usd": 155,
+      "sizes": {
+        "4x6x10 #1": 30600,
+        "1.5x3x13.5": 23862,
+        "2x3x13.5": 24651,
+        "3x4x13.5": 25727,
+        "6x8x12.5": 28469,
+        "2x4x15.5": 32254,
+        "3x4x15.5": 33140,
+        "4x6x15.5": 39416
+      },
+      "motors": [
+        {
+          "hp": 15.0,
+          "rpm": 1800,
+          "frame": "254T",
+          "label": "15hp 1800rpm 254T",
+          "only": null,
+          "price_usd": 2332
+        },
+        {
+          "hp": 20.0,
+          "rpm": 1800,
+          "frame": "256T",
+          "label": "20hp 1800rpm 256T",
+          "only": null,
+          "price_usd": 2835
+        },
+        {
+          "hp": 25.0,
+          "rpm": 1800,
+          "frame": "284T",
+          "label": "25hp 1800rpm 284T",
+          "only": null,
+          "price_usd": 3448
+        },
+        {
+          "hp": 60.0,
+          "rpm": 3600,
+          "frame": "364TS",
+          "label": "60hp 3600rpm 364TS",
+          "only": null,
+          "price_usd": 10900
+        },
+        {
+          "hp": 75.0,
+          "rpm": 3600,
+          "frame": "365TS",
+          "label": "75hp 3600rpm 365TS",
+          "only": null,
+          "price_usd": 12976
+        },
+        {
+          "hp": 100.0,
+          "rpm": 3600,
+          "frame": "405TS",
+          "label": "100hp 3600rpm 405TS",
+          "only": null,
+          "price_usd": 16467
+        },
+        {
+          "hp": 125.0,
+          "rpm": 3600,
+          "frame": "444TS",
+          "label": "125hp 3600rpm 444TS",
+          "only": null,
+          "price_usd": 22850
+        },
+        {
+          "hp": 150.0,
+          "rpm": 3600,
+          "frame": "445TS",
+          "label": "150hp 3600rpm 445TS",
+          "only": null,
+          "price_usd": 19085
+        },
+        {
+          "hp": 200.0,
+          "rpm": 3600,
+          "frame": "447TS",
+          "label": "200hp 3600rpm 447TS",
+          "only": null,
+          "price_usd": 36185
+        }
+      ],
+      "baseplates": {},
+      "couplings": {
+        "254T": {
+          "label": "Dodge D-Flex Spacer/Coupling 254T",
+          "price_usd": 517
+        },
+        "256T": {
+          "label": "Dodge D-Flex Spacer/Coupling 256T",
+          "price_usd": 517
+        },
+        "284T": {
+          "label": "Dodge D-Flex Spacer/Coupling 284T",
+          "price_usd": 667
+        },
+        "286T": {
+          "label": "Dodge D-Flex Spacer/Coupling 286T",
+          "price_usd": 667
+        },
+        "324T": {
+          "label": "Dodge D-Flex Spacer/Coupling 324T",
+          "price_usd": 1032
+        },
+        "326T": {
+          "label": "Dodge D-Flex Spacer/Coupling 326T",
+          "price_usd": 1261
+        },
+        "324TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 324TS",
+          "price_usd": 1032
+        },
+        "364T": {
+          "label": "Dodge D-Flex Spacer/Coupling 364T",
+          "price_usd": 1660
+        },
+        "326TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 326TS",
+          "price_usd": 1261
+        },
+        "365T": {
+          "label": "Dodge D-Flex Spacer/Coupling 365T",
+          "price_usd": 2197
+        },
+        "364TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 364TS",
+          "price_usd": 1660
+        },
+        "365TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 365TS",
+          "price_usd": 2197
+        },
+        "404T": {
+          "label": "Dodge D-Flex Spacer/Coupling 404T",
+          "price_usd": 2197
+        },
+        "405T": {
+          "label": "Dodge D-Flex Spacer/Coupling 405T",
+          "price_usd": 2197
+        },
+        "405TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 405TS",
+          "price_usd": 2197
+        },
+        "444T": {
+          "label": "Dodge D-Flex Spacer/Coupling 444T",
+          "price_usd": 2460
+        },
+        "444TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 444TS",
+          "price_usd": 2460
+        },
+        "445T": {
+          "label": "Dodge D-Flex Spacer/Coupling 445T",
+          "price_usd": 2460
+        },
+        "445TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 445TS",
+          "price_usd": 2460
+        },
+        "447TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 447TS",
+          "price_usd": 3149
+        }
+      }
+    },
+    {
+      "url": "https://pumpresource.us/dean-ra3246-pump/",
+      "product_id": 36790,
+      "trim_adder_usd": 0,
+      "sizes": {
+        "6x8x15.5": 54085,
+        "8x10x15.5": 62580
+      },
+      "motors": [
+        {
+          "hp": 25.0,
+          "rpm": 1200,
+          "frame": "324T",
+          "label": "25hp 1200rpm 324T",
+          "only": null,
+          "price_usd": 6413
+        },
+        {
+          "hp": 30.0,
+          "rpm": 1200,
+          "frame": "326T",
+          "label": "30hp 1200rpm 326T",
+          "only": null,
+          "price_usd": 7381
+        },
+        {
+          "hp": 40.0,
+          "rpm": 1800,
+          "frame": "324T",
+          "label": "40hp 1800rpm 324T",
+          "only": null,
+          "price_usd": 5546
+        },
+        {
+          "hp": 40.0,
+          "rpm": 1200,
+          "frame": "364T",
+          "label": "40hp 1200rpm 364T",
+          "only": null,
+          "price_usd": 10453
+        },
+        {
+          "hp": 50.0,
+          "rpm": 1800,
+          "frame": "326T",
+          "label": "50hp 1800rpm 326T",
+          "only": null,
+          "price_usd": 6523
+        },
+        {
+          "hp": 50.0,
+          "rpm": 1200,
+          "frame": "365T",
+          "label": "50hp 1200rpm 365T",
+          "only": null,
+          "price_usd": 12194
+        },
+        {
+          "hp": 60.0,
+          "rpm": 1800,
+          "frame": "364T",
+          "label": "60hp 1800rpm 364T",
+          "only": null,
+          "price_usd": 9700
+        },
+        {
+          "hp": 60.0,
+          "rpm": 1200,
+          "frame": "404T",
+          "label": "60hp 1200rpm 404T",
+          "only": null,
+          "price_usd": 14106
+        },
+        {
+          "hp": 75.0,
+          "rpm": 1800,
+          "frame": "365T",
+          "label": "75hp 1800rpm 365T",
+          "only": null,
+          "price_usd": 12711
+        },
+        {
+          "hp": 75.0,
+          "rpm": 1200,
+          "frame": "405T",
+          "label": "75hp 1200rpm 405T",
+          "only": null,
+          "price_usd": 17264
+        },
+        {
+          "hp": 100.0,
+          "rpm": 1800,
+          "frame": "405T",
+          "label": "100hp 1800rpm 405T",
+          "only": null,
+          "price_usd": 15151
+        },
+        {
+          "hp": 100.0,
+          "rpm": 1200,
+          "frame": "444T",
+          "label": "100hp 1200rpm 444T",
+          "only": null,
+          "price_usd": 23046
+        },
+        {
+          "hp": 125.0,
+          "rpm": 1800,
+          "frame": "444T",
+          "label": "125hp 1800rpm 444T",
+          "only": null,
+          "price_usd": 20692
+        },
+        {
+          "hp": 125.0,
+          "rpm": 1200,
+          "frame": "445T",
+          "label": "125hp 1200rpm 445T",
+          "only": null,
+          "price_usd": 23135
+        },
+        {
+          "hp": 150.0,
+          "rpm": 1200,
+          "frame": "447T",
+          "label": "150hp 1200rpm 447T (460V)",
+          "only": null,
+          "price_usd": 32472
+        },
+        {
+          "hp": 200.0,
+          "rpm": 1800,
+          "frame": "447T",
+          "label": "200hp 1800rpm 447T (460V)",
+          "only": null,
+          "price_usd": 30417
+        },
+        {
+          "hp": 200.0,
+          "rpm": 1200,
+          "frame": "449T",
+          "label": "200hp 1200rpm 449T (460V)",
+          "only": null,
+          "price_usd": 40249
+        }
+      ],
+      "baseplates": {},
+      "couplings": {
+        "324T": {
+          "label": "324T Dodge D-Flex Spacer/Coupling",
+          "price_usd": 1029
+        },
+        "326T": {
+          "label": "326T Dodge D-Flex Spacer/Coupling",
+          "price_usd": 1261
+        },
+        "364T": {
+          "label": "364T Dodge D-Flex Spacer/Coupling",
+          "price_usd": 1660
+        },
+        "365T": {
+          "label": "365T Dodge D-Flex Spacer/Coupling",
+          "price_usd": 2198
+        },
+        "404T": {
+          "label": "404T Dodge D-Flex Spacer/Coupling",
+          "price_usd": 2198
+        },
+        "405T": {
+          "label": "405T Dodge D-Flex Spacer/Coupling",
+          "price_usd": 2198
+        },
+        "444T": {
+          "label": "444T Dodge D-Flex Spacer/Coupling",
+          "price_usd": 2461
+        },
+        "445T": {
+          "label": "445T Dodge D-Flex Spacer/Coupling",
+          "price_usd": 2461
+        },
+        "447T": {
+          "label": "447T Dodge D-Flex Spacer/Coupling",
+          "price_usd": 3149
+        },
+        "449T": {
+          "label": "449T Dodge D-Flex Spacer/Coupling",
+          "price_usd": 3149
+        }
+      }
+    },
+    {
+      "url": "https://pumpresource.us/dean-rwa4166-pump/",
+      "product_id": 30787,
+      "trim_adder_usd": 155,
+      "sizes": {
+        "1x3x8.5": 12458,
+        "1.5x3x8.5": 12751,
+        "2x3x8.5": 13077,
+        "3x4x8.5": 13477,
+        "4x6x8.5": 14685,
+        "1.5x3x10": 15586,
+        "2x3x10": 15875,
+        "3x4x10": 17513,
+        "4x6x10 #2": 27855
+      },
+      "motors": [
+        {
+          "hp": 1.0,
+          "rpm": 1800,
+          "frame": "143T",
+          "label": "1hp 1800rpm 143T",
+          "only": null,
+          "price_usd": 681
+        },
+        {
+          "hp": 1.5,
+          "rpm": 1800,
+          "frame": "145T",
+          "label": "1.5hp 1800rpm 145T",
+          "only": null,
+          "price_usd": 746
+        },
+        {
+          "hp": 2.0,
+          "rpm": 1800,
+          "frame": "145T",
+          "label": "2hp 1800rpm 145T",
+          "only": null,
+          "price_usd": 780
+        },
+        {
+          "hp": 3.0,
+          "rpm": 1200,
+          "frame": "213T",
+          "label": "3hp 1200rpm 213T",
+          "only": null,
+          "price_usd": 1253
+        },
+        {
+          "hp": 3.0,
+          "rpm": 1800,
+          "frame": "182T",
+          "label": "3hp 1800rpm 182T",
+          "only": null,
+          "price_usd": 922
+        },
+        {
+          "hp": 5.0,
+          "rpm": 1200,
+          "frame": "215T",
+          "label": "5hp 1200rpm 215T",
+          "only": null,
+          "price_usd": 1835
+        },
+        {
+          "hp": 5.0,
+          "rpm": 1800,
+          "frame": "184T",
+          "label": "5hp 1800rpm 184T",
+          "only": null,
+          "price_usd": 1001
+        },
+        {
+          "hp": 5.0,
+          "rpm": 3600,
+          "frame": "184T",
+          "label": "5hp 3600rpm 184T",
+          "only": null,
+          "price_usd": 1108
+        },
+        {
+          "hp": 7.5,
+          "rpm": 1200,
+          "frame": "254T",
+          "label": "7.5hp 1200rpm 254T",
+          "only": null,
+          "price_usd": 2483
+        },
+        {
+          "hp": 7.5,
+          "rpm": 1800,
+          "frame": "213T",
+          "label": "7.5hp 1800rpm 213T",
+          "only": null,
+          "price_usd": 1447
+        },
+        {
+          "hp": 7.5,
+          "rpm": 3600,
+          "frame": "213T",
+          "label": "7.5hp 3600rpm 213T",
+          "only": null,
+          "price_usd": 1449
+        },
+        {
+          "hp": 10.0,
+          "rpm": 1200,
+          "frame": "256T",
+          "label": "10hp 1200rpm 256T",
+          "only": null,
+          "price_usd": 2918
+        },
+        {
+          "hp": 10.0,
+          "rpm": 1800,
+          "frame": "215T",
+          "label": "10hp 1800rpm 215T",
+          "only": null,
+          "price_usd": 1742
+        },
+        {
+          "hp": 10.0,
+          "rpm": 3600,
+          "frame": "215T",
+          "label": "10hp 3600rpm 215T",
+          "only": null,
+          "price_usd": 1734
+        },
+        {
+          "hp": 15.0,
+          "rpm": 1800,
+          "frame": "254T",
+          "label": "15hp 1800rpm 254T",
+          "only": null,
+          "price_usd": 2332
+        },
+        {
+          "hp": 15.0,
+          "rpm": 3600,
+          "frame": "254T",
+          "label": "15hp 3600rpm 254T",
+          "only": null,
+          "price_usd": 2382
+        },
+        {
+          "hp": 20.0,
+          "rpm": 3600,
+          "frame": "256T",
+          "label": "20hp 3600rpm 256T",
+          "only": null,
+          "price_usd": 2863
+        },
+        {
+          "hp": 25.0,
+          "rpm": 3600,
+          "frame": "284TS",
+          "label": "25hp 3600rpm 284TS",
+          "only": null,
+          "price_usd": 3584
+        },
+        {
+          "hp": 30.0,
+          "rpm": 3600,
+          "frame": "286TS",
+          "label": "30hp 3600rpm 286TS",
+          "only": null,
+          "price_usd": 4236
+        },
+        {
+          "hp": 40.0,
+          "rpm": 3600,
+          "frame": "324TS",
+          "label": "40hp 3600rpm 324TS",
+          "only": null,
+          "price_usd": 5798
+        },
+        {
+          "hp": 50.0,
+          "rpm": 3600,
+          "frame": "326TS",
+          "label": "50hp 3600rpm 326TS",
+          "only": null,
+          "price_usd": 7309
+        },
+        {
+          "hp": 60.0,
+          "rpm": 3600,
+          "frame": "364TS",
+          "label": "60hp 3600rpm 364TS",
+          "only": null,
+          "price_usd": 10900
+        },
+        {
+          "hp": 75.0,
+          "rpm": 3600,
+          "frame": "365TS",
+          "label": "75hp 3600rpm 365TS",
+          "only": null,
+          "price_usd": 12976
+        }
+      ],
+      "baseplates": {
+        "143T": {
+          "label": "Economy Steel 143T",
+          "price_usd": 1355
+        },
+        "145T": {
+          "label": "Economy Steel 145T",
+          "price_usd": 1355
+        },
+        "182T": {
+          "label": "Economy Steel 182T",
+          "price_usd": 1355
+        },
+        "184T": {
+          "label": "Economy Steel 184T",
+          "price_usd": 1355
+        },
+        "213T": {
+          "label": "Economy Steel 213T",
+          "price_usd": 1355
+        },
+        "215T": {
+          "label": "Economy Steel 215T",
+          "price_usd": 1355
+        },
+        "254T": {
+          "label": "Economy Steel 254T",
+          "price_usd": 1513
+        },
+        "256T": {
+          "label": "Economy Steel 256T",
+          "price_usd": 1513
+        },
+        "284T": {
+          "label": "Economy Steel 284T",
+          "price_usd": 1513
+        },
+        "284TS": {
+          "label": "Economy Steel 284TS",
+          "price_usd": 1513
+        },
+        "286T": {
+          "label": "Economy Steel 286T",
+          "price_usd": 1513
+        },
+        "286TS": {
+          "label": "Economy Steel 286TS",
+          "price_usd": 1513
+        },
+        "324T": {
+          "label": "Economy Steel 324T",
+          "price_usd": 1934
+        },
+        "324TS": {
+          "label": "Economy Steel 324TS",
+          "price_usd": 1934
+        },
+        "326T": {
+          "label": "Economy Steel 326T",
+          "price_usd": 1934
+        },
+        "326TS": {
+          "label": "Economy Steel 326TS",
+          "price_usd": 1934
+        },
+        "364T": {
+          "label": "Economy Steel 364T",
+          "price_usd": 1934
+        },
+        "364TS": {
+          "label": "Economy Steel 364TS",
+          "price_usd": 1934
+        },
+        "365T": {
+          "label": "Economy Steel 365T",
+          "price_usd": 1934
+        },
+        "365TS": {
+          "label": "Economy Steel 365TS",
+          "price_usd": 1934
+        }
+      },
+      "couplings": {
+        "286T": {
+          "label": "Dodge D-Flex Spacer/Coupling 286T",
+          "price_usd": 501
+        },
+        "365TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 365TS",
+          "price_usd": 1004
+        },
+        "364TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 364TS",
+          "price_usd": 1004
+        },
+        "365T": {
+          "label": "Dodge D-Flex Spacer/Coupling 365T",
+          "price_usd": 1004
+        },
+        "326TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 326TS",
+          "price_usd": 647
+        },
+        "364T": {
+          "label": "Dodge D-Flex Spacer/Coupling 364T",
+          "price_usd": 1004
+        },
+        "324TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 324TS",
+          "price_usd": 647
+        },
+        "326T": {
+          "label": "Dodge D-Flex Spacer/Coupling 326T",
+          "price_usd": 647
+        },
+        "286TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 286TS",
+          "price_usd": 501
+        },
+        "324T": {
+          "label": "Dodge D-Flex Spacer/Coupling 324T",
+          "price_usd": 647
+        },
+        "284TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 284TS",
+          "price_usd": 501
+        },
+        "284T": {
+          "label": "Dodge D-Flex Spacer/Coupling 284T",
+          "price_usd": 501
+        },
+        "256T": {
+          "label": "Dodge D-Flex Spacer/Coupling 256T",
+          "price_usd": 501
+        },
+        "254T": {
+          "label": "Dodge D-Flex Spacer/Coupling 254T",
+          "price_usd": 501
+        },
+        "215T": {
+          "label": "Dodge D-Flex Spacer/Coupling 215T",
+          "price_usd": 367
+        },
+        "213T": {
+          "label": "Dodge D-Flex Spacer/Coupling 213T",
+          "price_usd": 367
+        },
+        "184T": {
+          "label": "Dodge D-Flex Spacer/Coupling 184T",
+          "price_usd": 367
+        },
+        "182T": {
+          "label": "Dodge D-Flex Spacer/Coupling 182T",
+          "price_usd": 367
+        },
+        "145T": {
+          "label": "Dodge D-Flex Spacer/Coupling 145T",
+          "price_usd": 367
+        },
+        "143T": {
+          "label": "Dodge D-Flex Spacer/Coupling 143T",
+          "price_usd": 367
+        }
+      }
+    }
+  ]
+}

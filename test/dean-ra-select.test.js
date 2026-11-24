@@ -303,4 +303,50 @@ function findSize(result, size) {
   assert.strictEqual(DeanRA.npshrAt(slow, 1200), null);
 }
 
+// Store package price: motor frame picks the formed-steel baseplate and the coupling.
+{
+  const prices = JSON.parse(fs.readFileSync(path.join(__dirname, '../data/dean-ra-prices.json'), 'utf8'));
+  const ra3146 = prices.products.find(function (p) { return p.url.indexOf('dean-ra3146-pump') >= 0; });
+  const curve = catalog.curves.find(function (c) {
+    return c.frame === 'RA3146' && c.rpm === 3500 && c.size.replace(/\s+/g, '') === '3x4x8.5';
+  });
+  const full = curve.impellers.reduce(function (max, imp) { return Math.max(max, imp.diameter_in); }, 0);
+  const quote = DeanRA.packageQuote(prices, curve, full, 50, 3500);
+  assert.strictEqual(quote.frame, '326TS');
+  assert.ok(/Economy Steel 326TS/.test(quote.baseplate));
+  assert.ok(!/drip/i.test(quote.baseplate));
+  assert.ok(/Dodge D-Flex Spacer\/Coupling 326TS/.test(quote.coupling));
+  const byName = {};
+  quote.lines.forEach(function (line) { byName[line.name] = line; });
+  assert.strictEqual(byName.Pump.amount, ra3146.sizes['3x4x8.5']);
+  assert.strictEqual(byName.Trim, undefined);
+  assert.strictEqual(byName.Motor.amount, 7309);
+  assert.strictEqual(byName.Baseplate.amount, 1934);
+  assert.strictEqual(byName.Coupling.amount, 654);
+  assert.strictEqual(quote.total, 12707 + 7309 + 1934 + 654);
+  const ra3246 = prices.products.find(function (p) { return p.url.indexOf('dean-ra3246-pump') >= 0; });
+  assert.strictEqual(ra3246.trim_adder_usd, 0);
+  const wide = {
+    frame: 'RA3246',
+    size: '6 x 8 x 15.5',
+    rpm: 1750,
+    impellers: [{ diameter_in: 15.5 }, { diameter_in: 15 }]
+  };
+  const trimmed = DeanRA.packageQuote(prices, wide, 15, 50, 1750);
+  const trimLine = trimmed.lines.find(function (line) { return line.name === 'Trim'; });
+  assert.strictEqual(trimLine.amount, 0);
+  assert.strictEqual(trimmed.frame, '326T');
+  const duty = pick(100, 240);
+  const shown = DeanRA.packageQuote(prices, duty.pick.curve, duty.pick.diameter_in, duty.pick.motor_hp, 3500);
+  assert.strictEqual(shown.frame, '254T');
+  assert.ok(/Formed Steel/.test(shown.baseplate));
+  assert.strictEqual(shown.coupling, null);
+  const only = DeanRA.select(catalog, { q_gpm: 100, h_ft: 240, fluid: 'water', rpm: 3500, frame: 'RA3146' });
+  const priced = DeanRA.packageQuote(prices, only.pick.curve, only.pick.diameter_in, only.pick.motor_hp, 3500);
+  assert.strictEqual(priced.frame, '254T');
+  assert.ok(/Economy Steel 254T/.test(priced.baseplate));
+  assert.ok(/254T/.test(priced.coupling));
+  assert.strictEqual(priced.total, 10630 + 155 + 2382 + 1513 + 501);
+}
+
 console.log('dean-ra-select tests passed');

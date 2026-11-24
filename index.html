@@ -215,6 +215,21 @@ details summary:focus-visible {
   font-weight: 700;
   letter-spacing: -0.02em;
 }
+.chart-price {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.chart-price div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.chart-price div span:first-child { flex: 1 1 auto; }
+.chart-price .amt { flex: 0 0 auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chart-price .total { font-weight: 700; margin-top: 2px; }
+.chart-price .freight { margin: 4px 0 0; color: var(--muted); }
 .chart-duty {
   margin: 4px 0 0;
   font-size: 16px;
@@ -397,6 +412,7 @@ th { font-weight: 600; }
         <div class="chart-head">
           <p class="chart-title" id="chart-title"></p>
           <p class="chart-duty" id="chart-duty"></p>
+          <div class="chart-price" id="chart-price" hidden></div>
           <p class="chart-caption" id="chart-caption"></p>
         </div>
         <canvas id="sel-canvas"></canvas>
@@ -419,6 +435,7 @@ th { font-weight: 600; }
 <script src="dean-ra-select.js"></script>
 <script>
 var DEAN_CATALOG = null;
+var DEAN_PRICES = null;
 var DEAN_IQ = { records: [] };
 var DEAN_LAST = null;
 
@@ -533,6 +550,23 @@ function perfLine(hit) {
   if (hit.npshr_ft != null) parts.push('NPSHr ' + oneDecimal(hit.npshr_ft) + ' ft');
   return parts.join(' · ');
 }
+function money(amount) {
+  if (amount == null || !isFinite(Number(amount))) return 'Call for price';
+  var v = Math.round(Number(amount));
+  return '$' + String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+function priceMarkup(hit) {
+  if (!hit || !DEAN_PRICES) return '';
+  var quote = DeanRA.packageQuote(DEAN_PRICES, hit.curve, hit.diameter_in, hit.motor_hp, hit.curve.rpm);
+  var html = '';
+  quote.lines.forEach(function (line) {
+    var label = line.name + (line.detail ? ' ' + line.detail : '');
+    html += '<div><span>' + esc(label) + '</span><span class="amt">' + esc(money(line.amount)) + '</span></div>';
+  });
+  html += '<div class="total"><span>Package</span><span class="amt">' + esc(money(quote.total)) + '</span></div>';
+  html += '<p class="freight">Freight is calculated at checkout.</p>';
+  return html;
+}
 function flagLine(hit) {
   if (hit.bep_zone === 'low') return 'Below 50% of BEP.';
   if (hit.bep_zone === 'high') return 'Above 130% of BEP.';
@@ -574,6 +608,7 @@ function renderDeanSelection() {
   var caption = document.getElementById('chart-caption');
   var chartTitle = document.getElementById('chart-title');
   var chartDuty = document.getElementById('chart-duty');
+  var chartPrice = document.getElementById('chart-price');
   var legend = document.getElementById('chart-legend');
   var chartCorrection = document.getElementById('chart-correction');
   var listKicker = document.getElementById('list-kicker');
@@ -601,9 +636,11 @@ function renderDeanSelection() {
     if (DEAN_LAST.frame) {
       meta.textContent = 'No ' + DEAN_LAST.frame + ' size meets this duty.';
       notes.innerHTML = notesHtml + '<p class="note"><button type="button" class="text-link" id="show-all-models">Show all models</button></p>';
+      if (chartPrice) { chartPrice.hidden = true; chartPrice.innerHTML = ''; }
     } else {
       meta.textContent = 'No curve in this catalog covers this duty. ' + dutyTemp;
       notes.innerHTML = notesHtml + '<p class="note">' + esc(q + ' gpm at ' + h + ' ft is outside every digitized Dean RA line.') + '</p>';
+      if (chartPrice) { chartPrice.hidden = true; chartPrice.innerHTML = ''; }
     }
     return;
   }
@@ -647,6 +684,11 @@ function renderDeanSelection() {
   var trimText = DeanRA.formatDia(hit.diameter_in) + ' in';
   chartTitle.textContent = DeanRA.powerFrame(curve) + '  ·  ' + curve.size + '  ·  ' + curve.rpm + ' rpm';
   chartDuty.textContent = q + ' gpm at ' + h + ' ft  ·  ' + trimText;
+  if (chartPrice) {
+    var priced = priceMarkup(hit);
+    chartPrice.hidden = !priced;
+    chartPrice.innerHTML = priced;
+  }
   caption.textContent = '';
   legend.textContent = '';
   wrap.hidden = false;
@@ -1193,6 +1235,15 @@ document.getElementById('sel-t').addEventListener('input', function () {
 window.addEventListener('resize', function () {
   if (DEAN_LAST && DEAN_LAST.result.covered) drawDeanSelection();
 });
+fetch('data/dean-ra-prices.json').then(function (r) {
+  if (!r.ok) return null;
+  return r.json();
+}).then(function (prices) {
+  if (prices && prices.products) {
+    DEAN_PRICES = prices;
+    if (DEAN_LAST) renderDeanSelection();
+  }
+}).catch(function () {});
 fetch('data/dean-ra-curves.json').then(function (r) {
   if (!r.ok) throw new Error('catalog ' + r.status);
   return r.json();

@@ -1253,6 +1253,80 @@
     return 'View ' + link.size + ', ' + link.trim + ' in';
   }
 
+  function priceProduct(table, frame) {
+    var products = table && table.products || [];
+    var slug = String(frame || '').toLowerCase();
+    if (!slug) return null;
+    for (var i = 0; i < products.length; i++) {
+      if (String(products[i].url || '').toLowerCase().indexOf(slug) >= 0) return products[i];
+    }
+    return null;
+  }
+
+  function matchingMotor(product, hp, motorRpm, sizeLabel) {
+    if (!product || !(hp > 0) || !(motorRpm > 0)) return null;
+    var sizeKey = String(sizeLabel || '').toLowerCase().replace(/\s+/g, '');
+    var hits = [];
+    (product.motors || []).forEach(function (motor) {
+      if (Number(motor.hp) !== Number(hp) || Number(motor.rpm) !== Number(motorRpm)) return;
+      if (motor.only) {
+        var only = String(motor.only).toLowerCase().replace(/\s+/g, '');
+        if (only !== sizeKey) return;
+      }
+      hits.push(motor);
+    });
+    hits.sort(function (a, b) { return (a.only ? 1 : 0) - (b.only ? 1 : 0); });
+    return hits[0] || null;
+  }
+
+  /** Store package price for the pump, trim, motor, formed-steel baseplate, and coupling.
+      Amounts are the store's figures. A missing option is null, which means call for price. */
+  function packageQuote(table, curve, diameterIn, motorHp, pumpRpm) {
+    var lines = [];
+    var missing = false;
+    function add(name, detail, amount) {
+      if (amount == null || !isFinite(Number(amount))) missing = true;
+      lines.push({
+        name: name,
+        detail: detail || '',
+        amount: amount == null || !isFinite(Number(amount)) ? null : Number(amount)
+      });
+    }
+    var product = priceProduct(table, curve && curve.frame);
+    var size = storeSizeLabel(curve && curve.size);
+    var bare = product && product.sizes ? product.sizes[size] : null;
+    add('Pump', curve && curve.size, bare);
+    var max = catalogMaxDia(curve);
+    var full = max != null && formatDia(diameterIn) === formatDia(max);
+    if (!full) {
+      var adder = product ? product.trim_adder_usd : null;
+      add('Trim', formatDia(diameterIn) + ' in', adder);
+    }
+    var motorRpm = table && table.pump_rpm_to_motor_rpm ? table.pump_rpm_to_motor_rpm[String(pumpRpm)] : null;
+    var motor = matchingMotor(product, motorHp, motorRpm, size);
+    var frame = motor ? motor.frame : null;
+    var motorDetail = (motorHp > 0 ? motorHp + ' hp' : 'Motor');
+    if (motorRpm) motorDetail += ', ' + motorRpm + ' rpm';
+    if (frame) motorDetail += ', ' + frame;
+    add('Motor', motorDetail, motor ? motor.price_usd : null);
+    var base = frame && product && product.baseplates ? product.baseplates[frame] : null;
+    add('Baseplate', base ? base.label : (frame || ''), base ? base.price_usd : null);
+    var coup = frame && product && product.couplings ? product.couplings[frame] : null;
+    add('Coupling', coup ? coup.label : (frame || ''), coup ? coup.price_usd : null);
+    var total = null;
+    if (!missing) {
+      total = 0;
+      lines.forEach(function (line) { total += line.amount; });
+    }
+    return {
+      frame: frame,
+      baseplate: base ? base.label : null,
+      coupling: coup ? coup.label : null,
+      lines: lines,
+      total: total
+    };
+  }
+
   function frames(catalog) {
     var seen = {};
     var out = [];
@@ -1320,6 +1394,7 @@
     formatDia: formatDia,
     productLink: productLink,
     productLinkText: productLinkText,
+    packageQuote: packageQuote,
     affinityHead: affinityHead,
     smoothHead: smoothHead,
     smoothPieces: smoothPieces,
