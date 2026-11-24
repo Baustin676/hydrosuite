@@ -351,6 +351,29 @@ function findSize(result, size) {
   assert.ok(/Economy Steel 254T/.test(priced.baseplate));
   assert.ok(/254T/.test(priced.coupling));
   assert.strictEqual(priced.total, 10630 + 155 + 2382 + 1513 + 501);
+  [duty.selections, only.selections].forEach(function (list) {
+    assert.ok(list.length > 1);
+    const seen = {};
+    list.forEach(function (hit) {
+      const own = DeanRA.packageQuote(prices, hit.curve, hit.diameter_in, hit.motor_hp, hit.curve.rpm);
+      const names = own.lines.map(function (line) { return line.name; });
+      assert.ok(names.indexOf('Pump') >= 0 && names.indexOf('Motor') >= 0);
+      assert.ok(names.indexOf('Baseplate') >= 0 && names.indexOf('Coupling') >= 0);
+      const pump = own.lines.find(function (line) { return line.name === 'Pump'; });
+      assert.strictEqual(pump.detail, hit.curve.size);
+      const motor = own.lines.find(function (line) { return line.name === 'Motor'; });
+      assert.ok(motor.detail.indexOf(String(hit.motor_hp) + ' hp') >= 0);
+      assert.ok(motor.detail.indexOf('rpm') >= 0);
+      if (own.frame) assert.ok(motor.detail.indexOf(own.frame) >= 0);
+      const key = hit.curve.model + '@' + hit.diameter_in;
+      assert.ok(!seen[key], key);
+      seen[key] = pump.amount;
+    });
+  });
+  const page = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+  assert.ok(page.indexOf('class="sel-price"') > 0);
+  assert.ok(page.indexOf('id="chart-price"') < 0);
+  assert.ok(page.indexOf('Freight is calculated at checkout.') > 0);
 }
 
 console.log('dean-ra-select tests passed');

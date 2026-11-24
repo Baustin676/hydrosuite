@@ -192,21 +192,23 @@ details summary:focus-visible {
   font-weight: 700;
   letter-spacing: -0.02em;
 }
-.chart-price {
-  margin: 10px 0 0;
-  font-size: 14px;
-  line-height: 1.4;
+.sel-price {
+  margin: 8px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 400;
 }
-.chart-price div {
+.sel-price div {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 12px;
+  gap: 8px;
 }
-.chart-price div span:first-child { flex: 1 1 auto; }
-.chart-price .amt { flex: 0 0 auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.chart-price .total { font-weight: 700; margin-top: 2px; }
-.chart-price .freight { margin: 4px 0 0; color: var(--muted); }
+.sel-price div span:first-child { flex: 1 1 auto; }
+.sel-price .amt { flex: 0 0 auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sel-price .total { font-weight: 700; margin-top: 2px; }
 .chart-duty {
   margin: 4px 0 0;
   font-size: 16px;
@@ -382,7 +384,6 @@ th { font-weight: 600; }
         <div class="chart-head">
           <p class="chart-title" id="chart-title"></p>
           <p class="chart-duty" id="chart-duty"></p>
-          <div class="chart-price" id="chart-price" hidden></div>
           <p class="chart-caption" id="chart-caption"></p>
         </div>
         <canvas id="sel-canvas"></canvas>
@@ -519,14 +520,14 @@ function money(amount) {
 function priceMarkup(hit) {
   if (!hit || !DEAN_PRICES) return '';
   var quote = DeanRA.packageQuote(DEAN_PRICES, hit.curve, hit.diameter_in, hit.motor_hp, hit.curve.rpm);
-  var html = '';
+  var html = '<div class="sel-price">';
   quote.lines.forEach(function (line) {
     var label = line.included ? line.name : (line.name + (line.detail ? ' ' + line.detail : ''));
     var amount = line.included ? 'Included with pump' : money(line.amount);
     html += '<div><span>' + esc(label) + '</span><span class="amt">' + esc(amount) + '</span></div>';
   });
   html += '<div class="total"><span>Package</span><span class="amt">' + esc(money(quote.total)) + '</span></div>';
-  html += '<p class="freight">Freight is calculated at checkout.</p>';
+  html += '</div>';
   return html;
 }
 function flagLine(hit) {
@@ -570,7 +571,6 @@ function renderDeanSelection() {
   var caption = document.getElementById('chart-caption');
   var chartTitle = document.getElementById('chart-title');
   var chartDuty = document.getElementById('chart-duty');
-  var chartPrice = document.getElementById('chart-price');
   var legend = document.getElementById('chart-legend');
   var chartCorrection = document.getElementById('chart-correction');
   var listKicker = document.getElementById('list-kicker');
@@ -598,11 +598,9 @@ function renderDeanSelection() {
     if (DEAN_LAST.frame) {
       meta.textContent = 'No ' + DEAN_LAST.frame + ' size meets this duty.';
       notes.innerHTML = notesHtml + '<p class="note"><button type="button" class="text-link" id="show-all-models">Show all models</button></p>';
-      if (chartPrice) { chartPrice.hidden = true; chartPrice.innerHTML = ''; }
     } else {
       meta.textContent = 'No curve in this catalog covers this duty. ' + dutyTemp;
       notes.innerHTML = notesHtml + '<p class="note">' + esc(q + ' gpm at ' + h + ' ft is outside every digitized Dean RA line.') + '</p>';
-      if (chartPrice) { chartPrice.hidden = true; chartPrice.innerHTML = ''; }
     }
     return;
   }
@@ -637,20 +635,16 @@ function renderDeanSelection() {
       '<p class="sel-trim">' + esc(DeanRA.impellerLabel(hit)) + '</p>' +
       '<p class="sel-perf">' + esc(perfLine(hit)) + '</p>' +
       (hit.bep_zone && hit.bep_zone !== 'preferred' ? '<p class="sel-flag">' + esc(flagLine(hit)) + '</p>' : '') +
+      priceMarkup(hit) +
       '</button>' + store + '</div>';
   });
   listEl.innerHTML = html;
   var hit = activeHit();
   var curve = hit.curve;
-  notes.innerHTML = notesHtml;
+  notes.innerHTML = notesHtml + '<p class="note quiet">Freight is calculated at checkout.</p>';
   var trimText = DeanRA.formatDia(hit.diameter_in) + ' in';
   chartTitle.textContent = DeanRA.powerFrame(curve) + '  ·  ' + curve.size + '  ·  ' + curve.rpm + ' rpm';
   chartDuty.textContent = q + ' gpm at ' + h + ' ft  ·  ' + trimText;
-  if (chartPrice) {
-    var priced = priceMarkup(hit);
-    chartPrice.hidden = !priced;
-    chartPrice.innerHTML = priced;
-  }
   caption.textContent = '';
   legend.textContent = '';
   wrap.hidden = false;
