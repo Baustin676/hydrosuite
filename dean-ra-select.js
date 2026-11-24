@@ -198,8 +198,39 @@
       (t3 - t2) * dx * m1;
   }
 
-  /** Head on the smooth monotone curve through one impeller. Null outside the real points. */
+  function pieceAt(fit, q) {
+    var pieces = fit.pieces || [];
+    for (var i = 0; i < pieces.length; i++) {
+      if (q <= pieces[i].q1 + 1e-6 || i === pieces.length - 1) return pieces[i];
+    }
+    return null;
+  }
+
+  function evalFit(fit, q) {
+    var piece = fit.pieces ? pieceAt(fit, q) : null;
+    if (piece) {
+      var u = q - piece.q0;
+      return piece.h0 + piece.m0 * u + piece.c * u * u;
+    }
+    return fit.a + fit.b * q + fit.c * q * q + (fit.d || 0) * q * q * q;
+  }
+
+  function fitSlope(fit, q) {
+    var piece = fit.pieces ? pieceAt(fit, q) : null;
+    if (piece) return piece.m0 + 2 * piece.c * (q - piece.q0);
+    return fit.b + 2 * fit.c * q + 3 * (fit.d || 0) * q * q;
+  }
+
+  /** Head on the smooth curve. A stored fit is the concave polynomial.
+      Otherwise the monotone spline through the measured points is used. */
   function smoothHead(points, q) {
+    var fit = points && points.fit;
+    if (fit && (isFinite(fit.a) || fit.pieces)) {
+      var qLo = fit.q0;
+      var qHi = fit.q1;
+      if (q < qLo - 1e-9 || q > qHi + 1e-9) return null;
+      return { h: evalFit(fit, q), qMin: qLo, qMax: qHi };
+    }
     var pts = measuredPoints(points);
     if (!pts.length) return null;
     var qMin = pts[0].q_gpm;
@@ -224,8 +255,27 @@
     return null;
   }
 
-  /** Cubic pieces of that curve, from the first real point to the last. No extension. */
+  /** Cubic pieces of that curve, from the first real point to the last. No extension.
+      A polynomial fit is drawn as short pieces that match its value and slope. */
   function smoothPieces(points) {
+    var fit = points && points.fit;
+    if (fit && (isFinite(fit.a) || fit.pieces) && fit.q1 > fit.q0) {
+      var pieces = [];
+      var n = 16;
+      for (var i = 0; i < n; i++) {
+        var q0 = fit.q0 + (fit.q1 - fit.q0) * i / n;
+        var q1 = fit.q0 + (fit.q1 - fit.q0) * (i + 1) / n;
+        pieces.push({
+          q0: q0,
+          h0: evalFit(fit, q0),
+          m0: fitSlope(fit, q0),
+          q1: q1,
+          h1: evalFit(fit, q1),
+          m1: fitSlope(fit, q1)
+        });
+      }
+      return pieces;
+    }
     var pts = measuredPoints(points);
     if (pts.length < 2) return [];
     var slopes = monotoneSlopes(pts);
@@ -596,7 +646,8 @@
     if (ea == null && eb == null) return sameCurveOrder(a, b);
     if (ea == null) return 1;
     if (eb == null) return -1;
-    if (Math.abs(ea - eb) <= 2) {
+    // A real efficiency lead wins. The BEP window only breaks a near tie.
+    if (Math.abs(ea - eb) <= 0.5) {
       var da = bepPenalty(a.pct_bep);
       var db = bepPenalty(b.pct_bep);
       if (Math.abs(da - db) > 0.2) return da - db;
@@ -605,7 +656,80 @@
     return sameCurveOrder(a, b);
   }
 
+  function attachFits(catalog) {
+    (catalog.curves || []).forEach(function (curve) {
+      (curve.impellers || []).forEach(function (imp) {
+        if (imp.fit && imp.points) imp.points.fit = imp.fit;
+      });
+    });
+  }
+
+  /** Dense samples of one sold diameter. Printed lines use their polynomial.
+      A trim uses D squared between the two smoothed lines that bracket it. */
+  function diameterSamples(curve, diameter, n) {
+    attachFits({ curves: [curve] });
+    var imps = (curve.impellers || []).slice().sort(function (a, b) {
+      return a.diameter_in - b.diameter_in;
+    });
+    var count = n || 80;
+    var exact = null;
+    imps.forEach(function (imp) {
+      if (Math.abs(imp.diameter_in - diameter) < 1e-6) exact = imp;
+    });
+    function span(imp) {
+      var fit = imp.points && imp.points.fit;
+      if (fit) return [fit.q0, fit.q1];
+      var pts = measuredPoints(imp.points);
+      if (!pts.length) return null;
+      return [pts[0].q_gpm, pts[pts.length - 1].q_gpm];
+    }
+    function at(imp, q) {
+      var sm = smoothHead(imp.points, q);
+      return sm ? sm.h : null;
+    }
+    if (exact) {
+      var ends = span(exact);
+      if (!ends) return [];
+      var out = [];
+      for (var i = 0; i <= count; i++) {
+        var q = ends[0] + (ends[1] - ends[0]) * i / count;
+        var h = at(exact, q);
+        if (h != null) out.push({ q: q, h: h });
+      }
+      return out;
+    }
+    var lo = null;
+    var hi = null;
+    for (var j = 0; j < imps.length - 1; j++) {
+      if (imps[j].diameter_in < diameter - 1e-6 && imps[j + 1].diameter_in > diameter + 1e-6) {
+        lo = imps[j];
+        hi = imps[j + 1];
+      }
+    }
+    if (!lo || !hi) return [];
+    var a = span(lo);
+    var b = span(hi);
+    if (!a || !b) return [];
+    var q0 = Math.max(a[0], b[0]);
+    var q1 = Math.min(a[1], b[1]);
+    if (!(q1 > q0)) return [];
+    var trim = [];
+    var prev = 1e9;
+    for (var k = 0; k <= count; k++) {
+      var qq = q0 + (q1 - q0) * k / count;
+      var hl = at(lo, qq);
+      var hh = at(hi, qq);
+      if (hl == null || hh == null) continue;
+      var hv = affinityHead(hl, hh, lo.diameter_in, hi.diameter_in, diameter);
+      if (hv > prev) hv = prev;
+      prev = hv;
+      trim.push({ q: qq, h: hv });
+    }
+    return trim;
+  }
+
   function select(catalog, duty) {
+    attachFits(catalog);
     var q = Number(duty.q_gpm);
     var h = Number(duty.h_ft);
     var correction = correctDuty(duty);
@@ -976,12 +1100,7 @@
 
   function impellerLabel(hit) {
     if (!hit) return '';
-    if (hit.kind === 'catalog') {
-      return formatDia(hit.diameter_in) + ' in catalog diameter';
-    }
-    var lo = formatDia(hit.between[0]);
-    var hi = formatDia(hit.between[1]);
-    return formatDia(hit.diameter_in) + ' in, calculated between the ' + lo + ' in and ' + hi + ' in catalog diameters, not a published curve';
+    return formatDia(hit.diameter_in) + ' in';
   }
 
   function formatDia(d) {
@@ -1168,6 +1287,9 @@
     affinityHead: affinityHead,
     smoothHead: smoothHead,
     smoothPieces: smoothPieces,
+    attachFits: attachFits,
+    diameterSamples: diameterSamples,
+    evalFit: evalFit,
     interpolatedPoints: interpolatedPoints,
     curvePoints: curvePoints,
     measuredPoints: measuredPoints,

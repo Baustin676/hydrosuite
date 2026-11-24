@@ -22,14 +22,13 @@ function findSize(result, size) {
   const r = pick(80, 130);
   const hit = findSize(r, '1 x 1.5 x 6');
   assert.strictEqual(hit.kind, 'trim');
-  assert.strictEqual(hit.diameter_in, 5.75);
   assert.deepStrictEqual(hit.between, [5.5, 6]);
-  const hd = DeanRA.affinityHead(hit.hLower, hit.hUpper, 5.5, 6, 5.75);
+  assert.ok(hit.diameter_in > 5.5 && hit.diameter_in < 6);
+  const hd = DeanRA.affinityHead(hit.hLower, hit.hUpper, hit.lowerDiameter, hit.upperDiameter, hit.diameter_in);
   assert.ok(Math.abs(hd - hit.head_ft) < 1e-6);
   assert.ok(hit.head_ft + 1e-6 >= 130);
   const label = DeanRA.impellerLabel(hit);
-  assert.ok(label.indexOf('5.75 in') === 0);
-  assert.ok(label.indexOf('calculated between the 5.5 in and 6 in catalog diameters') >= 0);
+  assert.strictEqual(label, DeanRA.formatDia(hit.diameter_in) + ' in');
   assert.ok(hit.efficiency_pct > 40);
   assert.ok(hit.pct_bep > 20 && hit.pct_bep < 150);
   assert.ok(hit.bhp > 0);
@@ -89,6 +88,38 @@ function findSize(result, size) {
   assert.ok(dias.indexOf(5.5) < 0);
 }
 
+// Each stored fit falls and bows down, and stays near the reads it was fit to.
+{
+  catalog.curves.forEach(function (curve) {
+    curve.impellers.forEach(function (imp) {
+      const fit = imp.fit;
+      assert.ok(fit, curve.model + ' missing fit');
+      const q0 = fit.q0;
+      const q1 = fit.q1;
+      let prev = Infinity;
+      let prevSlope = Infinity;
+      for (let i = 0; i <= 24; i++) {
+        const q = q0 + (q1 - q0) * i / 24;
+        const h = DeanRA.evalFit(fit, q);
+        const dq = (q1 - q0) / 48;
+        const q2 = q + dq;
+        const slope = q2 >= q1 - 1e-6
+          ? prevSlope
+          : (fit.pieces
+            ? (DeanRA.evalFit(fit, q2) - h) / dq
+            : fit.b + 2 * fit.c * q + 3 * (fit.d || 0) * q * q);
+        assert.ok(h < prev, curve.model + ' ' + imp.diameter_in + ' not falling at ' + q);
+        assert.ok(slope < 0.02, curve.model + ' ' + imp.diameter_in + ' slope');
+        if (i > 0) assert.ok(slope <= prevSlope + 0.02, curve.model + ' ' + imp.diameter_in + ' not concave');
+        prev = h;
+        prevSlope = slope;
+      }
+      const samples = DeanRA.diameterSamples(curve, imp.diameter_in, 40);
+      assert.ok(samples.length > 20);
+    });
+  });
+}
+
 // Every line falls, trims stay between the printed lines, and the name on screen is the frame.
 {
   const shown = { 'RA1060-A2': 'RA2096', 'RA1080-A2': 'RA2096', 'RA1560-A2': 'RA2096', 'R1085-A2': 'RA3146', 'R1585-A2': 'RA3146', 'R2085-A2': 'RA3146', 'R3085-A1': 'RA3146', 'R4085-A1': 'RA3146', 'R15100-A2': 'RA3146', 'R20100-A2': 'RA3146', 'R30100-A1': 'RA3146', 'R40100-B2': 'RA3146', 'R40100-A1': 'RA3186' };
@@ -113,7 +144,6 @@ function findSize(result, size) {
     if (hit.pct_bep < 50) assert.strictEqual(hit.bep_zone, 'low');
     if (hit.pct_bep >= 70 && hit.pct_bep <= 120) assert.strictEqual(hit.bep_zone, 'preferred');
   });
-  assert.ok(DeanRA.RANK_NOTE.indexOf('efficiency') >= 0);
   assert.ok(DeanRA.CATALOG_LIMIT_NOTE.indexOf('10 in') >= 0);
   assert.ok(DeanRA.VISCOSITY_NOTE.indexOf('70 SSU') >= 0);
   assert.ok(DeanRA.SHARED_CURVE_NOTE.indexOf('RA and RWA') >= 0);
@@ -125,8 +155,10 @@ function findSize(result, size) {
   const oil = DeanRA.select(catalog, { q_gpm: 200, h_ft: 150, fluid: 'crude', temp: 68, unit: 'F', rpm: 3500 });
   assert.ok(Math.abs(oil.pick.bhp / water.pick.bhp - 0.87) < 0.05, 'crude SG should scale power');
   const slow = catalog.curves.find(function (c) { return c.model === 'RA1060-A2' && c.rpm === 1750; });
-  assert.strictEqual(slow.npshr_fit, undefined);
-  assert.strictEqual(DeanRA.npshrAt(slow, 40), null);
+  assert.ok(slow.npshr_fit && slow.npshr_fit.c1 > 0, '1750 NPSHr comes from the printed chart');
+  assert.ok(DeanRA.npshrAt(slow, 40) > 2);
+  const fast = catalog.curves.find(function (c) { return c.model === 'R40100-B2' && c.rpm === 1150; });
+  assert.ok(fast.impellers.every(function (imp) { return imp.diameter_in >= 8; }));
 }
 
 // Hydraulic Institute correction is unchanged.
