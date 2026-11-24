@@ -26,6 +26,12 @@ body {
   line-height: 1.45;
   min-height: 100vh;
 }
+html.embedded,
+html.embedded body {
+  min-height: 0;
+  height: auto;
+  overflow: visible;
+}
 button, input, select { font-family: inherit; color: inherit; }
 .page {
   max-width: 1120px;
@@ -409,6 +415,51 @@ var DEAN_CATALOG = null;
 var DEAN_PRICES = null;
 var DEAN_IQ = { records: [] };
 var DEAN_LAST = null;
+var EMBED_ORIGINS = ['https://pumpresource.us', 'https://www.pumpresource.us'];
+var embedded = false;
+try { embedded = window.parent !== window; } catch (e) { embedded = true; }
+if (embedded) document.documentElement.classList.add('embedded');
+var lastPostedHeight = 0;
+function contentHeight() {
+  var page = document.querySelector('.page');
+  if (!page) return 0;
+  return Math.ceil(page.getBoundingClientRect().height);
+}
+function postToParent(message) {
+  if (!embedded || !window.parent) return;
+  EMBED_ORIGINS.forEach(function (origin) {
+    try { window.parent.postMessage(message, origin); } catch (e) {}
+  });
+}
+function postFrameHeight() {
+  if (!embedded) return;
+  var height = contentHeight();
+  if (!height || height === lastPostedHeight) return;
+  lastPostedHeight = height;
+  postToParent({ type: 'hydrosuite:height', height: height });
+}
+function postScrollToResults() {
+  if (!embedded) return;
+  if (!window.matchMedia('(max-width: 800px)').matches) return;
+  requestAnimationFrame(function () {
+    var el = document.getElementById('result');
+    if (!el) return;
+    postFrameHeight();
+    var top = Math.round(el.getBoundingClientRect().top + window.pageYOffset);
+    postToParent({ type: 'hydrosuite:scroll-to-results', top: top });
+  });
+}
+function watchEmbedHeight() {
+  if (!embedded) return;
+  postFrameHeight();
+  window.addEventListener('load', postFrameHeight);
+  window.addEventListener('resize', postFrameHeight);
+  if (window.ResizeObserver) {
+    var target = document.querySelector('.page') || document.body;
+    new ResizeObserver(function () { postFrameHeight(); }).observe(target);
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(postFrameHeight);
+}
 
 function selNum(id) {
   var el = document.getElementById(id);
@@ -480,9 +531,9 @@ function runDeanSelect() {
   err.textContent = '';
   var q = selNum('sel-q'), h = selNum('sel-h'), t = selNum('sel-t');
   var fluid = document.getElementById('sel-fluid').value;
-  if (!DEAN_CATALOG) { err.textContent = 'Catalog is still loading.'; return; }
-  if (q == null || h == null || t == null) { err.textContent = 'Enter flow, head, and temperature.'; return; }
-  if (q <= 0 || h <= 0) { err.textContent = 'Flow and head need to be greater than zero.'; return; }
+  if (!DEAN_CATALOG) { err.textContent = 'Catalog is still loading.'; return false; }
+  if (q == null || h == null || t == null) { err.textContent = 'Enter flow, head, and temperature.'; return false; }
+  if (q <= 0 || h <= 0) { err.textContent = 'Flow and head need to be greater than zero.'; return false; }
   var rpm = Number(document.getElementById('sel-rpm').value);
   var frame = document.getElementById('sel-model').value;
   DEAN_LAST = {
@@ -490,6 +541,7 @@ function runDeanSelect() {
     q: q, h: h, t: t, unit: TEMP_UNIT, fluid: fluid, rpm: rpm, frame: frame, active: 0
   };
   renderDeanSelection();
+  return true;
 }
 function activeHit() {
   if (!DEAN_LAST || !DEAN_LAST.result || !DEAN_LAST.result.covered) return null;
@@ -602,6 +654,7 @@ function renderDeanSelection() {
       meta.textContent = 'No curve in this catalog covers this duty. ' + dutyTemp;
       notes.innerHTML = notesHtml + '<p class="note">' + esc(q + ' gpm at ' + h + ' ft is outside every digitized Dean RA line.') + '</p>';
     }
+    postFrameHeight();
     return;
   }
   var selections = result.selections;
@@ -650,6 +703,7 @@ function renderDeanSelection() {
   wrap.hidden = false;
   points.innerHTML = '';
   drawDeanSelection();
+  postFrameHeight();
 }
 function renderPointTable(curve) {
   var rows = '';
@@ -865,6 +919,7 @@ function drawDeanSelection() {
   });
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
+  postFrameHeight();
 }
 function sampleCurve(points, X, Y) {
   var measured = DeanRA.measuredPoints(points);
@@ -1122,7 +1177,7 @@ document.getElementById('rec-list').addEventListener('click', function (ev) {
 });
 document.getElementById('duty').addEventListener('submit', function (ev) {
   ev.preventDefault();
-  runDeanSelect();
+  if (runDeanSelect()) postScrollToResults();
 });
 function modelFromUrl() {
   var raw = '';
@@ -1179,7 +1234,9 @@ document.getElementById('sel-t').addEventListener('input', function () {
 });
 window.addEventListener('resize', function () {
   if (DEAN_LAST && DEAN_LAST.result.covered) drawDeanSelection();
+  postFrameHeight();
 });
+watchEmbedHeight();
 fetch('data/dean-ra-prices.json').then(function (r) {
   if (!r.ok) return null;
   return r.json();
