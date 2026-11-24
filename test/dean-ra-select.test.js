@@ -340,7 +340,11 @@ function findSize(result, size) {
   const shown = DeanRA.packageQuote(prices, duty.pick.curve, duty.pick.diameter_in, duty.pick.motor_hp, 3500);
   assert.strictEqual(shown.frame, '254T');
   assert.ok(/Formed Steel/.test(shown.baseplate));
-  assert.strictEqual(shown.coupling, null);
+  assert.strictEqual(shown.coupling, 'Included with pump');
+  var shownCoupling = shown.lines.find(function (line) { return line.name === 'Coupling'; });
+  assert.strictEqual(shownCoupling.included, true);
+  assert.strictEqual(shownCoupling.amount, 0);
+  assert.strictEqual(shown.total, 8174 + 155 + 2382 + 1093);
   const only = DeanRA.select(catalog, { q_gpm: 100, h_ft: 240, fluid: 'water', rpm: 3500, frame: 'RA3146' });
   const priced = DeanRA.packageQuote(prices, only.pick.curve, only.pick.diameter_in, only.pick.motor_hp, 3500);
   assert.strictEqual(priced.frame, '254T');

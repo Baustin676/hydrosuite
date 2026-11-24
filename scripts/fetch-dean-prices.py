@@ -307,6 +307,7 @@ def scrape(url):
         "motors": motors,
         "baseplates": bases,
         "couplings": coups,
+        "coupling_included": "dean-ra2096-pump" in url,
     }
 
 

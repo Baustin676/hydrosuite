@@ -189,7 +189,8 @@
           "price_usd": 1093
         }
       },
-      "couplings": {}
+      "couplings": {},
+      "coupling_included": true
     },
     {
       "url": "https://pumpresource.us/dean-ra3146-pump/",
@@ -632,7 +633,8 @@
           "label": "Dodge D-Flex Spacer/Coupling 444TS",
           "price_usd": 1677
         }
-      }
+      },
+      "coupling_included": false
     },
     {
       "url": "https://pumpresource.us/dean-ra3186-pump/",
@@ -804,7 +806,8 @@
           "label": "Dodge D-Flex Spacer/Coupling 447TS",
           "price_usd": 3149
         }
-      }
+      },
+      "coupling_included": false
     },
     {
       "url": "https://pumpresource.us/dean-ra3246-pump/",
@@ -994,7 +997,8 @@
           "label": "449T Dodge D-Flex Spacer/Coupling",
           "price_usd": 3149
         }
-      }
+      },
+      "coupling_included": false
     },
     {
       "url": "https://pumpresource.us/dean-rwa4166-pump/",
@@ -1360,7 +1364,8 @@
           "label": "Dodge D-Flex Spacer/Coupling 143T",
           "price_usd": 367
         }
-      }
+      },
+      "coupling_included": false
     }
   ]
 }

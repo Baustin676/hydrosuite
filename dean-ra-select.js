@@ -1284,7 +1284,11 @@
   function packageQuote(table, curve, diameterIn, motorHp, pumpRpm) {
     var lines = [];
     var missing = false;
-    function add(name, detail, amount) {
+    function add(name, detail, amount, included) {
+      if (included) {
+        lines.push({ name: name, detail: 'Included with pump', amount: 0, included: true });
+        return;
+      }
       if (amount == null || !isFinite(Number(amount))) missing = true;
       lines.push({
         name: name,
@@ -1312,7 +1316,11 @@
     var base = frame && product && product.baseplates ? product.baseplates[frame] : null;
     add('Baseplate', base ? base.label : (frame || ''), base ? base.price_usd : null);
     var coup = frame && product && product.couplings ? product.couplings[frame] : null;
-    add('Coupling', coup ? coup.label : (frame || ''), coup ? coup.price_usd : null);
+    if (!coup && product && product.coupling_included) {
+      add('Coupling', '', null, true);
+    } else {
+      add('Coupling', coup ? coup.label : (frame || ''), coup ? coup.price_usd : null);
+    }
     var total = null;
     if (!missing) {
       total = 0;
@@ -1321,7 +1329,7 @@
     return {
       frame: frame,
       baseplate: base ? base.label : null,
-      coupling: coup ? coup.label : null,
+      coupling: coup ? coup.label : (product && product.coupling_included ? 'Included with pump' : null),
       lines: lines,
       total: total
     };

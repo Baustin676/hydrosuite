@@ -560,8 +560,9 @@ function priceMarkup(hit) {
   var quote = DeanRA.packageQuote(DEAN_PRICES, hit.curve, hit.diameter_in, hit.motor_hp, hit.curve.rpm);
   var html = '';
   quote.lines.forEach(function (line) {
-    var label = line.name + (line.detail ? ' ' + line.detail : '');
-    html += '<div><span>' + esc(label) + '</span><span class="amt">' + esc(money(line.amount)) + '</span></div>';
+    var label = line.included ? line.name : (line.name + (line.detail ? ' ' + line.detail : ''));
+    var amount = line.included ? 'Included with pump' : money(line.amount);
+    html += '<div><span>' + esc(label) + '</span><span class="amt">' + esc(amount) + '</span></div>';
   });
   html += '<div class="total"><span>Package</span><span class="amt">' + esc(money(quote.total)) + '</span></div>';
   html += '<p class="freight">Freight is calculated at checkout.</p>';
