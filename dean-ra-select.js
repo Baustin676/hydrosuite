@@ -760,12 +760,15 @@
     }
     var rpm = duty.rpm == null || duty.rpm === '' ? null : Number(duty.rpm);
     var frame = duty.frame == null ? '' : String(duty.frame).trim();
+    var service = normalizeService(duty && duty.service);
     var sg = specificGravity(duty, correction);
     var found = [];
     (catalog.curves || []).forEach(function (curve) {
-      if (rpm != null && Number(curve.rpm) !== rpm) return;
-      if (frame && String(curve.frame || '') !== frame) return;
-      var hit = evaluateCurve(curve, qUse, hUse);
+      var view = presentCurve(curve, service);
+      if (!view) return;
+      if (rpm != null && Number(view.rpm) !== rpm) return;
+      if (frame && view.frame !== frame) return;
+      var hit = evaluateCurve(view, qUse, hUse);
       if (!hit) return;
       decorateHit(hit, qUse, sg);
       var pct = hit.pct_bep;
@@ -1136,32 +1139,76 @@
   // and the # mark keeps a space ("4x6x10 #2"). 4x6x10 #2 is sold on the RA3146
   // page. Trim options are eighth-inch labels, or the full-size sentence above.
   // trimMin/trimMax are the numeric option ends, not the full catalog diameter.
+  var RA2096_SIZES = { '1x1.5x6': true, '1.5x3x6': true, '1x1.5x8': true };
+  var RA3146_SIZES = {
+    '1x3x8.5': true,
+    '1.5x3x8.5': true,
+    '2x3x8.5': true,
+    '3x4x8.5': true,
+    '4x6x8.5': true,
+    '1.5x3x10': true,
+    '2x3x10': true,
+    '3x4x10': true,
+    '4x6x10 #2': true
+  };
+  var RA3186_SIZES = { '4x6x10 #1': true };
+  // Sold RWA sizes. Each one uses the RA curve of the same size.
+  // Dean: hydraulic performance curves are the same for each R-series size.
+  var RWA_BY_SIZE = {
+    '1x1.5x6': 'RWA2096',
+    '1.5x3x6': 'RWA2096',
+    '1x1.5x8': 'RWA2096',
+    '1x3x8.5': 'RWA4166',
+    '1.5x3x8.5': 'RWA4166',
+    '2x3x8.5': 'RWA4166',
+    '3x4x8.5': 'RWA4166',
+    '4x6x8.5': 'RWA4166',
+    '1.5x3x10': 'RWA4166',
+    '2x3x10': 'RWA4166',
+    '3x4x10': 'RWA4166',
+    '4x6x10 #2': 'RWA4166',
+    '4x6x10 #1': 'RWA4206'
+  };
   var STORE_PAGES = [
     {
+      frame: 'RA2096',
       url: 'https://pumpresource.us/dean-ra2096-pump/',
-      sizes: { '1x1.5x6': true, '1.5x3x6': true, '1x1.5x8': true },
+      sizes: RA2096_SIZES,
       trimMin: 4,
       trimMax: 7.875
     },
     {
+      frame: 'RWA2096',
+      url: 'https://pumpresource.us/dean-rwa2096-pump/',
+      sizes: RA2096_SIZES,
+      trimMin: 4,
+      trimMax: 7.875
+    },
+    {
+      frame: 'RA3146',
       url: 'https://pumpresource.us/dean-ra3146-pump/',
-      sizes: {
-        '1x3x8.5': true,
-        '1.5x3x8.5': true,
-        '2x3x8.5': true,
-        '3x4x8.5': true,
-        '4x6x8.5': true,
-        '1.5x3x10': true,
-        '2x3x10': true,
-        '3x4x10': true,
-        '4x6x10 #2': true
-      },
+      sizes: RA3146_SIZES,
       trimMin: 5.5,
       trimMax: 9.875
     },
     {
+      frame: 'RWA4166',
+      url: 'https://pumpresource.us/dean-rwa4166-pump/',
+      sizes: RA3146_SIZES,
+      trimMin: 5.5,
+      trimMax: 9.875
+    },
+    {
+      frame: 'RA3186',
       url: 'https://pumpresource.us/dean-ra3186-pump/',
-      sizes: { '4x6x10 #1': true },
+      sizes: RA3186_SIZES,
+      trimMin: 8,
+      trimMax: 9.875
+    },
+    {
+      frame: 'RWA4206',
+      url: 'https://pumpresource.us/dean-rwa4206-pump/',
+      sizes: RA3186_SIZES,
       trimMin: 8,
       trimMax: 9.875
     }
@@ -1190,6 +1237,7 @@
     if (storePagesReady) return storePagesReady;
     storePagesReady = STORE_PAGES.map(function (page) {
       return {
+        frame: page.frame,
         url: page.url,
         sizes: page.sizes,
         trims: eighthTrimSet(page.trimMin, page.trimMax)
@@ -1233,15 +1281,24 @@
 
   /** Link to the pump product page for this size, carrying the size and shown trim.
       Null when the size is not sold on one of those pages. */
+  function pageForFrame(frame, label) {
+    var pages = storePages();
+    for (var i = 0; i < pages.length; i++) {
+      if (pages[i].frame === frame && pages[i].sizes[label]) return pages[i];
+    }
+    return null;
+  }
+
   function productLink(curve, diameterIn) {
     if (!curve) return null;
     var size = storeSizeLabel(curve.size);
-    var page = pageForStoreSize(size);
+    var frame = curve.series === 'RWA' ? curve.frame : (raFrame(curve) || curve.frame);
+    var page = pageForFrame(frame, size);
     if (!page) return null;
     var trim = storeTrimLabel(curve, diameterIn, page);
     var href = page.url + '?size=' + encodeURIComponent(size);
     if (trim) href += '&trim=' + encodeURIComponent(trim);
-    var model = curve.frame || powerFrame(curve);
+    var model = frame;
     if (model) href += '&model=' + encodeURIComponent(model);
     return { href: href, size: size, trim: trim, model: model };
   }
@@ -1257,8 +1314,9 @@
     var products = table && table.products || [];
     var slug = String(frame || '').toLowerCase();
     if (!slug) return null;
+    var needle = 'dean-' + slug + '-pump';
     for (var i = 0; i < products.length; i++) {
-      if (String(products[i].url || '').toLowerCase().indexOf(slug) >= 0) return products[i];
+      if (String(products[i].url || '').toLowerCase().indexOf(needle) >= 0) return products[i];
     }
     return null;
   }
@@ -1335,14 +1393,15 @@
     };
   }
 
-  function frames(catalog) {
+  function frames(catalog, service) {
+    var svc = normalizeService(service);
     var seen = {};
     var out = [];
     (catalog && catalog.curves || []).forEach(function (curve) {
-      var name = curve && curve.frame ? String(curve.frame) : '';
-      if (!name || seen[name]) return;
-      seen[name] = true;
-      out.push(name);
+      var view = presentCurve(curve, svc);
+      if (!view || seen[view.frame]) return;
+      seen[view.frame] = true;
+      out.push(view.frame);
     });
     out.sort();
     return out;
@@ -1350,16 +1409,53 @@
 
   var POWER_FRAMES = { RA2096: true, RA3146: true, RA3186: true };
 
-  // The model on screen is the RA power frame printed on the sheet.
-  // Curve-sheet ids stay in the data and are not this name.
-  function powerFrame(curve) {
-    if (!curve) return '';
-    if (POWER_FRAMES[curve.frame]) return curve.frame;
-    var types = curve.pump_types || [];
+  function serviceCode(value) {
+    var s = String(value || '').trim().toLowerCase().replace(/[\s_]+/g, '-');
+    if (s === 'rwa' || s === 'hot-water' || s === 'hot-water-glycol' || s === 'glycol') return 'rwa';
+    if (s === 'ra' || s === 'thermal' || s === 'thermal-fluid') return 'ra';
+    return '';
+  }
+
+  function normalizeService(value) {
+    return serviceCode(value) || 'ra';
+  }
+
+  function raFrame(curve) {
+    var types = (curve && curve.pump_types) || [];
     for (var i = 0; i < types.length; i++) {
       if (POWER_FRAMES[types[i]]) return types[i];
     }
+    if (curve && POWER_FRAMES[curve.frame]) return curve.frame;
     return '';
+  }
+
+  function rwaFrameFor(curve) {
+    return RWA_BY_SIZE[storeSizeLabel(curve && curve.size)] || '';
+  }
+
+  // The RWA entry keeps the same curve object fields, including the impeller
+  // arrays. Only the series name changes.
+  function presentCurve(curve, service) {
+    if (!curve) return null;
+    var svc = normalizeService(service);
+    var frame = svc === 'rwa' ? rwaFrameFor(curve) : raFrame(curve);
+    if (!frame) return null;
+    var view = {};
+    for (var key in curve) {
+      if (Object.prototype.hasOwnProperty.call(curve, key)) view[key] = curve[key];
+    }
+    view.frame = frame;
+    view.series = svc === 'rwa' ? 'RWA' : 'RA';
+    return view;
+  }
+
+  // The name on a result is the series being sold. A raw sheet curve
+  // still resolves to its RA frame.
+  function powerFrame(curve) {
+    if (!curve) return '';
+    if (curve.series === 'RA' || curve.series === 'RWA') return curve.frame || '';
+    if (POWER_FRAMES[curve.frame]) return curve.frame;
+    return raFrame(curve);
   }
 
   function frameLine(curve) {
@@ -1415,6 +1511,10 @@
     offeredDiameters: offeredDiameters,
     frames: frames,
     powerFrame: powerFrame,
+    normalizeService: normalizeService,
+    presentCurve: presentCurve,
+    raFrame: raFrame,
+    rwaFrameFor: rwaFrameFor,
     frameLine: frameLine,
     intelliquipFor: intelliquipFor,
     dutySeat: dutySeat,

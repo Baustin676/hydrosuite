@@ -188,7 +188,7 @@ function findSize(result, size) {
     assert.ok(link.href.indexOf(pages[model]) === 0, model);
     assert.strictEqual(link.trim, 'Full Sized Impeller (No Trim)');
     assert.ok(link.href.split('?')[0].toLowerCase().indexOf('rwa') < 0);
-    assert.ok(link.href.indexOf('model=' + encodeURIComponent(curve.frame)) > 0);
+    assert.ok(link.href.indexOf('model=' + encodeURIComponent(DeanRA.powerFrame(curve))) > 0);
   });
   const two = catalog.curves.find(function (c) { return c.model === 'R2085-A2' && c.rpm === 3500; });
   const at = DeanRA.productLink(two, 7.375);
@@ -236,10 +236,39 @@ function findSize(result, size) {
   const miss = DeanRA.select(catalog, { q_gpm: 100, h_ft: 240, fluid: 'water', rpm: 3500, frame: 'RA3186' });
   assert.strictEqual(miss.covered, false);
   assert.strictEqual(miss.pick, null);
-  const names = DeanRA.frames(catalog);
-  ['RA2096', 'RA3146', 'RA3186', 'RWA4166'].forEach(function (name) {
-    assert.ok(names.indexOf(name) >= 0, name);
+  assert.deepStrictEqual(DeanRA.frames(catalog), ['RA2096', 'RA3146', 'RA3186']);
+  assert.deepStrictEqual(DeanRA.frames(catalog, 'rwa'), ['RWA2096', 'RWA4166', 'RWA4206']);
+  assert.deepStrictEqual(DeanRA.frames(catalog, 'hot-water'), ['RWA2096', 'RWA4166', 'RWA4206']);
+}
+
+// RWA uses the same impeller points as the RA size. The series name changes.
+{
+  const ra = DeanRA.select(catalog, { q_gpm: 100, h_ft: 240, fluid: 'water', rpm: 3500, service: 'ra' });
+  const rwa = DeanRA.select(catalog, { q_gpm: 100, h_ft: 240, fluid: 'water', rpm: 3500, service: 'rwa' });
+  assert.strictEqual(rwa.selections.length, ra.selections.length);
+  assert.ok(rwa.selections.length > 1);
+  rwa.selections.forEach(function (hit, i) {
+    const other = ra.selections[i];
+    assert.strictEqual(hit.curve.series, 'RWA');
+    assert.strictEqual(other.curve.series, 'RA');
+    assert.ok(/^RWA/.test(hit.curve.frame));
+    assert.ok(/^RA/.test(other.curve.frame));
+    assert.strictEqual(hit.curve.size, other.curve.size);
+    assert.strictEqual(hit.curve.model, other.curve.model);
+    assert.strictEqual(hit.diameter_in, other.diameter_in);
+    assert.strictEqual(hit.curve.impellers, other.curve.impellers);
+    const raw = catalog.curves.find(function (curve) {
+      return curve.model === hit.curve.model && curve.rpm === hit.curve.rpm;
+    });
+    assert.strictEqual(hit.curve.impellers, raw.impellers);
+    const link = DeanRA.productLink(hit.curve, hit.diameter_in);
+    assert.ok(link.href.indexOf('dean-' + hit.curve.frame.toLowerCase() + '-pump/') === 0 || link.href.indexOf('/dean-' + hit.curve.frame.toLowerCase() + '-pump/') > 0);
+    assert.ok(link.href.indexOf('model=' + encodeURIComponent(hit.curve.frame)) > 0);
+    assert.ok(link.href.toLowerCase().indexOf('rwa') > 0);
   });
+  const thermal = DeanRA.select(catalog, { q_gpm: 100, h_ft: 240, fluid: 'water', rpm: 3500, service: 'thermal' });
+  assert.strictEqual(thermal.selections.length, ra.selections.length);
+  assert.strictEqual(thermal.pick.curve.frame, 'RA2096');
 }
 
 // Every line falls and bows down. A larger trim stays above a smaller one.
@@ -371,6 +400,39 @@ function findSize(result, size) {
     });
   });
   const page = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+  function sizeKey(size) {
+    const raw = String(size || '').replace(/×/g, 'x');
+    const hash = raw.indexOf('#');
+    const body = (hash >= 0 ? raw.slice(0, hash) : raw).replace(/\s+/g, '');
+    const mark = hash >= 0 ? raw.slice(hash + 1).replace(/\s+/g, '') : '';
+    return mark ? body + ' #' + mark : body;
+  }
+  function productFor(frame) {
+    return prices.products.find(function (item) {
+      return item.url.toLowerCase().indexOf('dean-' + frame.toLowerCase() + '-pump') >= 0;
+    });
+  }
+  const hot = DeanRA.select(catalog, { q_gpm: 100, h_ft: 240, fluid: 'water', rpm: 3500, service: 'rwa' });
+  assert.strictEqual(hot.pick.curve.frame, 'RWA2096');
+  const hotQuote = DeanRA.packageQuote(prices, hot.pick.curve, hot.pick.diameter_in, hot.pick.motor_hp, 3500);
+  const hotPump = hotQuote.lines.find(function (line) { return line.name === 'Pump'; });
+  const raPump = shown.lines.find(function (line) { return line.name === 'Pump'; });
+  assert.strictEqual(hotPump.amount, productFor('RWA2096').sizes['1x1.5x8']);
+  assert.ok(hotPump.amount > raPump.amount);
+  assert.strictEqual(hotQuote.coupling, 'Included with pump');
+  hot.selections.forEach(function (hit) {
+    const own = DeanRA.packageQuote(prices, hit.curve, hit.diameter_in, hit.motor_hp, hit.curve.rpm);
+    const pump = own.lines.find(function (line) { return line.name === 'Pump'; });
+    const product = productFor(hit.curve.frame);
+    const raProduct = productFor(DeanRA.raFrame(hit.curve));
+    const key = sizeKey(hit.curve.size);
+    assert.ok(product, hit.curve.frame);
+    if (product.sizes[key] == null) assert.strictEqual(pump.amount, null);
+    else assert.strictEqual(pump.amount, product.sizes[key]);
+    if (raProduct && raProduct.sizes[key] != null && product.sizes[key] != null) {
+      assert.notStrictEqual(pump.amount, raProduct.sizes[key]);
+    }
+  });
   assert.ok(page.indexOf('class="sel-price"') > 0);
   assert.ok(page.indexOf('id="chart-price"') < 0);
   assert.ok(page.indexOf('Freight is calculated at checkout.') > 0);

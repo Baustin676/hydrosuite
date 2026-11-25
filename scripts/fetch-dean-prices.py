@@ -31,7 +31,9 @@ PAGES = [
     "https://pumpresource.us/dean-ra3146-pump/",
     "https://pumpresource.us/dean-ra3186-pump/",
     "https://pumpresource.us/dean-ra3246-pump/",
+    "https://pumpresource.us/dean-rwa2096-pump/",
     "https://pumpresource.us/dean-rwa4166-pump/",
+    "https://pumpresource.us/dean-rwa4206-pump/",
 ]
 UA = "Mozilla/5.0 (compatible; HydroSuitePriceRefresh/1.0)"
 
@@ -198,10 +200,20 @@ def scrape(url):
     no_coupling = pick(kinds.get("coupling"), lambda s: s.lower() == "no coupling")
     balance_no = pick(kinds.get("balance"), lambda s: s.lower() == "no")
     sizes = [o for o in (kinds.get("size") or {"options": []})["options"] if o["label"] and "choose" not in o["label"].lower()]
+    if not sizes:
+        # A one-size product has no size menu. The name carries the size.
+        named = re.search(r"(\d+(?:\.\d+)?x\d+(?:\.\d+)?x\d+(?:\.\d+)?(?:\s*#\s*\d+)?)", html, re.I)
+        if not named:
+            raise SystemExit("no size on " + url)
+        raw = named.group(1).replace("×", "x")
+        hash_at = raw.find("#")
+        body = re.sub(r"\s+", "", raw[:hash_at] if hash_at >= 0 else raw)
+        mark = re.sub(r"\s+", "", raw[hash_at + 1:]) if hash_at >= 0 else ""
+        sizes = [{"id": None, "label": (body + " #" + mark) if mark else body}]
 
     def chosen(size_id, **over):
         base = {}
-        if kinds.get("size"):
+        if kinds.get("size") and size_id:
             base[kinds["size"]["name"]] = size_id
         if full:
             base[kinds["trim"]["name"]] = full["id"]
@@ -307,7 +319,7 @@ def scrape(url):
         "motors": motors,
         "baseplates": bases,
         "couplings": coups,
-        "coupling_included": "dean-ra2096-pump" in url,
+        "coupling_included": kinds.get("coupling") is None,
     }
 
 

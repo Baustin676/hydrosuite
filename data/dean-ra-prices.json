@@ -1366,6 +1366,336 @@
         }
       },
       "coupling_included": false
+    },
+    {
+      "url": "https://pumpresource.us/dean-rwa2096-pump/",
+      "product_id": 30788,
+      "trim_adder_usd": 155,
+      "sizes": {
+        "1x1.5x6": 9727,
+        "1.5x3x6": 10920,
+        "1x1.5x8": 12309
+      },
+      "motors": [
+        {
+          "hp": 1.0,
+          "rpm": 1800,
+          "frame": "143T",
+          "label": "1hp 1800rpm 143T",
+          "only": null,
+          "price_usd": 681
+        },
+        {
+          "hp": 1.5,
+          "rpm": 1800,
+          "frame": "145T",
+          "label": "1.5hp 1800rpm 145T",
+          "only": null,
+          "price_usd": 746
+        },
+        {
+          "hp": 2.0,
+          "rpm": 1800,
+          "frame": "145T",
+          "label": "2hp 1800rpm 145T",
+          "only": null,
+          "price_usd": 780
+        },
+        {
+          "hp": 3.0,
+          "rpm": 1800,
+          "frame": "182T",
+          "label": "3hp 1800rpm 182T",
+          "only": null,
+          "price_usd": 922
+        },
+        {
+          "hp": 5.0,
+          "rpm": 1800,
+          "frame": "184T",
+          "label": "5hp 1800rpm 184T",
+          "only": null,
+          "price_usd": 1001
+        },
+        {
+          "hp": 5.0,
+          "rpm": 3600,
+          "frame": "184T",
+          "label": "5hp 3600rpm 184T",
+          "only": null,
+          "price_usd": 1108
+        },
+        {
+          "hp": 7.5,
+          "rpm": 3600,
+          "frame": "213T",
+          "label": "7.5hp 3600rpm 213T",
+          "only": null,
+          "price_usd": 1449
+        },
+        {
+          "hp": 10.0,
+          "rpm": 3600,
+          "frame": "215T",
+          "label": "10hp 3600rpm 215T",
+          "only": null,
+          "price_usd": 1734
+        },
+        {
+          "hp": 15.0,
+          "rpm": 3600,
+          "frame": "254T",
+          "label": "15hp 3600rpm 254T",
+          "only": null,
+          "price_usd": 2382
+        },
+        {
+          "hp": 20.0,
+          "rpm": 3600,
+          "frame": "256T",
+          "label": "20hp 3600rpm 256T",
+          "only": null,
+          "price_usd": 2863
+        },
+        {
+          "hp": 25.0,
+          "rpm": 3600,
+          "frame": "284TS",
+          "label": "25hp 3600rpm 284TS",
+          "only": null,
+          "price_usd": 3584
+        },
+        {
+          "hp": 30.0,
+          "rpm": 3600,
+          "frame": "286TS",
+          "label": "30hp 3600rpm 286TS",
+          "only": null,
+          "price_usd": 4236
+        },
+        {
+          "hp": 40.0,
+          "rpm": 3600,
+          "frame": "324TS",
+          "label": "40hp 3600rpm 324TS",
+          "only": null,
+          "price_usd": 5798
+        }
+      ],
+      "baseplates": {
+        "143T": {
+          "label": "Economy Steel 143T",
+          "price_usd": 969
+        },
+        "145T": {
+          "label": "Economy Steel 145T",
+          "price_usd": 969
+        },
+        "182T": {
+          "label": "Economy Steel 182T",
+          "price_usd": 969
+        },
+        "184T": {
+          "label": "Economy Steel 184T",
+          "price_usd": 969
+        },
+        "213T": {
+          "label": "Economy Steel 213T",
+          "price_usd": 969
+        },
+        "215T": {
+          "label": "Economy Steel 215T",
+          "price_usd": 969
+        },
+        "254T": {
+          "label": "Economy Steel 254T",
+          "price_usd": 1093
+        },
+        "256T": {
+          "label": "Economy Steel 256T",
+          "price_usd": 1093
+        },
+        "284TS": {
+          "label": "Economy Steel 284TS",
+          "price_usd": 1513
+        },
+        "286TS": {
+          "label": "Economy Steel 286TS",
+          "price_usd": 1513
+        },
+        "324TS": {
+          "label": "Economy Steel 324TS",
+          "price_usd": 1930
+        }
+      },
+      "couplings": {},
+      "coupling_included": true
+    },
+    {
+      "url": "https://pumpresource.us/dean-rwa4206-pump/",
+      "product_id": 30789,
+      "trim_adder_usd": 155,
+      "sizes": {
+        "4x6x10 #1": 33409
+      },
+      "motors": [
+        {
+          "hp": 15.0,
+          "rpm": 1800,
+          "frame": "254T",
+          "label": "15hp 1800rpm 254T",
+          "only": null,
+          "price_usd": 2332
+        },
+        {
+          "hp": 20.0,
+          "rpm": 1800,
+          "frame": "256T",
+          "label": "20hp 1800rpm 256T",
+          "only": null,
+          "price_usd": 2835
+        },
+        {
+          "hp": 25.0,
+          "rpm": 1800,
+          "frame": "284T",
+          "label": "25hp 1800rpm 284T",
+          "only": null,
+          "price_usd": 3448
+        },
+        {
+          "hp": 60.0,
+          "rpm": 3600,
+          "frame": "364TS",
+          "label": "60hp 3600rpm 364TS",
+          "only": null,
+          "price_usd": 10900
+        },
+        {
+          "hp": 75.0,
+          "rpm": 3600,
+          "frame": "365TS",
+          "label": "75hp 3600rpm 365TS",
+          "only": null,
+          "price_usd": 12976
+        },
+        {
+          "hp": 100.0,
+          "rpm": 3600,
+          "frame": "405TS",
+          "label": "100hp 3600rpm 405TS",
+          "only": null,
+          "price_usd": 16467
+        },
+        {
+          "hp": 125.0,
+          "rpm": 3600,
+          "frame": "444TS",
+          "label": "125hp 3600rpm 444TS",
+          "only": null,
+          "price_usd": 22850
+        },
+        {
+          "hp": 150.0,
+          "rpm": 3600,
+          "frame": "445TS",
+          "label": "150hp 3600rpm 445TS",
+          "only": null,
+          "price_usd": 19085
+        },
+        {
+          "hp": 200.0,
+          "rpm": 3600,
+          "frame": "447TS",
+          "label": "200hp 3600rpm 447TS",
+          "only": null,
+          "price_usd": 36185
+        }
+      ],
+      "baseplates": {},
+      "couplings": {
+        "254T": {
+          "label": "Dodge D-Flex Spacer/Coupling 254T",
+          "price_usd": 517
+        },
+        "256T": {
+          "label": "Dodge D-Flex Spacer/Coupling 256T",
+          "price_usd": 517
+        },
+        "284T": {
+          "label": "Dodge D-Flex Spacer/Coupling 284T",
+          "price_usd": 667
+        },
+        "286T": {
+          "label": "Dodge D-Flex Spacer/Coupling 286T",
+          "price_usd": 667
+        },
+        "324T": {
+          "label": "Dodge D-Flex Spacer/Coupling 324T",
+          "price_usd": 1032
+        },
+        "326T": {
+          "label": "Dodge D-Flex Spacer/Coupling 326T",
+          "price_usd": 1261
+        },
+        "324TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 324TS",
+          "price_usd": 1032
+        },
+        "364T": {
+          "label": "Dodge D-Flex Spacer/Coupling 364T",
+          "price_usd": 1660
+        },
+        "326TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 326TS",
+          "price_usd": 1261
+        },
+        "365T": {
+          "label": "Dodge D-Flex Spacer/Coupling 365T",
+          "price_usd": 2197
+        },
+        "364TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 364TS",
+          "price_usd": 1660
+        },
+        "365TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 365TS",
+          "price_usd": 2197
+        },
+        "404T": {
+          "label": "Dodge D-Flex Spacer/Coupling 404T",
+          "price_usd": 2197
+        },
+        "405T": {
+          "label": "Dodge D-Flex Spacer/Coupling 405T",
+          "price_usd": 2197
+        },
+        "405TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 405TS",
+          "price_usd": 2197
+        },
+        "444T": {
+          "label": "Dodge D-Flex Spacer/Coupling 444T",
+          "price_usd": 2460
+        },
+        "444TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 444TS",
+          "price_usd": 2460
+        },
+        "445T": {
+          "label": "Dodge D-Flex Spacer/Coupling 445T",
+          "price_usd": 2460
+        },
+        "445TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 445TS",
+          "price_usd": 2460
+        },
+        "447TS": {
+          "label": "Dodge D-Flex Spacer/Coupling 447TS",
+          "price_usd": 3149
+        }
+      },
+      "coupling_included": false
     }
   ]
 }

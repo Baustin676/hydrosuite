@@ -11,11 +11,19 @@
     ['model', 'model'],
     ['rpm', 'rpm'],
     ['fluid', 'fluid'],
-    ['temp', 't'], ['t', 't']
+    ['temp', 't'], ['t', 't'],
+    ['service', 'service']
   ];
 
+  function serviceCode(value) {
+    var s = String(value || '').trim().toLowerCase().replace(/[\s_]+/g, '-');
+    if (s === 'rwa' || s === 'hot-water' || s === 'hot-water-glycol' || s === 'glycol') return 'rwa';
+    if (s === 'ra' || s === 'thermal' || s === 'thermal-fluid') return 'ra';
+    return '';
+  }
+
   function blank() {
-    return { q: '', h: '', model: '', rpm: '3500', fluid: 'water', t: '68', tempTyped: false, shown: false };
+    return { q: '', h: '', model: '', rpm: '3500', fluid: 'water', t: '68', service: 'ra', tempTyped: false, shown: false };
   }
 
   function sanitize(raw) {
@@ -24,6 +32,10 @@
     ['q', 'h', 'model', 'rpm', 'fluid', 't'].forEach(function (key) {
       if (raw[key] != null) state[key] = String(raw[key]);
     });
+    if (raw.service != null) {
+      var code = serviceCode(raw.service);
+      if (code) state.service = code;
+    }
     state.tempTyped = !!raw.tempTyped;
     state.shown = !!raw.shown;
     return state;
@@ -63,7 +75,13 @@
     var state = sanitize(saved || blank());
     ALIASES.forEach(function (pair) {
       var value = paramValue(params, pair[0]);
-      if (value != null) state[pair[1]] = value;
+      if (value == null) return;
+      if (pair[1] === 'service') {
+        var code = serviceCode(value);
+        if (code) state.service = code;
+        return;
+      }
+      state[pair[1]] = value;
     });
     return state;
   }
