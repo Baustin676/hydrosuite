@@ -325,11 +325,18 @@ th { font-weight: 600; }
 <div class="page">
   <header>
     <h1>Dean RA Pump Selector</h1>
-    <p class="lede">List every Dean RA size in this catalog that can meet the flow, head, fluid, and temperature you enter.</p>
+    <p class="lede">List every Dean size in this catalog that can meet the flow, head, fluid, and temperature you enter.</p>
     <p class="by">Powered by HydroSuite</p>
   </header>
   <div class="layout">
     <form id="duty" action="#">
+      <div class="field">
+        <label for="sel-service">Service</label>
+        <select id="sel-service">
+          <option value="rwa">Hot Water / Glycol</option>
+          <option value="ra" selected>Thermal Fluid</option>
+        </select>
+      </div>
       <div class="field">
         <label for="sel-q">Flow (gpm)</label>
         <input id="sel-q" type="number" min="0" step="any" inputmode="decimal" placeholder="80">
@@ -597,9 +604,10 @@ function runDeanSelect() {
   DUTY_ARMED = false;
   var rpm = Number(document.getElementById('sel-rpm').value);
   var frame = document.getElementById('sel-model').value;
+  var service = currentService();
   DEAN_LAST = {
-    result: DeanRA.select(DEAN_CATALOG, {q_gpm: q, h_ft: h, fluid: fluid, temp: t, unit: TEMP_UNIT, rpm: rpm, frame: frame}),
-    q: q, h: h, t: t, unit: TEMP_UNIT, fluid: fluid, rpm: rpm, frame: frame, active: 0
+    result: DeanRA.select(DEAN_CATALOG, {q_gpm: q, h_ft: h, fluid: fluid, temp: t, unit: TEMP_UNIT, rpm: rpm, frame: frame, service: service}),
+    q: q, h: h, t: t, unit: TEMP_UNIT, fluid: fluid, rpm: rpm, frame: frame, service: service, active: 0
   };
   renderDeanSelection();
   persistDuty();
@@ -1250,32 +1258,42 @@ document.getElementById('duty-clear').addEventListener('click', clearDuty);
 window.addEventListener('pageshow', function (ev) {
   if (ev.persisted) restoreDuty();
 });
+function currentService() {
+  var el = document.getElementById('sel-service');
+  return DeanRA.normalizeService(el ? el.value : '');
+}
 function modelFromUrl() {
   var raw = '';
   try { raw = new URLSearchParams(window.location.search).get('model') || ''; } catch (e) { raw = ''; }
   if (!raw || !DEAN_CATALOG) return '';
   var want = raw.trim().toLowerCase();
-  var names = DeanRA.frames(DEAN_CATALOG);
+  var names = DeanRA.frames(DEAN_CATALOG, currentService());
   for (var i = 0; i < names.length; i++) {
     if (names[i].toLowerCase() === want) return names[i];
   }
   return '';
 }
-function writeModelParam(model) {
+function writeQueryParam(key, value) {
   var params;
   try { params = new URLSearchParams(window.location.search); } catch (e) { return; }
-  if (model) params.set('model', model);
-  else params.delete('model');
+  if (value) params.set(key, value);
+  else params.delete(key);
   var query = params.toString();
   var next = window.location.pathname + (query ? '?' + query : '') + window.location.hash;
   if (next !== window.location.pathname + window.location.search + window.location.hash) {
     history.replaceState(null, '', next);
   }
 }
+function writeModelParam(model) {
+  writeQueryParam('model', model);
+}
+function writeServiceParam(service) {
+  writeQueryParam('service', service === 'ra' ? '' : service);
+}
 function knownFrame(name) {
   if (!name || !DEAN_CATALOG) return '';
   var want = String(name).trim().toLowerCase();
-  var names = DeanRA.frames(DEAN_CATALOG);
+  var names = DeanRA.frames(DEAN_CATALOG, currentService());
   for (var i = 0; i < names.length; i++) {
     if (names[i].toLowerCase() === want) return names[i];
   }
@@ -1296,6 +1314,7 @@ function persistDuty() {
       q: document.getElementById('sel-q').value,
       h: document.getElementById('sel-h').value,
       model: document.getElementById('sel-model').value,
+      service: currentService(),
       rpm: document.getElementById('sel-rpm').value,
       fluid: document.getElementById('sel-fluid').value,
       t: document.getElementById('sel-t').value,
@@ -1335,6 +1354,9 @@ function restoreDuty() {
   var q = document.getElementById('sel-q');
   var h = document.getElementById('sel-h');
   var t = document.getElementById('sel-t');
+  var service = document.getElementById('sel-service');
+  if (service && hasOption('sel-service', state.service)) service.value = state.service;
+  fillModels();
   if (q) q.value = state.q;
   if (h) h.value = state.h;
   if (t) t.value = state.t;
@@ -1356,10 +1378,13 @@ function clearDuty() {
   document.getElementById('sel-q').value = '';
   document.getElementById('sel-h').value = '';
   document.getElementById('sel-model').value = '';
+  document.getElementById('sel-service').value = 'ra';
   document.getElementById('sel-rpm').value = '3500';
   document.getElementById('sel-fluid').value = 'water';
   document.getElementById('sel-t').value = '68';
   writeModelParam('');
+  writeServiceParam('ra');
+  fillModels();
   showEmptyDuty();
   if (window.DutyState && window.localStorage) {
     try { DutyState.write(window.localStorage, DutyState.blank()); } catch (e) {}
@@ -1368,13 +1393,14 @@ function clearDuty() {
 function fillModels() {
   var sel = document.getElementById('sel-model');
   if (!sel || !DEAN_CATALOG) return;
-  var names = DeanRA.frames(DEAN_CATALOG);
+  var names = DeanRA.frames(DEAN_CATALOG, currentService());
   var html = '<option value="">All models</option>';
   names.forEach(function (name) {
     html += '<option value="' + esc(name) + '">' + esc(name) + '</option>';
   });
+  var previous = sel.value;
   sel.innerHTML = html;
-  restoreDuty();
+  if (previous && names.indexOf(previous) >= 0) sel.value = previous;
 }
 document.getElementById('rec-notes').addEventListener('click', function (ev) {
   if (!ev.target.closest('#show-all-models')) return;
@@ -1385,6 +1411,14 @@ document.getElementById('rec-notes').addEventListener('click', function (ev) {
 document.getElementById('sel-model').addEventListener('change', function () {
   writeModelParam(document.getElementById('sel-model').value);
   if (selNum('sel-q') != null && selNum('sel-h') != null && DEAN_CATALOG) runDeanSelect();
+});
+document.getElementById('sel-service').addEventListener('change', function () {
+  writeServiceParam(currentService());
+  var previous = document.getElementById('sel-model').value;
+  fillModels();
+  if (previous && document.getElementById('sel-model').value !== previous) writeModelParam('');
+  if (selNum('sel-q') != null && selNum('sel-h') != null && DEAN_CATALOG) runDeanSelect();
+  else persistDuty();
 });
 document.getElementById('sel-rpm').addEventListener('change', function () {
   if (selNum('sel-q') != null && selNum('sel-h') != null && DEAN_CATALOG) runDeanSelect();
@@ -1583,7 +1617,7 @@ fetch('data/dean-ra-curves.json').then(function (r) {
   return r.json();
 }).then(function (data) {
   DEAN_CATALOG = data;
-  fillModels();
+  restoreDuty();
   return fetch('data/intelliquip-selections.json');
 }).then(function (r) {
   if (!r || !r.ok) return null;
