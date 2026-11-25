@@ -464,12 +464,72 @@ function findSize(result, size) {
     return s.curve.size.replace(/\s+/g, '') === '1.5x3x8.5';
   });
   assert.strictEqual(hot.correction.status, 'water');
-  assert.strictEqual(hotHit.motor_hp, hit.motor_hp);
-  assert.ok(Math.abs(hotHit.bhp - hit.bhp) < 1e-9);
+  assert.ok(Math.abs(hot.correction.sg - 0.859427) < 1e-6, '400 F SG ' + hot.correction.sg);
+  assert.ok(Math.abs(hotHit.bhp / hit.bhp - hot.correction.sg) < 0.002);
+  assert.ok(hotHit.bhp < hit.bhp);
   const page = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+  // Saturated liquid water follows the entered temperature. Thermal fluids do not.
+  {
+    function at(temp) {
+      return DeanRA.select(catalog, {
+        q_gpm: 100, h_ft: 200, fluid: 'water', temp: temp, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166'
+      });
+    }
+    const cold = at(68);
+    const mid = at(250);
+    const hot356 = at(356);
+    const sized = cold.selections.find(function (s) { return s.curve.size.replace(/\s+/g, '') === '1.5x3x8.5'; });
+    const sizedMid = mid.selections.find(function (s) { return s.curve.size.replace(/\s+/g, '') === '1.5x3x8.5'; });
+    const sizedHot = hot356.selections.find(function (s) { return s.curve.size.replace(/\s+/g, '') === '1.5x3x8.5'; });
+    assert.ok(Math.abs(cold.correction.sg - 0.998161) < 1e-6);
+    assert.ok(Math.abs(cold.correction.visc - 1.0016) < 1e-6);
+    assert.ok(Math.abs(mid.correction.sg - 0.942207) < 1e-6);
+    assert.ok(Math.abs(hot356.correction.sg - 0.887005) < 1e-6);
+    assert.ok(Math.abs(hot356.correction.visc - 0.1504) < 1e-6);
+    assert.ok(Math.abs(sized.bhp * mid.correction.sg / cold.correction.sg - sizedMid.bhp) < 0.02);
+    assert.ok(Math.abs(sized.bhp * hot356.correction.sg / cold.correction.sg - sizedHot.bhp) < 0.02);
+    assert.ok(Math.abs(sized.bhp_end * hot356.correction.sg / cold.correction.sg - sizedHot.bhp_end) < 0.02);
+    assert.strictEqual(sized.motor_hp, 15);
+    assert.strictEqual(sizedMid.motor_hp, 15);
+    assert.strictEqual(sizedHot.motor_hp, 15);
+    assert.strictEqual(sized.npshr_ft, sizedHot.npshr_ft);
+    assert.strictEqual(DeanRA.resultsSummary('Water', '356 °F', hot356.correction), 'Water, 356 °F, SG 0.887');
+    assert.strictEqual(DeanRA.resultsSummary('Water', '68 °F', cold.correction), 'Water, 68 °F, SG 0.998');
+    assert.strictEqual(DeanRA.npshNote(cold.correction), '');
+    assert.ok(DeanRA.npshNote(hot356.correction).indexOf('0.887') > 0);
+    assert.ok(DeanRA.npshNote(hot356.correction).indexOf('NPSH available') > 0);
+    const between = DeanRA.waterProperties(228);
+    const lo = DeanRA.waterProperties(212);
+    const hi = DeanRA.waterProperties(250);
+    assert.ok(between.sg > hi.sg && between.sg < lo.sg);
+    assert.strictEqual(DeanRA.waterProperties(450).clamped, 'high');
+    assert.ok(Math.abs(DeanRA.waterProperties(450).sg - DeanRA.waterProperties(400).sg) < 1e-9);
+    assert.strictEqual(DeanRA.waterProperties(0).clamped, 'low');
+    const option = DeanRA.select(catalog, {
+      q_gpm: 100, h_ft: 200, fluid: 'water180', temp: 356, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166'
+    });
+    assert.ok(Math.abs(option.correction.sg - hot356.correction.sg) < 1e-9);
+    const typed = DeanRA.select(catalog, {
+      q_gpm: 100, h_ft: 200, fluid: 'water', temp: 180, unit: 'C', rpm: 3500, service: 'rwa', frame: 'RWA4166'
+    });
+    assert.ok(Math.abs(typed.correction.sg - hot356.correction.sg) < 1e-6);
+    const oil = DeanRA.select(catalog, {
+      q_gpm: 100, h_ft: 200, fluid: 'therminol66', temp: 302, unit: 'F', rpm: 3500
+    });
+    assert.strictEqual(oil.correction.sg, DeanRA.fluids.therminol66.sg);
+    assert.notStrictEqual(oil.correction.status, 'water');
+    const glycol = DeanRA.select(catalog, {
+      q_gpm: 100, h_ft: 200, fluid: 'eg50', temp: 140, unit: 'F', rpm: 3500
+    });
+    assert.strictEqual(glycol.correction.status, 'temperature');
+    assert.ok(glycol.correction.sg == null);
+  }
   assert.ok(page.indexOf('<title>Dean Pump Selector</title>') > 0);
   assert.ok(page.indexOf('<h1>Dean Pump Selector</h1>') > 0);
   assert.ok(page.indexOf('Dean RA Pump Selector') < 0);
+  assert.ok(page.indexOf('DeanRA.resultsSummary(') > 0);
+  assert.ok(page.indexOf("label: 'Specific gravity'") > 0);
+  assert.ok(page.indexOf('DeanRA.npshNote(') > 0);
 }
 
 console.log('dean-ra-select tests passed');

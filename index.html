@@ -732,13 +732,17 @@ function renderDeanSelection() {
   var chartCorrection = document.getElementById('chart-correction');
   var listKicker = document.getElementById('list-kicker');
   var result = DEAN_LAST.result;
-  var q = DEAN_LAST.q, h = DEAN_LAST.h, t = DEAN_LAST.t, fluid = DEAN_LAST.fluid;
-  var dutyTemp = fluidName() + ', ' + formatTemp(t, DEAN_LAST.unit || TEMP_UNIT);
+  var q = DEAN_LAST.q, h = DEAN_LAST.h, t = DEAN_LAST.t;
   var corr = result.correction;
+  var dutyTemp = DeanRA.resultsSummary(fluidName(), formatTemp(t, DEAN_LAST.unit || TEMP_UNIT), corr);
   var showCorrection = corr && corr.status && corr.status !== 'water';
-  var fluidLine = DeanRA.fluidNote(fluid, { q_gpm: q, h_ft: h, temp: t, unit: DEAN_LAST.unit });
   var notesHtml = '<p class="note">No pumps larger than 10 in are in this catalog.</p>' +
     '<p class="note">' + esc(DeanRA.VISCOSITY_NOTE) + '</p>';
+  var npshLine = DeanRA.npshNote(corr);
+  if (npshLine) notesHtml += '<p class="note">' + esc(npshLine) + '</p>';
+  if (corr && corr.status === 'water' && corr.temp != null) {
+    notesHtml += '<p class="note">Saturated liquid water. Density from IAPWS R7-97(2012). Viscosity from IAPWS R12-08.</p>';
+  }
   var nu = result.correction && result.correction.nu;
   if (nu > 13.1) {
     notesHtml += '<p class="note">' + esc(SSU_LIMIT) + '</p>';
@@ -1513,11 +1517,14 @@ function selectionPdfSpec(hit) {
     { label: 'Fluid', value: fluidName() },
     { label: 'Temperature', value: formatTemp(DEAN_LAST.t, DEAN_LAST.unit || TEMP_UNIT) }
   ];
+  var corr = DEAN_LAST.result && DEAN_LAST.result.correction;
+  if (corr && corr.status === 'water' && corr.sg > 0) {
+    details.push({ label: 'Specific gravity', value: Number(corr.sg).toFixed(3) });
+  }
   if (curve.rpm) details.push({ label: 'Speed', value: curve.rpm + ' rpm' });
   readingRows(hit).forEach(function (row) { details.push(row); });
   var quote = null;
   if (DEAN_PRICES) quote = DeanRA.packageQuote(DEAN_PRICES, curve, hit.diameter_in, hit.motor_hp, curve.rpm);
-  var corr = DEAN_LAST.result && DEAN_LAST.result.correction;
   var correction = '';
   if (corr && corr.applied && corr.qWater != null && corr.hWater != null) {
     correction = 'Corrected water duty ' + oneDecimal(corr.qWater) + ' gpm at ' + oneDecimal(corr.hWater) + ' ft.';
