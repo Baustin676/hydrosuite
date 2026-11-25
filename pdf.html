@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PumpResource</title>
+<style>
+  :root { --ink: #141414; --muted: #5c5c5c; --line: #e4e4e4; --amber: #FCB02C; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    color: var(--ink);
+    font-family: Helvetica, Arial, sans-serif;
+    background: #fff;
+  }
+  .bar { height: 6px; background: var(--amber); }
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #fff;
+    padding: 12px 16px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+  .file { margin: 2px 0 0; color: var(--muted); font-size: 13px; word-break: break-all; }
+  .actions { display: flex; gap: 8px; margin-top: 12px; }
+  button {
+    flex: 1 1 0;
+    min-height: 44px;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #share { border: 0; background: var(--amber); color: var(--ink); }
+  #print, #save { border: 1px solid var(--ink); background: #fff; color: var(--ink); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .hint { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+  #view {
+    display: block;
+    width: 100%;
+    height: calc(100vh - 148px);
+    height: calc(100dvh - 148px);
+    border: 0;
+    background: #f6f5f2;
+  }
+  #miss { margin: 0; padding: 24px 16px; font-size: 16px; }
+  @media print {
+    .bar, header, #miss { display: none; }
+    #view { height: 100vh; }
+  }
+</style>
+</head>
+<body>
+<div class="bar"></div>
+<header>
+  <p class="brand">PumpResource</p>
+  <p class="file" id="file"></p>
+  <div class="actions">
+    <button type="button" id="share" disabled>Share</button>
+    <button type="button" id="print" disabled>Print</button>
+    <button type="button" id="save" disabled>Save</button>
+  </div>
+  <p class="hint" id="hint">Use Share to save or print.</p>
+</header>
+<iframe id="view" title="Pump selection" hidden></iframe>
+<p id="miss" hidden>This page did not receive the PDF. Go back and tap Download PDF again.</p>
+<script>
+(function () {
+  var payload = null;
+  var blobUrl = '';
+
+  function asBytes(value) {
+    if (!value) return null;
+    if (value instanceof Uint8Array) return value;
+    if (value.buffer && typeof value.byteLength === 'number') return new Uint8Array(value.buffer, value.byteOffset || 0, value.byteLength);
+    return null;
+  }
+
+  function show(data) {
+    if (payload) return;
+    var bytes = asBytes(data && data.bytes);
+    if (!bytes || !bytes.length) return;
+    var name = String((data && data.filename) || 'PumpResource.pdf');
+    payload = { filename: name, bytes: bytes };
+    var blob = new Blob([bytes], { type: 'application/pdf' });
+    blobUrl = URL.createObjectURL(blob);
+    document.getElementById('file').textContent = name;
+    var view = document.getElementById('view');
+    view.hidden = false;
+    view.src = blobUrl;
+    document.getElementById('miss').hidden = true;
+    ['share', 'print', 'save'].forEach(function (id) {
+      document.getElementById(id).disabled = false;
+    });
+    try {
+      if (window.opener) window.opener.__hydrosuitePdf = null;
+    } catch (e) {}
+  }
+
+  function fileForShare() {
+    try { return new File([payload.bytes], payload.filename, { type: 'application/pdf' }); }
+    catch (e) { return null; }
+  }
+
+  function downloadFile() {
+    if (!payload) return;
+    var url = URL.createObjectURL(new Blob([payload.bytes], { type: 'application/pdf' }));
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = payload.filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+  }
+
+  function shareFile() {
+    if (!payload) return;
+    var file = fileForShare();
+    var hint = document.getElementById('hint');
+    try {
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: 'PumpResource' }).catch(function (err) {
+          if (err && err.name === 'AbortError') return;
+          hint.textContent = 'Sharing did not start.';
+          downloadFile();
+        });
+        return;
+      }
+    } catch (e) {}
+    hint.textContent = 'Sharing is not available in this browser.';
+    downloadFile();
+  }
+
+  document.getElementById('share').addEventListener('click', shareFile);
+  document.getElementById('save').addEventListener('click', shareFile);
+  document.getElementById('print').addEventListener('click', function () {
+    window.print();
+  });
+
+  function fromOpener() {
+    try {
+      var data = window.opener && window.opener.__hydrosuitePdf;
+      if (data && data.bytes) return data;
+    } catch (e) {}
+    return null;
+  }
+
+  window.addEventListener('message', function (ev) {
+    if (ev.origin !== window.location.origin) return;
+    var data = ev.data;
+    if (!data || data.type !== 'hydrosuite:pdf') return;
+    show(data);
+  });
+
+  var direct = fromOpener();
+  if (direct) show(direct);
+  else {
+    try {
+      if (window.opener) window.opener.postMessage({ type: 'hydrosuite:viewer-ready' }, window.location.origin);
+    } catch (e) {}
+    setTimeout(function () {
+      if (payload) return;
+      var again = fromOpener();
+      if (again) show(again);
+      else document.getElementById('miss').hidden = false;
+    }, 800);
+  }
+})();
+</script>
+</body>
+</html>
