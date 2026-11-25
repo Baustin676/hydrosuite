@@ -438,4 +438,37 @@ function findSize(result, size) {
   assert.ok(page.indexOf('Freight is calculated at checkout.') > 0);
 }
 
+// Motor horsepower is the standard size at or above the rated diameter's
+// end-of-curve power. It is not the full-diameter impeller.
+{
+  const duty = DeanRA.select(catalog, {
+    q_gpm: 100, h_ft: 200, fluid: 'water', rpm: 3500, service: 'rwa', frame: 'RWA4166'
+  });
+  const hit = duty.selections.find(function (s) {
+    return s.curve.size.replace(/\s+/g, '') === '1.5x3x8.5';
+  });
+  assert.strictEqual(hit.diameter_in, 7.5);
+  assert.strictEqual(hit.kind, 'catalog');
+  assert.ok(Math.abs(hit.qMax - 222) < 0.5, 'rated end ' + hit.qMax);
+  assert.ok(hit.bhp > 9 && hit.bhp < 11, 'duty bhp ' + hit.bhp);
+  assert.ok(hit.bhp_end > 16 && hit.bhp_end < 17, 'end bhp ' + hit.bhp_end);
+  assert.strictEqual(hit.motor_hp, 20);
+  const full = hit.curve.impellers.find(function (imp) { return imp.diameter_in === 8.5; });
+  const fullEnd = full.points[full.points.length - 1].q_gpm;
+  assert.ok(fullEnd > hit.qMax + 10, 'full diameter ends later');
+  const hot = DeanRA.select(catalog, {
+    q_gpm: 100, h_ft: 200, fluid: 'water', temp: 400, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166'
+  });
+  const hotHit = hot.selections.find(function (s) {
+    return s.curve.size.replace(/\s+/g, '') === '1.5x3x8.5';
+  });
+  assert.strictEqual(hot.correction.status, 'water');
+  assert.strictEqual(hotHit.motor_hp, hit.motor_hp);
+  assert.ok(Math.abs(hotHit.bhp - hit.bhp) < 1e-9);
+  const page = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+  assert.ok(page.indexOf('<title>Dean Pump Selector</title>') > 0);
+  assert.ok(page.indexOf('<h1>Dean Pump Selector</h1>') > 0);
+  assert.ok(page.indexOf('Dean RA Pump Selector') < 0);
+}
+
 console.log('dean-ra-select tests passed');
