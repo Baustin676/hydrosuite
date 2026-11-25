@@ -188,10 +188,20 @@ assert.ok(fs.readFileSync(path.join(__dirname, '../dean-ra-pdf.js'), 'utf8').ind
 const downloadFn = page.slice(page.indexOf('function downloadActivePdf'), page.indexOf('var pdfBtn'));
 assert.ok(downloadFn.indexOf('postScrollToResults') < 0);
 assert.ok(downloadFn.indexOf('scrollIntoView') < 0);
+const iosFn = page.slice(page.indexOf('function openIosPdf'), page.indexOf('function deliverPdf'));
+assert.ok(iosFn.indexOf("window.open(url, '_blank')") > 0);
+assert.ok(downloadFn.indexOf("window.open('', '_blank')") < 0);
+const deliverFn = page.slice(page.indexOf('function deliverPdf'), page.indexOf('var pdfBusy'));
+assert.ok(deliverFn.indexOf('isIos()') >= 0);
+assert.ok(deliverFn.indexOf('isIos()') < deliverFn.indexOf('parentCanDownload'));
+assert.ok(deliverFn.indexOf("type: 'hydrosuite:download'") > 0);
+assert.ok(page.indexOf('navigator.share') < 0);
+assert.ok(embed.indexOf('navigator.share') > 0);
 const drawFn = page.slice(page.indexOf('function drawDeanSelection'), page.indexOf('function sampleCurve'));
 assert.ok(drawFn.indexOf('offscreen') > 0);
 assert.ok(drawFn.indexOf('if (!offscreen) postFrameHeight();') > 0);
 assert.ok(embed.indexOf('hydrosuite:download') > 0);
 assert.ok(embed.indexOf('saveDownload') > 0);
+assert.ok(embed.indexOf('navigator.share') > 0);
 
 console.log('dean-ra-pdf tests passed');

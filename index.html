@@ -1361,16 +1361,10 @@ function readScroll() {
 function restoreScroll(pos) {
   try { window.scrollTo(pos.x, pos.y); } catch (e) {}
 }
-function openPdfBlob(blob, filename, preferTab, pos) {
+function savePdfLocally(bytes, filename) {
+  var blob = new Blob([bytes], { type: 'application/pdf' });
   var url = URL.createObjectURL(blob);
-  if (preferTab) {
-    var opened = window.open(url, '_blank');
-    if (opened) {
-      restoreScroll(pos);
-      setTimeout(function () { URL.revokeObjectURL(url); }, 120000);
-      return;
-    }
-  }
+  var pos = readScroll();
   var a = document.createElement('a');
   a.href = url;
   a.download = filename;
@@ -1384,30 +1378,25 @@ function openPdfBlob(blob, filename, preferTab, pos) {
   restoreScroll(pos);
   setTimeout(function () { URL.revokeObjectURL(url); }, 120000);
 }
-function savePdfLocally(bytes, filename) {
-  var blob = new Blob([bytes], { type: 'application/pdf' });
-  var pos = readScroll();
-  if (isIos()) {
-    var file = null;
-    try { file = new File([blob], filename, { type: 'application/pdf' }); } catch (e) {}
-    try {
-      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-        navigator.share({ files: [file], title: 'PumpResource' }).then(function () {
-          restoreScroll(pos);
-        }).catch(function (err) {
-          restoreScroll(pos);
-          if (err && err.name === 'AbortError') return;
-          openPdfBlob(blob, filename, true, pos);
-        });
-        return;
-      }
-    } catch (e) {}
-    openPdfBlob(blob, filename, true, pos);
-    return;
-  }
-  openPdfBlob(blob, filename, false, pos);
+// iOS Safari shows its PDF viewer for a top-level PDF document. The store
+// page only hears about the tap after postMessage, which is too late for
+// window.open and is what opens the share sheet. Open the tab here, in the tap.
+function openIosPdf(bytes, filename) {
+  var name = String(filename || 'PumpResource.pdf').replace(/[^A-Za-z0-9._-]+/g, '-');
+  var file = null;
+  try { file = new File([bytes], name, { type: 'application/pdf' }); } catch (e) {}
+  var url = URL.createObjectURL(file || new Blob([bytes], { type: 'application/pdf' }));
+  // Open the PDF itself. A blank tab navigated afterwards stays blank in WebKit
+  // once the curve has been drawn, and the store page cannot open a tab from
+  // the later message.
+  window.open(url, '_blank');
+  setTimeout(function () { URL.revokeObjectURL(url); }, 600000);
 }
 function deliverPdf(bytes, filename) {
+  if (isIos()) {
+    openIosPdf(bytes, filename);
+    return;
+  }
   if (embedded && parentCanDownload) {
     try {
       postToParent({
