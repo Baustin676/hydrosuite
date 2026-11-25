@@ -196,6 +196,19 @@ details summary:focus-visible {
 .sel-size { font-size: 16px; font-weight: 600; }
 .sel-rpm { color: var(--muted); font-size: 14px; }
 .sel-trim, .sel-seat, .sel-perf, .sel-flag, .iq { margin: 6px 0 0; font-size: 14px; }
+.sel-facts {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.sel-facts span { white-space: nowrap; }
+.sel-facts span:not(:last-child)::after {
+  content: "\00b7";
+  padding: 0 0.35em;
+  color: var(--muted);
+}
 .sel-flag { color: #7a4e10; font-weight: 600; }
 .chart-head {
   padding: 14px 16px 12px;
@@ -625,14 +638,36 @@ function oneDecimal(n) {
   var v = Math.round(Number(n) * 10) / 10;
   return Math.abs(v - Math.round(v)) < 1e-9 ? String(Math.round(v)) : v.toFixed(1);
 }
-function perfLine(hit) {
-  var parts = [];
-  if (hit.efficiency_pct != null) parts.push(oneDecimal(hit.efficiency_pct) + '%');
-  if (hit.pct_bep != null) parts.push(oneDecimal(hit.pct_bep) + '% of BEP');
-  if (hit.bhp != null) parts.push(oneDecimal(hit.bhp) + ' hp');
-  if (hit.motor_hp != null) parts.push(oneDecimal(hit.motor_hp) + ' hp motor');
-  if (hit.npshr_ft != null) parts.push('NPSHr ' + oneDecimal(hit.npshr_ft) + ' ft');
-  return parts.join(' · ');
+function oneFixed(n) {
+  var v = Number(n);
+  if (!isFinite(v)) return '';
+  return (Math.round(v * 10) / 10).toFixed(1);
+}
+function readingRows(hit) {
+  var rows = [];
+  var trim = DeanRA.impellerLabel(hit);
+  if (trim) rows.push({ label: 'Impeller trim', value: trim });
+  if (hit.efficiency_pct != null) rows.push({ label: 'Efficiency', value: oneFixed(hit.efficiency_pct) + '%' });
+  if (hit.pct_bep != null) rows.push({ label: 'BEP flow', value: oneFixed(hit.pct_bep) + '%' });
+  if (hit.bhp != null) rows.push({ label: 'Power at duty', value: oneFixed(hit.bhp) + ' bhp' });
+  if (hit.motor_hp != null) rows.push({ label: 'Motor', value: oneDecimal(hit.motor_hp) + ' hp' });
+  if (hit.npshr_ft != null) rows.push({ label: 'NPSHr', value: oneFixed(hit.npshr_ft) + ' ft' });
+  return rows;
+}
+function cardFacts(hit) {
+  return readingRows(hit).map(function (row) {
+    if (row.label === 'Impeller trim') return row.value + ' impeller trim';
+    if (row.label === 'Efficiency') return row.value + ' efficiency';
+    if (row.label === 'BEP flow') return row.value + ' of BEP flow';
+    if (row.label === 'Power at duty') return row.value + ' at duty';
+    if (row.label === 'Motor') return row.value + ' motor';
+    return row.label + ' ' + row.value;
+  });
+}
+function factsMarkup(hit) {
+  return '<p class="sel-facts">' + cardFacts(hit).map(function (part) {
+    return '<span>' + esc(part) + '</span>';
+  }).join('') + '</p>';
 }
 function money(amount) {
   if (amount == null || !isFinite(Number(amount))) return 'Call for price';
@@ -755,8 +790,7 @@ function renderDeanSelection() {
       '<button type="button" class="sel-row" data-i="' + i + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
       '<span class="sel-top"><span class="sel-rank">' + (i + 1) + '</span><span class="sel-frame">' + esc(frame) + '</span>' +
       '<span class="sel-size">' + esc(curve.size) + '</span><span class="sel-rpm">' + esc(curve.rpm) + ' rpm</span></span>' +
-      '<p class="sel-trim">' + esc(DeanRA.impellerLabel(hit)) + '</p>' +
-      '<p class="sel-perf">' + esc(perfLine(hit)) + '</p>' +
+      factsMarkup(hit) +
       (hit.bep_zone && hit.bep_zone !== 'preferred' ? '<p class="sel-flag">' + esc(flagLine(hit)) + '</p>' : '') +
       priceMarkup(hit) +
       '</button>' + store + '</div>';
@@ -1480,12 +1514,7 @@ function selectionPdfSpec(hit) {
     { label: 'Temperature', value: formatTemp(DEAN_LAST.t, DEAN_LAST.unit || TEMP_UNIT) }
   ];
   if (curve.rpm) details.push({ label: 'Speed', value: curve.rpm + ' rpm' });
-  if (trim) details.push({ label: 'Impeller', value: trim });
-  if (hit.efficiency_pct != null) details.push({ label: 'Efficiency', value: oneDecimal(hit.efficiency_pct) + '%' });
-  if (hit.pct_bep != null) details.push({ label: '% of BEP', value: oneDecimal(hit.pct_bep) + '%' });
-  if (hit.bhp != null) details.push({ label: 'Power', value: oneDecimal(hit.bhp) + ' hp' });
-  if (hit.motor_hp != null) details.push({ label: 'Motor', value: oneDecimal(hit.motor_hp) + ' hp' });
-  if (hit.npshr_ft != null) details.push({ label: 'NPSHr', value: oneDecimal(hit.npshr_ft) + ' ft' });
+  readingRows(hit).forEach(function (row) { details.push(row); });
   var quote = null;
   if (DEAN_PRICES) quote = DeanRA.packageQuote(DEAN_PRICES, curve, hit.diameter_in, hit.motor_hp, curve.rpm);
   var corr = DEAN_LAST.result && DEAN_LAST.result.correction;
@@ -1497,7 +1526,7 @@ function selectionPdfSpec(hit) {
   return {
     date: sheetDate(new Date()),
     title: frame + '  \u00b7  ' + curve.size,
-    subtitle: DEAN_LAST.q + ' gpm at ' + DEAN_LAST.h + ' ft  \u00b7  ' + curve.rpm + ' rpm  \u00b7  ' + trim + ' impeller',
+    subtitle: DEAN_LAST.q + ' gpm at ' + DEAN_LAST.h + ' ft  \u00b7  ' + curve.rpm + ' rpm  \u00b7  ' + trim + ' impeller trim',
     details: details,
     flag: flagLine(hit),
     correction: correction,
