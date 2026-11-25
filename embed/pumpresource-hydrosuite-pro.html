@@ -2,10 +2,12 @@
   Paste this in place of the Hydrosuite iframe on
   https://pumpresource.us/hydrosuite-pro/.
   It keeps the Open Full Screen bar. The iframe has no fixed height.
+  The script below builds the iframe, so the page editor cannot strip
+  its attributes. It never adds a second frame.
   HydroSuite tells this page how tall it is, and the page scrolls once.
+  Download PDF asks this page to save the file, so the iframe does not navigate.
 -->
 <div id="hydrosuite-wrap" style="width: 100%; display: block;">
-  <iframe id="hydrosuite-frame" title="Dean RA Pump Selector" src="https://baustin676.github.io/hydrosuite/" scrolling="no" allowfullscreen="allowfullscreen" style="display: block; width: 100%; min-height: 640px; border: 0;"></iframe>
   <button type="button" onclick="openFullscreen()" style="display: block; width: 100%; height: 40px; margin-top: 0; background-color: #1e293b; color: #ffffff; border: 1px solid #334155; border-radius: 0 0 8px 8px; cursor: pointer; font-size: 14px; font-family: Arial,sans-serif;"> ⛶ Open Full Screen </button>
 </div>
 <script>
@@ -18,10 +20,33 @@ function openFullscreen() {
 }
 (function () {
   var wrap = document.getElementById('hydrosuite-wrap');
-  var frame = document.getElementById('hydrosuite-frame');
+  if (!wrap) return;
   var bar = wrap.querySelector('button');
+  function setUp(f) {
+    f.id = 'hydrosuite-frame';
+    f.title = 'Dean RA Pump Selector';
+    f.setAttribute('scrolling', 'no');
+    f.setAttribute('allowfullscreen', 'allowfullscreen');
+    f.setAttribute('allow', 'web-share');
+    f.style.display = 'block';
+    f.style.width = '100%';
+    f.style.minHeight = '640px';
+    f.style.border = '0';
+  }
+  var frame = document.getElementById('hydrosuite-frame') || wrap.querySelector('iframe');
+  if (frame) {
+    setUp(frame);
+  } else {
+    frame = document.createElement('iframe');
+    setUp(frame);
+    if (bar) wrap.insertBefore(frame, bar);
+    else wrap.appendChild(frame);
+  }
+  if (wrap.getAttribute('data-hs-ready')) return;
+  wrap.setAttribute('data-hs-ready', '1');
   var SOURCE = 'https://baustin676.github.io';
   var lastHeight = 0;
+  var told = false;
   function fullscreenElement() {
     return document.fullscreenElement || document.webkitFullscreenElement || null;
   }
@@ -52,6 +77,49 @@ function openFullscreen() {
     }
     applyHeight();
   }
+  function bytesFromBase64(b64) {
+    var bin = atob(b64);
+    var out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  function anchorSave(blob, name) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.rel = 'noopener';
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+  }
+  function isIos() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+  function saveDownload(data) {
+    if (!data || typeof data.base64 !== 'string' || data.base64.length < 32 || data.base64.length > 12000000) return;
+    var name = String(data.filename || 'PumpResource.pdf').replace(/[^A-Za-z0-9._-]+/g, '-');
+    if (name.indexOf('.pdf') < 0) name += '.pdf';
+    var blob = new Blob([bytesFromBase64(data.base64)], { type: 'application/pdf' });
+    var file = null;
+    try { file = new File([blob], name, { type: 'application/pdf' }); } catch (e) {}
+    if (isIos() && file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'PumpResource' }).catch(function (err) {
+        if (err && err.name === 'AbortError') return;
+        anchorSave(blob, name);
+      });
+      return;
+    }
+    anchorSave(blob, name);
+  }
+  function announce() {
+    try {
+      frame.contentWindow.postMessage({ type: 'hydrosuite:ready', download: true }, SOURCE);
+    } catch (e) {}
+  }
   window.addEventListener('message', function (ev) {
     if (ev.origin !== SOURCE) return;
     if (ev.source !== frame.contentWindow) return;
@@ -62,11 +130,14 @@ function openFullscreen() {
       if (!isFinite(height) || height < 1) return;
       lastHeight = Math.min(50000, Math.ceil(height));
       applyHeight();
+      if (!told) { told = true; announce(); }
     } else if (data.type === 'hydrosuite:scroll-to-results') {
       var top = Number(data.top);
       if (!isFinite(top)) top = 0;
       var y = frame.getBoundingClientRect().top + window.pageYOffset + top;
       window.scrollTo(0, Math.max(0, y));
+    } else if (data.type === 'hydrosuite:download') {
+      saveDownload(data);
     }
   });
   function onFullscreenChange() {
@@ -75,5 +146,6 @@ function openFullscreen() {
   }
   document.addEventListener('fullscreenchange', onFullscreenChange);
   document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+  if (!frame.getAttribute('src')) frame.src = 'https://baustin676.github.io/hydrosuite/';
 })();
 </script>
