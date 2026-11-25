@@ -449,10 +449,11 @@ function findSize(result, size) {
   });
   assert.strictEqual(hit.diameter_in, 7.5);
   assert.strictEqual(hit.kind, 'catalog');
-  assert.ok(Math.abs(hit.qMax - 222) < 0.5, 'rated end ' + hit.qMax);
+  // Dean sheet R1585-A2, 3500 rpm: the 7.5 in stroke ends between 200 and 210 gpm.
+  assert.ok(Math.abs(hit.qMax - 205) < 0.5, 'rated end ' + hit.qMax);
   assert.ok(hit.bhp > 9 && hit.bhp < 11, 'duty bhp ' + hit.bhp);
-  assert.ok(hit.bhp_end > 16 && hit.bhp_end < 17, 'end bhp ' + hit.bhp_end);
-  assert.strictEqual(hit.motor_hp, 20);
+  assert.ok(hit.bhp_end > 14 && hit.bhp_end < 15.5, 'end bhp ' + hit.bhp_end);
+  assert.strictEqual(hit.motor_hp, 15);
   const full = hit.curve.impellers.find(function (imp) { return imp.diameter_in === 8.5; });
   const fullEnd = full.points[full.points.length - 1].q_gpm;
   assert.ok(fullEnd > hit.qMax + 10, 'full diameter ends later');
