@@ -27,6 +27,8 @@ assert.ok(embed.indexOf('hydrosuite:download') > 0);
 assert.ok(embed.indexOf('hydrosuite:ready') > 0);
 assert.ok(embed.indexOf('web-share') > 0);
 assert.ok(embed.indexOf("'*'") < 0);
+assert.ok(embed.indexOf("setAttribute('aria-label', 'Dean Pump Selector')") > 0);
+assert.ok(embed.indexOf('Dean RA Pump Selector') < 0);
 assert.ok(embed.indexOf('Open Full Screen') > 0);
 assert.ok(embed.indexOf('function openFullscreen()') > 0);
 assert.ok(embed.indexOf("wrap.style.overflow = 'auto'") > 0);

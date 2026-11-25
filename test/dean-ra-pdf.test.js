@@ -14,6 +14,9 @@ const TINY_JPEG = Buffer.from(
   'hex'
 );
 
+function oneFixed(n) {
+  return (Math.round(Number(n) * 10) / 10).toFixed(1);
+}
 function oneDecimal(n) {
   const v = Math.round(Number(n) * 10) / 10;
   return Math.abs(v - Math.round(v)) < 1e-9 ? String(Math.round(v)) : v.toFixed(1);
@@ -60,17 +63,17 @@ assert.strictEqual(rows[rows.length - 1].amount, '$11,804');
 const sheet = DeanPdf.build({
   date: 'November 24, 2026',
   title: 'RA2096  \u00b7  1 x 1.5 x 8',
-  subtitle: '100 gpm at 240 ft  \u00b7  3500 rpm  \u00b7  ' + DeanRA.impellerLabel(hit) + ' impeller',
+  subtitle: '100 gpm at 240 ft  \u00b7  3500 rpm  \u00b7  ' + DeanRA.impellerLabel(hit) + ' impeller trim',
   details: [
     { label: 'Fluid', value: 'Water' },
     { label: 'Temperature', value: '68 \u00b0F' },
     { label: 'Speed', value: '3500 rpm' },
-    { label: 'Impeller', value: DeanRA.impellerLabel(hit) },
-    { label: 'Efficiency', value: oneDecimal(hit.efficiency_pct) + '%' },
-    { label: '% of BEP', value: oneDecimal(hit.pct_bep) + '%' },
-    { label: 'Power', value: oneDecimal(hit.bhp) + ' hp' },
+    { label: 'Impeller trim', value: DeanRA.impellerLabel(hit) },
+    { label: 'Efficiency', value: oneFixed(hit.efficiency_pct) + '%' },
+    { label: 'BEP flow', value: oneFixed(hit.pct_bep) + '%' },
+    { label: 'Power at duty', value: oneFixed(hit.bhp) + ' bhp' },
     { label: 'Motor', value: oneDecimal(hit.motor_hp) + ' hp' },
-    { label: 'NPSHr', value: oneDecimal(hit.npshr_ft) + ' ft' }
+    { label: 'NPSHr', value: oneFixed(hit.npshr_ft) + ' ft' }
   ],
   reference: DeanPdf.REFERENCE,
   freight: DeanPdf.FREIGHT,
@@ -93,11 +96,17 @@ assert.ok(text.indexOf('3500 rpm') > 0);
 assert.ok(text.indexOf('Water') > 0);
 assert.ok(text.indexOf('68') > 0);
 assert.ok(text.indexOf(DeanRA.impellerLabel(hit)) > 0);
-assert.ok(text.indexOf(oneDecimal(hit.efficiency_pct) + '%') > 0);
-assert.ok(text.indexOf('% of BEP') > 0);
-assert.ok(text.indexOf(oneDecimal(hit.pct_bep) + '%') > 0);
-assert.ok(page.indexOf("label: '% of BEP'") > 0);
-assert.ok(text.indexOf(oneDecimal(hit.bhp) + ' hp') > 0);
+assert.ok(text.indexOf(oneFixed(hit.efficiency_pct) + '%') > 0);
+assert.ok(text.indexOf('BEP flow') > 0);
+assert.ok(text.indexOf(oneFixed(hit.pct_bep) + '%') > 0);
+assert.ok(page.indexOf("label: 'BEP flow'") > 0);
+assert.ok(page.indexOf("return row.value + ' impeller trim'") > 0);
+assert.ok(page.indexOf("return row.value + ' efficiency'") > 0);
+assert.ok(page.indexOf("return row.value + ' of BEP flow'") > 0);
+assert.ok(page.indexOf("return row.value + ' at duty'") > 0);
+assert.ok(text.indexOf(oneFixed(hit.bhp) + ' bhp') > 0);
+assert.ok(text.indexOf('Power at duty') > 0);
+assert.ok(text.indexOf('Impeller trim') > 0);
 assert.ok(text.indexOf('15 hp') > 0);
 assert.ok(text.indexOf('NPSHr') > 0);
 assert.ok(text.indexOf('$8,174') > 0);

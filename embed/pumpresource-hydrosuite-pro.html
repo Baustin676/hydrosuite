@@ -24,7 +24,8 @@ function openFullscreen() {
   var bar = wrap.querySelector('button');
   function setUp(f) {
     f.id = 'hydrosuite-frame';
-    f.title = 'Dean RA Pump Selector';
+    f.setAttribute('aria-label', 'Dean Pump Selector');
+    f.removeAttribute('title');
     f.setAttribute('scrolling', 'no');
     f.setAttribute('allowfullscreen', 'allowfullscreen');
     f.setAttribute('allow', 'web-share');
