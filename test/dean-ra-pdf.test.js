@@ -67,7 +67,7 @@ const sheet = DeanPdf.build({
     { label: 'Speed', value: '3500 rpm' },
     { label: 'Impeller', value: DeanRA.impellerLabel(hit) },
     { label: 'Efficiency', value: oneDecimal(hit.efficiency_pct) + '%' },
-    { label: 'BEP', value: oneDecimal(hit.pct_bep) + '%' },
+    { label: '% of BEP', value: oneDecimal(hit.pct_bep) + '%' },
     { label: 'Power', value: oneDecimal(hit.bhp) + ' hp' },
     { label: 'Motor', value: oneDecimal(hit.motor_hp) + ' hp' },
     { label: 'NPSHr', value: oneDecimal(hit.npshr_ft) + ' ft' }
@@ -94,7 +94,9 @@ assert.ok(text.indexOf('Water') > 0);
 assert.ok(text.indexOf('68') > 0);
 assert.ok(text.indexOf(DeanRA.impellerLabel(hit)) > 0);
 assert.ok(text.indexOf(oneDecimal(hit.efficiency_pct) + '%') > 0);
+assert.ok(text.indexOf('% of BEP') > 0);
 assert.ok(text.indexOf(oneDecimal(hit.pct_bep) + '%') > 0);
+assert.ok(page.indexOf("label: '% of BEP'") > 0);
 assert.ok(text.indexOf(oneDecimal(hit.bhp) + ' hp') > 0);
 assert.ok(text.indexOf('15 hp') > 0);
 assert.ok(text.indexOf('NPSHr') > 0);

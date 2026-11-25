@@ -1328,7 +1328,7 @@ function selectionPdfSpec(hit) {
   if (curve.rpm) details.push({ label: 'Speed', value: curve.rpm + ' rpm' });
   if (trim) details.push({ label: 'Impeller', value: trim });
   if (hit.efficiency_pct != null) details.push({ label: 'Efficiency', value: oneDecimal(hit.efficiency_pct) + '%' });
-  if (hit.pct_bep != null) details.push({ label: 'BEP', value: oneDecimal(hit.pct_bep) + '%' });
+  if (hit.pct_bep != null) details.push({ label: '% of BEP', value: oneDecimal(hit.pct_bep) + '%' });
   if (hit.bhp != null) details.push({ label: 'Power', value: oneDecimal(hit.bhp) + ' hp' });
   if (hit.motor_hp != null) details.push({ label: 'Motor', value: oneDecimal(hit.motor_hp) + ' hp' });
   if (hit.npshr_ft != null) details.push({ label: 'NPSHr', value: oneDecimal(hit.npshr_ft) + ' ft' });
