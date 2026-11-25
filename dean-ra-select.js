@@ -1000,11 +1000,125 @@
       ' (' + formatNu(nu) + ' cSt) at ' + formatStoredTemp(rec) + '. ';
   }
 
+  // Saturated liquid water from 32 °F through 400 °F.
+  // Density is IAPWS R7-97(2012), the industrial formulation, saturated liquid.
+  // Viscosity is IAPWS R12-08. Specific gravity is that density in g/cm³.
+  // 400 °F is the RWA4166 and RWA4206 pumping limit, and 320 °F is the
+  // RWA2096 limit (Dean bulletin C-1.4.46). A temperature outside the table
+  // stays on the nearest end. It is not extended past the RWA limit.
+  var WATER_SAT_F = [
+    [32, 0.999793, 1.7920],
+    [40, 0.999924, 1.5453],
+    [50, 0.999654, 1.3060],
+    [60, 0.998969, 1.1211],
+    [68, 0.998161, 1.0016],
+    [80, 0.996564, 0.8572],
+    [100, 0.993013, 0.6809],
+    [120, 0.988507, 0.5569],
+    [140, 0.983175, 0.4660],
+    [160, 0.977111, 0.3975],
+    [176, 0.971779, 0.3540],
+    [200, 0.963039, 0.3026],
+    [212, 0.958354, 0.2816],
+    [230, 0.950950, 0.2546],
+    [250, 0.942207, 0.2298],
+    [275, 0.930535, 0.2045],
+    [302, 0.917007, 0.1826],
+    [320, 0.907451, 0.1704],
+    [340, 0.896316, 0.1587],
+    [356, 0.887005, 0.1504],
+    [380, 0.872335, 0.1395],
+    [400, 0.859427, 0.1315]
+  ];
+
+  function waterProperties(tempF) {
+    var t = Number(tempF);
+    if (!isFinite(t)) return null;
+    var clamped = '';
+    if (t < WATER_SAT_F[0][0]) {
+      t = WATER_SAT_F[0][0];
+      clamped = 'low';
+    }
+    var last = WATER_SAT_F[WATER_SAT_F.length - 1];
+    if (t > last[0]) {
+      t = last[0];
+      clamped = 'high';
+    }
+    var i = 0;
+    while (i < WATER_SAT_F.length - 1 && WATER_SAT_F[i + 1][0] < t - 1e-9) i++;
+    var a = WATER_SAT_F[i];
+    var b = WATER_SAT_F[Math.min(i + 1, WATER_SAT_F.length - 1)];
+    var span = b[0] - a[0];
+    var u = span ? (t - a[0]) / span : 0;
+    return {
+      f: t,
+      sg: a[1] + (b[1] - a[1]) * u,
+      visc: a[2] + (b[2] - a[2]) * u,
+      clamped: clamped
+    };
+  }
+
+  function waterDuty(duty, rec) {
+    var entered = duty.temp != null && duty.temp !== '' && isFinite(Number(duty.temp));
+    if (!entered) {
+      var storedNu = rec.visc / rec.sg;
+      return {
+        status: 'water',
+        applied: false,
+        note: AMBIENT,
+        sg: rec.sg,
+        visc: rec.visc,
+        nu: storedNu,
+        name: rec.name || 'Water'
+      };
+    }
+    var unit = duty.unit === 'C' ? 'C' : 'F';
+    var props = waterProperties(toFahrenheit(Number(duty.temp), unit));
+    var nu = props.visc / props.sg;
+    var note = AMBIENT + ' Specific gravity ' + formatSg(props.sg) + ' and viscosity ' +
+      formatMu(props.visc) + ' cP (' + formatNu(nu) + ' cSt) from saturated liquid water at ' +
+      formatDutyNum(props.f) + ' °F.';
+    if (props.clamped === 'high') {
+      note += ' The entered temperature is above 400 °F, the RWA4166 and RWA4206 limit, so these properties are held at 400 °F.';
+    } else if (props.clamped === 'low') {
+      note += ' The entered temperature is below 32 °F, so these properties are held at 32 °F, the cold end of the saturated-liquid table.';
+    }
+    return {
+      status: 'water',
+      applied: false,
+      note: note,
+      sg: props.sg,
+      visc: props.visc,
+      nu: nu,
+      temp: props.f,
+      unit: 'F',
+      clamped: props.clamped,
+      name: 'Water'
+    };
+  }
+
+  function resultsSummary(name, tempText, correction) {
+    var line = String(name || '') + ', ' + String(tempText || '');
+    if (correction && correction.status === 'water' && correction.sg > 0) {
+      line += ', SG ' + formatSg(correction.sg);
+    }
+    return line;
+  }
+
+  // NPSHr stays the curve reading in feet. The margin note names the specific
+  // gravity used for power, so a hot-water result does not still read as cold water.
+  function npshNote(correction) {
+    if (!correction || correction.status !== 'water' || !(correction.sg > 0)) return '';
+    if (!(correction.temp >= 200)) return '';
+    return NPSH_MARGIN_NOTE + ' Specific gravity used for power is ' + formatSg(correction.sg) + '.';
+  }
+
   function correctDuty(duty) {
     duty = duty || {};
     var fluid = duty.fluid;
     if (fluid == null || fluid === '' || isWaterFluid(fluid)) {
-      return { status: 'water', applied: false, note: AMBIENT };
+      var waterRec = FLUIDS[fluid] || FLUIDS.water;
+      return waterDuty(duty, waterRec);
     }
     var rec = FLUIDS[fluid];
     if (!rec || rec.sg == null || rec.visc == null || !(rec.sg > 0) || !(rec.visc > 0)) {
@@ -1490,6 +1604,9 @@
     fluidClass: fluidClass,
     fluidNote: fluidNote,
     fluids: FLUIDS,
+    waterProperties: waterProperties,
+    resultsSummary: resultsSummary,
+    npshNote: npshNote,
     correctDuty: correctDuty,
     correctionTag: correctionTag,
     hiPreliminary: hiPreliminary,
