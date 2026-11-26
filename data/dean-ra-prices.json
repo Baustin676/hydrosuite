@@ -242,7 +242,7 @@
           "rpm": 1200,
           "frame": "213T",
           "label": "3hp 1200rpm 213T (4x6x10 #2 ONLY)",
-          "only": "(4x6x10#2",
+          "only": "4x6x10 #2",
           "price_usd": 1253
         },
         {
@@ -266,7 +266,7 @@
           "rpm": 1200,
           "frame": "215T",
           "label": "5hp 1200rpm 215T (4x6x10 #2 ONLY)",
-          "only": "(4x6x10#2",
+          "only": "4x6x10 #2",
           "price_usd": 1835
         },
         {
@@ -290,7 +290,7 @@
           "rpm": 1200,
           "frame": "254T",
           "label": "7.5hp 1200rpm 254T (4x6x10 #2 ONLY)",
-          "only": "(4x6x10#2",
+          "only": "4x6x10 #2",
           "price_usd": 2483
         },
         {
@@ -314,7 +314,7 @@
           "rpm": 1200,
           "frame": "256T",
           "label": "10hp 1200rpm 256T (4x6x10 #2 ONLY)",
-          "only": "(4x6x10#2",
+          "only": "4x6x10 #2",
           "price_usd": 2918
         },
         {
@@ -338,7 +338,7 @@
           "rpm": 1200,
           "frame": "284T",
           "label": "15hp 1200rpm 284T (4x6x10 #2 ONLY)",
-          "only": "(4x6x10#2",
+          "only": "4x6x10 #2",
           "price_usd": 3869
         },
         {
@@ -362,7 +362,7 @@
           "rpm": 1200,
           "frame": "286T",
           "label": "20hp 1200rpm 286T (4x6x10 #2 ONLY)",
-          "only": "(4x6x10#2",
+          "only": "4x6x10 #2",
           "price_usd": 4705
         },
         {

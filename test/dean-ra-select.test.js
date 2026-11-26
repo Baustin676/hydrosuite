@@ -236,7 +236,7 @@ function findSize(result, size) {
   const miss = DeanRA.select(catalog, { q_gpm: 100, h_ft: 240, fluid: 'water', rpm: 3500, frame: 'RA3186' });
   assert.strictEqual(miss.covered, false);
   assert.strictEqual(miss.pick, null);
-  assert.deepStrictEqual(DeanRA.frames(catalog), ['RA2096', 'RA3146', 'RA3186']);
+  assert.deepStrictEqual(DeanRA.frames(catalog), ['RA2096', 'RA3146', 'RA3186', 'RA3246']);
   assert.deepStrictEqual(DeanRA.frames(catalog, 'rwa'), ['RWA2096', 'RWA4166', 'RWA4206']);
   assert.deepStrictEqual(DeanRA.frames(catalog, 'hot-water'), ['RWA2096', 'RWA4166', 'RWA4206']);
 }
@@ -367,19 +367,19 @@ function findSize(result, size) {
   assert.strictEqual(trimmed.frame, '326T');
   const duty = pick(100, 240);
   const shown = DeanRA.packageQuote(prices, duty.pick.curve, duty.pick.diameter_in, duty.pick.motor_hp, 3500);
-  assert.strictEqual(shown.frame, '254T');
+  assert.strictEqual(shown.frame, '256T');
   assert.ok(/Formed Steel/.test(shown.baseplate));
   assert.strictEqual(shown.coupling, 'Included with pump');
   var shownCoupling = shown.lines.find(function (line) { return line.name === 'Coupling'; });
   assert.strictEqual(shownCoupling.included, true);
   assert.strictEqual(shownCoupling.amount, 0);
-  assert.strictEqual(shown.total, 8174 + 155 + 2382 + 1093);
+  assert.strictEqual(shown.total, 8174 + 155 + 2863 + 1093);
   const only = DeanRA.select(catalog, { q_gpm: 100, h_ft: 240, fluid: 'water', rpm: 3500, frame: 'RA3146' });
   const priced = DeanRA.packageQuote(prices, only.pick.curve, only.pick.diameter_in, only.pick.motor_hp, 3500);
-  assert.strictEqual(priced.frame, '254T');
-  assert.ok(/Economy Steel 254T/.test(priced.baseplate));
-  assert.ok(/254T/.test(priced.coupling));
-  assert.strictEqual(priced.total, 10630 + 155 + 2382 + 1513 + 501);
+  assert.strictEqual(priced.frame, '256T');
+  assert.ok(/Economy Steel 256T/.test(priced.baseplate));
+  assert.ok(/256T/.test(priced.coupling));
+  assert.strictEqual(priced.total, 10630 + 155 + 2863 + 1513 + 501);
   [duty.selections, only.selections].forEach(function (list) {
     assert.ok(list.length > 1);
     const seen = {};
@@ -525,9 +525,13 @@ function findSize(result, size) {
     const crudeHot = DeanRA.select(catalog, {
       q_gpm: 100, h_ft: 200, fluid: 'crude', temp: 200, unit: 'F', rpm: 3500
     });
-    assert.strictEqual(crudeHot.correction.status, 'temperature');
-    assert.ok(crudeHot.correction.sg == null);
-    assert.strictEqual(crudeHot.pick.bhp, null);
+    assert.strictEqual(crudeHot.blocked, true);
+    assert.ok(crudeHot.message.indexOf('No property data') >= 0);
+    assert.strictEqual(crudeHot.pick, null);
+    const crudeStored = DeanRA.select(catalog, {
+      q_gpm: 100, h_ft: 200, fluid: 'crude', temp: 68, unit: 'F', rpm: 3500
+    });
+    assert.ok(crudeStored.pick && crudeStored.pick.bhp > 0);
   }
   assert.ok(page.indexOf('<title>Dean Pump Selector</title>') > 0);
   assert.ok(page.indexOf('<h1>Dean Pump Selector</h1>') > 0);
@@ -560,9 +564,9 @@ function findSize(result, size) {
   const pg = row({ q_gpm: 100, h_ft: 200, fluid: 'pg50', temp: 0, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
   assert.ok(pg.c.nu > 13.1);
   assert.ok(pg.c.flags.indexOf('series') < 0);
-  const pgHot = row({ q_gpm: 100, h_ft: 200, fluid: 'pg50', temp: 300, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
-  assert.ok(pgHot.c.flags.indexOf('table-high') >= 0);
-  assert.ok(pgHot.c.temp < 250);
+  const pgHot = DeanRA.select(catalog, { q_gpm: 100, h_ft: 200, fluid: 'pg50', temp: 300, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' });
+  assert.strictEqual(pgHot.blocked, true);
+  assert.ok(pgHot.message.indexOf('250') >= 0);
   const egCold = row({ q_gpm: 100, h_ft: 200, fluid: 'eg50', temp: 0, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
   const egMid = row({ q_gpm: 100, h_ft: 200, fluid: 'eg50', temp: 70, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
   const egHot = row({ q_gpm: 100, h_ft: 200, fluid: 'eg50', temp: 200, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
@@ -572,9 +576,101 @@ function findSize(result, size) {
   assert.ok(egCold.c.flags.length === 0 && egHot.c.flags.length === 0);
   assert.ok(egCold.c.source.indexOf('Table 15') > 0);
   assert.ok(egCold.c.source.indexOf('page 23') > 0);
-  const egPast = row({ q_gpm: 100, h_ft: 200, fluid: 'eg50', temp: 300, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
-  assert.ok(egPast.c.flags.indexOf('table-high') >= 0);
+  const egPast = DeanRA.select(catalog, { q_gpm: 100, h_ft: 200, fluid: 'eg50', temp: 300, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' });
+  assert.strictEqual(egPast.blocked, true);
+  assert.ok(egPast.message.indexOf('250') >= 0);
   assert.strictEqual(DeanRA.canonicalFluid('eg50c'), 'eg50');
+}
+
+// Limits are refused. A temperature outside the published data is not clamped.
+{
+  function run(duty) {
+    return DeanRA.select(catalog, duty);
+  }
+  function sized(duty, size) {
+    const result = run(duty);
+    const hit = (result.selections || []).find(function (item) {
+      return item.curve.size.replace(/\s+/g, '') === size;
+    });
+    assert.ok(hit, size);
+    return { result: result, hit: hit };
+  }
+  const t55 = { q_gpm: 100, h_ft: 240, fluid: 'therminol55', unit: 'F', rpm: 3500, service: 'ra', frame: 'RA3146' };
+  const cold = sized(Object.assign({}, t55, { temp: 70 }), '1.5x3x8.5');
+  assert.ok(cold.result.correction.nu > 13.1);
+  assert.strictEqual(cold.hit.diameter_in, 8.25);
+  assert.strictEqual(cold.hit.motor_hp, 25);
+  const hot = sized(Object.assign({}, t55, { temp: 400 }), '1.5x3x8.5');
+  assert.ok(Math.abs(hot.result.correction.sg - 0.745) < 0.002);
+  assert.strictEqual(hot.hit.diameter_in, 8.125);
+  assert.strictEqual(hot.hit.motor_hp, 15);
+  assert.ok(hot.hit.notes.join(' ').indexOf('Cold start at 70') >= 0);
+  assert.ok(hot.hit.bhp_cold_end > hot.hit.motor_hp);
+  const extended = sized(Object.assign({}, t55, { temp: 580 }), '1.5x3x8.5');
+  assert.ok(extended.result.warnings.join(' ').indexOf('570') >= 0);
+  assert.strictEqual(extended.hit.motor_hp, 15);
+  const tooHot = run(Object.assign({}, t55, { temp: 610 }));
+  assert.strictEqual(tooHot.blocked, true);
+  assert.ok(tooHot.message.indexOf('600') >= 0);
+  const belowTable = run(Object.assign({}, t55, { temp: -20 }));
+  assert.strictEqual(belowTable.blocked, true);
+  assert.ok(belowTable.message.indexOf('No property data') >= 0);
+  const thick = run(Object.assign({}, t55, { temp: -18, q_gpm: 20, h_ft: 50 }));
+  assert.strictEqual(thick.blocked, true);
+  assert.ok(thick.message.indexOf('positive-displacement') >= 0);
+
+  const glycol = { q_gpm: 100, h_ft: 200, fluid: 'eg50', unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' };
+  const boiling = run(Object.assign({}, glycol, { temp: 230 }));
+  assert.strictEqual(boiling.blocked, true);
+  assert.ok(boiling.message.indexOf('boils near') >= 0);
+  const pressured = sized(Object.assign({}, glycol, { temp: 230, npsha: 40 }), '1.5x3x8.5');
+  assert.ok(pressured.hit.bhp > 0);
+  const coldGlycol = run({ q_gpm: 100, h_ft: 200, fluid: 'pg50', temp: -40, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' });
+  assert.strictEqual(coldGlycol.blocked, true);
+  assert.ok(coldGlycol.message.indexOf('No property data') >= 0);
+
+  const hotFrame = run({ q_gpm: 100, h_ft: 200, fluid: 'water', temp: 380, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA2096' });
+  assert.strictEqual(hotFrame.blocked, true);
+  assert.ok(hotFrame.message.indexOf('320') >= 0);
+  const hotAllowed = sized({ q_gpm: 100, h_ft: 200, fluid: 'water', temp: 380, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
+  assert.ok(hotAllowed.hit.bhp > 0);
+  const hotAll = run({ q_gpm: 100, h_ft: 200, fluid: 'water', temp: 380, unit: 'F', rpm: 3500, service: 'rwa' });
+  assert.ok(hotAll.selections.every(function (hit) { return hit.curve.frame !== 'RWA2096'; }));
+  assert.ok(hotAll.warnings.join(' ').indexOf('left off') >= 0);
+  const pastWater = run({ q_gpm: 100, h_ft: 200, fluid: 'water', temp: 450, unit: 'F', rpm: 3500, service: 'ra', frame: 'RA3146' });
+  assert.strictEqual(pastWater.blocked, true);
+  assert.ok(pastWater.message.indexOf('No property data for water above 400') >= 0);
+
+  const dowtherm = sized({ q_gpm: 100, h_ft: 200, fluid: 'dowthermQ', temp: 0, unit: 'F', rpm: 3500, service: 'ra', frame: 'RA3146' }, '1.5x3x8.5');
+  assert.ok(Math.abs(dowtherm.result.correction.sg - 0.994) < 0.002);
+  assert.ok(Math.abs(dowtherm.result.correction.nu - 14.79) < 0.05);
+  assert.ok(dowtherm.hit.bhp > 0 && dowtherm.hit.motor_hp >= dowtherm.hit.bhp_max);
+  const oil = run({ q_gpm: 100, h_ft: 200, fluid: 'mineralOil100', temp: 40, unit: 'F', rpm: 3500, service: 'ra' });
+  assert.strictEqual(oil.blocked, true);
+  assert.ok(oil.message.indexOf('mineral oil') >= 0);
+  const coming = run({ q_gpm: 100, h_ft: 200, fluid: 'water', temp: 68, unit: 'F', rpm: 3500, frame: 'RA3246' });
+  assert.strictEqual(coming.blocked, true);
+  assert.ok(coming.message.indexOf('RA3246') >= 0);
+
+  const shortMargin = sized({ q_gpm: 100, h_ft: 200, fluid: 'water', temp: 68, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166', npsha: 2 }, '1.5x3x8.5');
+  assert.ok(shortMargin.hit.notes.join(' ').indexOf('NPSHa is below the margin') >= 0);
+  const prices = JSON.parse(fs.readFileSync(path.join(__dirname, '../data/dean-ra-prices.json'), 'utf8'));
+  const wide = catalog.curves.find(function (curve) { return curve.size === '4 x 6 x 10 #1' && curve.rpm === 1750; });
+  const quote = DeanRA.packageQuote(prices, wide, 10, 15, 1750);
+  const base = quote.lines.find(function (line) { return line.name === 'Baseplate'; });
+  assert.strictEqual(base.amount, null);
+  assert.ok(base.reason.indexOf('formed-steel baseplate') >= 0);
+  prices.products.forEach(function (product) {
+    (product.motors || []).forEach(function (motor) {
+      if (motor.only) assert.ok(String(motor.only).charAt(0) !== '(');
+    });
+  });
+  const page = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+  assert.ok(page.indexOf('src="fluid-vapor.js"') > 0);
+  assert.ok(page.indexOf('RA3246 (curves coming)') > 0);
+  assert.ok(page.indexOf('id="sel-tstart"') > 0);
+  assert.ok(page.indexOf('id="sel-npsha"') > 0);
+  assert.ok(page.indexOf('id="sel-psig"') > 0);
 }
 
 console.log('dean-ra-select tests passed');
