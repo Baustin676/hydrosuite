@@ -12,6 +12,9 @@
     ['rpm', 'rpm'],
     ['fluid', 'fluid'],
     ['temp', 't'], ['t', 't'],
+    ['tstart', 'tStart'], ['tStart', 'tStart'],
+    ['npsha', 'npsha'],
+    ['psig', 'psig'],
     ['service', 'service']
   ];
 
@@ -23,13 +26,13 @@
   }
 
   function blank() {
-    return { q: '', h: '', model: '', rpm: '3500', fluid: 'water', t: '68', service: 'ra', tempTyped: false, shown: false };
+    return { q: '', h: '', model: '', rpm: '3500', fluid: 'water', t: '68', tStart: '', npsha: '', psig: '', service: 'ra', tempTyped: false, shown: false };
   }
 
   function sanitize(raw) {
     var state = blank();
     if (!raw || typeof raw !== 'object') return state;
-    ['q', 'h', 'model', 'rpm', 'fluid', 't'].forEach(function (key) {
+    ['q', 'h', 'model', 'rpm', 'fluid', 't', 'tStart', 'npsha', 'psig'].forEach(function (key) {
       if (raw[key] != null) state[key] = String(raw[key]);
     });
     if (raw.service != null) {

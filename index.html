@@ -428,6 +428,18 @@ th { font-weight: 600; }
         <label for="sel-t">Temperature (°F)</label>
         <input id="sel-t" type="number" step="any" inputmode="decimal" value="68">
       </div>
+      <div class="field">
+        <label for="sel-tstart">Start-up (°F)</label>
+        <input id="sel-tstart" type="number" step="any" inputmode="decimal" placeholder="70">
+      </div>
+      <div class="field">
+        <label for="sel-npsha">NPSHa (ft)</label>
+        <input id="sel-npsha" type="number" step="any" inputmode="decimal" placeholder="optional">
+      </div>
+      <div class="field">
+        <label for="sel-psig">Suction (psig)</label>
+        <input id="sel-psig" type="number" step="any" inputmode="decimal" placeholder="optional">
+      </div>
       <div class="select-row">
         <button class="select-btn" id="sel-go" type="submit">SELECT PUMP</button>
         <button type="button" class="text-link" id="duty-clear">Clear</button>
@@ -448,7 +460,7 @@ th { font-weight: 600; }
           <p class="chart-caption" id="chart-caption"></p>
         </div>
         <canvas id="sel-canvas"></canvas>
-        <p class="chart-disclaimer" id="chart-disclaimer">Reference only. Up to 70 SSU.</p>
+        <p class="chart-disclaimer" id="chart-disclaimer">Reference only. Up to 70 SSU. Above that, the Hydraulic Institute correction applies.</p>
         <p class="chart-legend" id="chart-legend"></p>
         <p class="chart-correction" id="chart-correction" hidden></p>
         <div class="sheet-sizes">
@@ -459,12 +471,13 @@ th { font-weight: 600; }
       <div id="sel-points"></div>
       <div id="rec-notes">
         <p class="note">No pumps larger than 10 in are in this catalog.</p>
-        <p class="note">Curves apply up to 70 SSU.</p>
+        <p class="note">Dean sheets are drawn to 70 SSU. Above that, the Hydraulic Institute correction applies.</p>
       </div>
     </section>
   </div>
 </div>
 <script src="fluid-curves.js"></script>
+<script src="fluid-vapor.js"></script>
 <script src="dean-ra-select.js"></script>
 <script src="dean-ra-pdf.js"></script>
 <script src="dean-duty-state.js"></script>
@@ -479,7 +492,7 @@ try { embedded = window.parent !== window; } catch (e) { embedded = true; }
 if (embedded) document.documentElement.classList.add('embedded');
 var lastPostedHeight = 0;
 var parentCanDownload = false;
-var SSU_LIMIT = 'This fluid is above 70 SSU.';
+var SSU_LIMIT = 'Above 70 SSU the Hydraulic Institute correction applies. This is not a Dean sheet reading.';
 function contentHeight() {
   var page = document.querySelector('.page');
   if (!page) return 0;
@@ -580,6 +593,8 @@ function formatTemp(t, unit) {
 function setTemperatureUnit(unit) {
   TEMP_UNIT = unit === 'C' ? 'C' : 'F';
   document.querySelector('label[for="sel-t"]').textContent = 'Temperature (°' + TEMP_UNIT + ')';
+  var startLabel = document.querySelector('label[for="sel-tstart"]');
+  if (startLabel) startLabel.textContent = 'Start-up (°' + TEMP_UNIT + ')';
 }
 function convertTemp(t, from, to) {
   var n = Number(t);
@@ -613,8 +628,14 @@ function runDeanSelect() {
   var rpm = Number(document.getElementById('sel-rpm').value);
   var frame = document.getElementById('sel-model').value;
   var service = currentService();
+  var tStart = document.getElementById('sel-tstart').value;
+  var npsha = document.getElementById('sel-npsha').value;
+  var psig = document.getElementById('sel-psig').value;
   DEAN_LAST = {
-    result: DeanRA.select(DEAN_CATALOG, {q_gpm: q, h_ft: h, fluid: fluid, temp: t, unit: TEMP_UNIT, rpm: rpm, frame: frame, service: service}),
+    result: DeanRA.select(DEAN_CATALOG, {
+      q_gpm: q, h_ft: h, fluid: fluid, temp: t, unit: TEMP_UNIT, rpm: rpm, frame: frame, service: service,
+      t_start: tStart, npsha: npsha, psig: psig
+    }),
     q: q, h: h, t: t, unit: TEMP_UNIT, fluid: fluid, rpm: rpm, frame: frame, service: service, active: 0
   };
   renderDeanSelection();
@@ -676,6 +697,7 @@ function priceMarkup(hit) {
   quote.lines.forEach(function (line) {
     var label = line.included ? line.name : (line.name + (line.detail ? ' ' + line.detail : ''));
     var amount = line.included ? 'Included with pump' : money(line.amount);
+    if (!line.included && line.amount == null && line.reason) amount = 'Call for price. ' + line.reason;
     html += '<div><span>' + esc(label) + '</span><span class="amt">' + esc(amount) + '</span></div>';
   });
   html += '<div class="total"><span>Package</span><span class="amt">' + esc(money(quote.total)) + '</span></div>';
@@ -733,18 +755,31 @@ function renderDeanSelection() {
   var showCorrection = corr && corr.status && corr.status !== 'water';
   var notesHtml = '<p class="note">No pumps larger than 10 in are in this catalog.</p>' +
     '<p class="note">' + esc(DeanRA.VISCOSITY_NOTE) + '</p>';
-  var npshLine = DeanRA.npshNote(corr);
+  var npshLine = result.blocked ? '' : DeanRA.npshNote(corr);
   if (npshLine) notesHtml += '<p class="note">' + esc(npshLine) + '</p>';
-  if (corr && corr.status === 'water' && corr.temp != null) {
+  if (!result.blocked && corr && corr.status === 'water' && corr.temp != null) {
     notesHtml += '<p class="note">Saturated liquid water. Density from IAPWS R7-97(2012). Viscosity from IAPWS R12-08.</p>';
   }
   var nu = result.correction && result.correction.nu;
   if (nu > 13.1) {
     notesHtml += '<p class="note">' + esc(SSU_LIMIT) + '</p>';
   }
+  (result.warnings || []).forEach(function (warning) {
+    notesHtml += '<p class="note">' + esc(warning) + '</p>';
+  });
   if (chartCorrection) {
     chartCorrection.hidden = !showCorrection;
     chartCorrection.textContent = showCorrection ? corr.note : '';
+  }
+  if (result.blocked) {
+    wrap.hidden = true;
+    points.innerHTML = '';
+    listEl.innerHTML = '';
+    lead.textContent = q + ' gpm at ' + h + ' ft';
+    meta.textContent = result.message || 'This duty is outside the published range.';
+    notes.innerHTML = notesHtml;
+    postFrameHeight();
+    return;
   }
   if (!result.covered) {
     wrap.hidden = true;
@@ -791,6 +826,7 @@ function renderDeanSelection() {
       '<span class="sel-size">' + esc(curve.size) + '</span><span class="sel-rpm">' + esc(curve.rpm) + ' rpm</span></span>' +
       factsMarkup(hit) +
       (hit.bep_zone && hit.bep_zone !== 'preferred' ? '<p class="sel-flag">' + esc(flagLine(hit)) + '</p>' : '') +
+      (hit.notes || []).map(function (note) { return '<p class="sel-flag">' + esc(note) + '</p>'; }).join('') +
       priceMarkup(hit) +
       '</button>' + store + '</div>';
   });
@@ -1351,6 +1387,9 @@ function persistDuty() {
       rpm: document.getElementById('sel-rpm').value,
       fluid: document.getElementById('sel-fluid').value,
       t: document.getElementById('sel-t').value,
+      tStart: document.getElementById('sel-tstart').value,
+      npsha: document.getElementById('sel-npsha').value,
+      psig: document.getElementById('sel-psig').value,
       tempTyped: TEMP_TYPED,
       shown: !!(DEAN_LAST && DEAN_LAST.result) || DUTY_ARMED
     });
@@ -1373,7 +1412,7 @@ function showEmptyDuty() {
   if (err) err.textContent = '';
   if (notes) {
     notes.innerHTML = '<p class="note">No pumps larger than 10 in are in this catalog.</p>' +
-      '<p class="note">Curves apply up to 70 SSU.</p>';
+      '<p class="note">' + esc(DeanRA.VISCOSITY_NOTE) + '</p>';
   }
   postFrameHeight();
 }
@@ -1393,6 +1432,12 @@ function restoreDuty() {
   if (q) q.value = state.q;
   if (h) h.value = state.h;
   if (t) t.value = state.t;
+  var tStart = document.getElementById('sel-tstart');
+  var npsha = document.getElementById('sel-npsha');
+  var psig = document.getElementById('sel-psig');
+  if (tStart) tStart.value = state.tStart || '';
+  if (npsha) npsha.value = state.npsha || '';
+  if (psig) psig.value = state.psig || '';
   if (hasOption('sel-rpm', state.rpm)) document.getElementById('sel-rpm').value = state.rpm;
   var fluidId = DeanRA.canonicalFluid ? DeanRA.canonicalFluid(state.fluid) : state.fluid;
   if (hasOption('sel-fluid', fluidId)) document.getElementById('sel-fluid').value = fluidId;
@@ -1416,6 +1461,9 @@ function clearDuty() {
   document.getElementById('sel-rpm').value = '3500';
   document.getElementById('sel-fluid').value = 'water';
   document.getElementById('sel-t').value = '68';
+  document.getElementById('sel-tstart').value = '';
+  document.getElementById('sel-npsha').value = '';
+  document.getElementById('sel-psig').value = '';
   writeModelParam('');
   writeServiceParam('ra');
   fillModels();
@@ -1430,7 +1478,8 @@ function fillModels() {
   var names = DeanRA.frames(DEAN_CATALOG, currentService());
   var html = '<option value="">All models</option>';
   names.forEach(function (name) {
-    html += '<option value="' + esc(name) + '">' + esc(name) + '</option>';
+    var label = name === 'RA3246' ? 'RA3246 (curves coming)' : name;
+    html += '<option value="' + esc(name) + '">' + esc(label) + '</option>';
   });
   var previous = sel.value;
   sel.innerHTML = html;
