@@ -563,6 +563,18 @@ function findSize(result, size) {
   const pgHot = row({ q_gpm: 100, h_ft: 200, fluid: 'pg50', temp: 300, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
   assert.ok(pgHot.c.flags.indexOf('table-high') >= 0);
   assert.ok(pgHot.c.temp < 250);
+  const egCold = row({ q_gpm: 100, h_ft: 200, fluid: 'eg50', temp: 0, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
+  const egMid = row({ q_gpm: 100, h_ft: 200, fluid: 'eg50', temp: 70, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
+  const egHot = row({ q_gpm: 100, h_ft: 200, fluid: 'eg50', temp: 200, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
+  assert.ok(egCold.c.nu > egMid.c.nu && egMid.c.nu > egHot.c.nu);
+  assert.ok(egCold.c.sg > egHot.c.sg);
+  assert.ok(Math.abs(egMid.c.sg - 1.074) < 0.002);
+  assert.ok(egCold.c.flags.length === 0 && egHot.c.flags.length === 0);
+  assert.ok(egCold.c.source.indexOf('Table 15') > 0);
+  assert.ok(egCold.c.source.indexOf('page 23') > 0);
+  const egPast = row({ q_gpm: 100, h_ft: 200, fluid: 'eg50', temp: 300, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
+  assert.ok(egPast.c.flags.indexOf('table-high') >= 0);
+  assert.strictEqual(DeanRA.canonicalFluid('eg50c'), 'eg50');
 }
 
 console.log('dean-ra-select tests passed');
