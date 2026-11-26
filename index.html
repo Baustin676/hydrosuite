@@ -376,7 +376,7 @@ th { font-weight: 600; }
         <label for="sel-fluid">Fluid</label>
         <select id="sel-fluid">
           <optgroup label="Water">
-            <option value="water" selected>Water @ 20°C / 68°F  (SG=1.000, μ=1.002 cP)</option>
+            <option value="water" selected>Water</option>
             <option value="water60">Water @ 60°C / 140°F  (SG=0.983, μ=0.467 cP)</option>
             <option value="water80">Water @ 80°C / 176°F  (SG=0.972, μ=0.354 cP)</option>
             <option value="water100">Water @ 100°C / 212°F  (SG=0.958, μ=0.282 cP)</option>
@@ -387,26 +387,20 @@ th { font-weight: 600; }
             <option value="seawater">Seawater @ 20°C  (SG=1.025, μ=1.072 cP)</option>
           </optgroup>
           <optgroup label="Glycol / Antifreeze">
-            <option value="eg30">Ethylene Glycol 30% @ 20°C  (SG=1.055, μ=2.50 cP)</option>
-            <option value="eg50">Ethylene Glycol 50% @ 20°C  (SG=1.085, μ=4.50 cP)</option>
-            <option value="eg50c">Ethylene Glycol 50% @ -10°C  (SG=1.095, μ=11.5 cP)</option>
-            <option value="pg30">Propylene Glycol 30% @ 20°C  (SG=1.034, μ=2.80 cP)</option>
-            <option value="pg50">Propylene Glycol 50% @ 20°C  (SG=1.057, μ=7.50 cP)</option>
+            <option value="eg30">Ethylene Glycol 30%</option>
+            <option value="eg50">Ethylene Glycol 50%</option>
+            <option value="pg30">Propylene Glycol 30%</option>
+            <option value="pg50">Propylene Glycol 50%</option>
           </optgroup>
           <optgroup label="Thermal / Heat Transfer Fluids">
-            <option value="dowthermA">Dowtherm A @ 150°C  (SG=0.980, μ=0.910 cP)</option>
-            <option value="dowthermA260">Dowtherm A @ 260°C  (SG=0.899, μ=0.430 cP)</option>
-            <option value="dowthermQ">Dowtherm Q @ 100°C  (SG=0.960, μ=1.650 cP)</option>
-            <option value="dowthermQ200">Dowtherm Q @ 200°C  (SG=0.893, μ=0.680 cP)</option>
-            <option value="therminol55">Therminol 55 @ 100°C  (SG=0.847, μ=1.200 cP)</option>
-            <option value="therminol66">Therminol 66 @ 150°C  (SG=0.963, μ=1.850 cP)</option>
-            <option value="therminol66h">Therminol 66 @ 300°C  (SG=0.856, μ=0.560 cP)</option>
-            <option value="therminolVP1">Therminol VP-1 @ 200°C  (SG=0.973, μ=0.510 cP)</option>
-            <option value="syltherm800">Syltherm 800 @ 200°C  (SG=0.820, μ=0.540 cP)</option>
-            <option value="syltherm800h">Syltherm 800 @ 350°C  (SG=0.726, μ=0.280 cP)</option>
-            <option value="xlt">Syltherm XLT @ -40°C  (SG=0.985, μ=12.00 cP)</option>
-            <option value="mineralOil100">Mineral Oil HTF @ 100°C  (SG=0.840, μ=5.500 cP)</option>
-            <option value="mineralOil200">Mineral Oil HTF @ 200°C  (SG=0.780, μ=1.800 cP)</option>
+            <option value="dowthermA">Dowtherm A</option>
+            <option value="dowthermQ">Dowtherm Q</option>
+            <option value="therminol55">Therminol 55</option>
+            <option value="therminol66">Therminol 66</option>
+            <option value="therminolVP1">Therminol VP-1</option>
+            <option value="syltherm800">Syltherm 800</option>
+            <option value="xlt">Syltherm XLT</option>
+            <option value="mineralOil100">Mineral Oil HTF</option>
           </optgroup>
           <optgroup label="Hydrocarbons">
             <option value="crude">Light Crude Oil  (SG=0.870, μ=5.00 cP)</option>
@@ -470,6 +464,7 @@ th { font-weight: 600; }
     </section>
   </div>
 </div>
+<script src="fluid-curves.js"></script>
 <script src="dean-ra-select.js"></script>
 <script src="dean-ra-pdf.js"></script>
 <script src="dean-duty-state.js"></script>
@@ -552,11 +547,11 @@ var FLUID_TEMP = {
   water: [68, 'F'], water60: [140, 'F'], water80: [176, 'F'], water100: [212, 'F'],
   water121: [250, 'F'], water150: [302, 'F'], water180: [356, 'F'],
   condensate: [90, 'C'], seawater: [20, 'C'],
-  eg30: [20, 'C'], eg50: [20, 'C'], eg50c: [-10, 'C'], pg30: [20, 'C'], pg50: [20, 'C'],
-  dowthermA: [150, 'C'], dowthermA260: [260, 'C'], dowthermQ: [100, 'C'], dowthermQ200: [200, 'C'],
-  therminol55: [100, 'C'], therminol66: [150, 'C'], therminol66h: [300, 'C'], therminolVP1: [200, 'C'],
-  syltherm800: [200, 'C'], syltherm800h: [350, 'C'], xlt: [-40, 'C'],
-  mineralOil100: [100, 'C'], mineralOil200: [200, 'C'],
+  eg30: [20, 'C'], eg50: [20, 'C'], pg30: [20, 'C'], pg50: [20, 'C'],
+  dowthermA: [150, 'C'], dowthermQ: [100, 'C'],
+  therminol55: [100, 'C'], therminol66: [150, 'C'], therminolVP1: [200, 'C'],
+  syltherm800: [200, 'C'], xlt: [-40, 'C'],
+  mineralOil100: [100, 'C'],
   crude: [68, 'F'], crudemed: [68, 'F'], diesel: [68, 'F'], fo6: [122, 'F'],
   gasoline: [68, 'F'], jetA: [68, 'F'], isovg32: [104, 'F'], isovg68: [104, 'F'],
   hcl: [68, 'F'], sulfuric: [68, 'F'], sulfuric10: [68, 'F'], naoh: [68, 'F'],
@@ -1399,7 +1394,8 @@ function restoreDuty() {
   if (h) h.value = state.h;
   if (t) t.value = state.t;
   if (hasOption('sel-rpm', state.rpm)) document.getElementById('sel-rpm').value = state.rpm;
-  if (hasOption('sel-fluid', state.fluid)) document.getElementById('sel-fluid').value = state.fluid;
+  var fluidId = DeanRA.canonicalFluid ? DeanRA.canonicalFluid(state.fluid) : state.fluid;
+  if (hasOption('sel-fluid', fluidId)) document.getElementById('sel-fluid').value = fluidId;
   var model = document.getElementById('sel-model');
   if (model && model.options.length) {
     var wanted = DEAN_CATALOG ? knownFrame(state.model) : state.model;
@@ -1518,8 +1514,11 @@ function selectionPdfSpec(hit) {
     { label: 'Temperature', value: formatTemp(DEAN_LAST.t, DEAN_LAST.unit || TEMP_UNIT) }
   ];
   var corr = DEAN_LAST.result && DEAN_LAST.result.correction;
-  if (corr && corr.status === 'water' && corr.sg > 0) {
+  if (corr && corr.sg > 0) {
     details.push({ label: 'Specific gravity', value: Number(corr.sg).toFixed(3) });
+    if (corr.status !== 'water' && corr.nu > 0) {
+      details.push({ label: 'Viscosity', value: Number(corr.nu).toFixed(2) + ' cSt' });
+    }
   }
   if (curve.rpm) details.push({ label: 'Speed', value: curve.rpm + ' rpm' });
   readingRows(hit).forEach(function (row) { details.push(row); });
