@@ -18,6 +18,15 @@
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.DeanRA = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
+  var FLUID_CURVES = (typeof FluidCurves !== 'undefined') ? FluidCurves : require('./fluid-curves.js');
+  var FLUID_ALIAS = {
+    eg50c: 'eg50',
+    therminol66h: 'therminol66',
+    dowthermA260: 'dowthermA',
+    dowthermQ200: 'dowthermQ',
+    syltherm800h: 'syltherm800',
+    mineralOil200: 'mineralOil100'
+  };
   var CATALOG_FT = 3;
   var ON_LINE_FT = CATALOG_FT;
   var EIGHTH = 0.125;
@@ -518,8 +527,10 @@
 
   function specificGravity(duty, correction) {
     if (correction && correction.sg > 0) return correction.sg;
+    // A mismatched single-point fluid has no specific gravity at the entered temperature.
+    if (correction && correction.status === 'temperature') return null;
     if (!duty || duty.fluid == null || duty.fluid === '' || isWaterFluid(duty.fluid)) return 1;
-    var rec = FLUIDS[duty.fluid];
+    var rec = FLUIDS[canonicalFluid(duty.fluid)];
     return rec && rec.sg > 0 ? rec.sg : 1;
   }
 
@@ -570,9 +581,8 @@
   }
 
   function brakeHorsepower(q, h, effPct, sg) {
-    if (!(q > 0) || !(h > 0) || !(effPct > 0)) return null;
-    var gravity = sg > 0 ? sg : 1;
-    return q * h * gravity / (3960 * (effPct / 100));
+    if (!(q > 0) || !(h > 0) || !(effPct > 0) || !(sg > 0)) return null;
+    return q * h * sg / (3960 * (effPct / 100));
   }
 
   function motorHorsepower(bhp) {
@@ -636,13 +646,23 @@
     return affinityHead(b.h, a.h, hit.lowerDiameter, hit.upperDiameter, hit.diameter_in);
   }
 
-  function decorateHit(hit, q, sg) {
+  function decorateHit(hit, q, sg, corr) {
+    var cq = 1;
+    var ch = 1;
+    var ceta = 1;
+    if (corr && corr.applied) {
+      if (corr.CQ > 0) cq = corr.CQ;
+      if (corr.CH > 0) ch = corr.CH;
+      if (corr.Ceta > 0) ceta = corr.Ceta;
+    }
     var pct = pctBep(hit.curve, q, hit.diameter_in);
-    var eff = efficiencyAt(hit.curve, q, hit.diameter_in);
+    var effWater = efficiencyAt(hit.curve, q, hit.diameter_in);
+    var eff = effWater == null ? null : effWater * ceta;
     var hEnd = headOnTrim(hit, hit.qMax);
-    var effEnd = efficiencyAt(hit.curve, hit.qMax, hit.diameter_in);
-    var power = brakeHorsepower(q, hit.head_ft, eff, sg);
-    var powerEnd = brakeHorsepower(hit.qMax, hEnd, effEnd, sg);
+    var effEndWater = efficiencyAt(hit.curve, hit.qMax, hit.diameter_in);
+    var effEnd = effEndWater == null ? null : effEndWater * ceta;
+    var power = brakeHorsepower(q * cq, hit.head_ft * ch, eff, sg);
+    var powerEnd = hEnd == null ? null : brakeHorsepower(hit.qMax * cq, hEnd * ch, effEnd, sg);
     var powerMax = power;
     if (powerEnd != null && (powerMax == null || powerEnd > powerMax)) powerMax = powerEnd;
     hit.pct_bep = pct;
@@ -770,7 +790,7 @@
       if (frame && view.frame !== frame) return;
       var hit = evaluateCurve(view, qUse, hUse);
       if (!hit) return;
-      decorateHit(hit, qUse, sg);
+      decorateHit(hit, qUse, sg, correction);
       var pct = hit.pct_bep;
       if (pct != null && (pct < 20 || pct > 150)) return;
       found.push(hit);
@@ -985,14 +1005,16 @@
     var nu = Number(nuCst);
     var B = 4.70 * Math.sqrt(nu) / (Math.pow(q, 0.25) * Math.pow(h, 0.125));
     if (!(B > 1)) {
-      return { B: B, CQ: 1, CH: 1, qWater: q, hWater: h, range: 'low' };
+      return { B: B, CQ: 1, CH: 1, Ceta: 1, qWater: q, hWater: h, range: 'low' };
     }
     if (B >= 40) {
-      return { B: B, CQ: null, CH: null, qWater: null, hWater: null, range: 'high' };
+      return { B: B, CQ: null, CH: null, Ceta: null, qWater: null, hWater: null, range: 'high' };
     }
     var logB = Math.log(B) / Math.LN10;
     var CQ = Math.pow(2.71, -0.165 * Math.pow(logB, 3.15));
-    return { B: B, CQ: CQ, CH: CQ, qWater: q / CQ, hWater: h / CQ, range: 'ok' };
+    // ANSI/HI 9.6.7-2004 equation 7. Cη = 1 when B is 1 or less.
+    var Ceta = Math.pow(B, -(0.0547 * Math.pow(B, 0.69)));
+    return { B: B, CQ: CQ, CH: CQ, Ceta: Ceta, qWater: q / CQ, hWater: h / CQ, range: 'ok' };
   }
 
   function propertyClause(rec, nu) {
@@ -1099,8 +1121,10 @@
 
   function resultsSummary(name, tempText, correction) {
     var line = String(name || '') + ', ' + String(tempText || '');
-    if (correction && correction.status === 'water' && correction.sg > 0) {
+    if (correction && correction.sg > 0 && correction.status === 'water') {
       line += ', SG ' + formatSg(correction.sg);
+    } else if (correction && correction.sg > 0 && correction.nu > 0) {
+      line += ', SG ' + formatSg(correction.sg) + ', ' + formatNu(correction.nu) + ' cSt';
     }
     return line;
   }
@@ -1113,13 +1137,130 @@
     return NPSH_MARGIN_NOTE + ' Specific gravity used for power is ' + formatSg(correction.sg) + '.';
   }
 
+  function canonicalFluid(fluid) {
+    var id = String(fluid || '');
+    return FLUID_ALIAS[id] || id;
+  }
+
+  // Dean bulletin C-1.4.42: RA frames to 650 °F. Bulletin C-1.4.46: RWA4166 and
+  // RWA4206 to 400 °F, RWA2096 to 320 °F.
+  function seriesLimit(duty) {
+    var service = normalizeService(duty && duty.service);
+    var frame = String((duty && duty.frame) || '');
+    if (service === 'rwa' || frame.indexOf('RWA') === 0) {
+      if (frame === 'RWA2096') return { f: 320, name: 'RWA2096' };
+      return { f: 400, name: frame.indexOf('RWA') === 0 ? frame : 'RWA' };
+    }
+    return { f: 650, name: frame.indexOf('RA') === 0 ? frame : 'RA' };
+  }
+
+  function enteredFahrenheit(duty) {
+    if (!duty || duty.temp == null || duty.temp === '' || !isFinite(Number(duty.temp))) return null;
+    return toFahrenheit(Number(duty.temp), duty.unit === 'C' ? 'C' : 'F');
+  }
+
+  function sampleCurve(curve, tempF) {
+    var pts = curve.points;
+    var used = tempF;
+    var flags = [];
+    if (used < pts[0][0]) {
+      used = pts[0][0];
+      flags.push('table-low');
+    }
+    var hot = pts[pts.length - 1][0];
+    if (used > hot) {
+      used = hot;
+      flags.push('table-high');
+    }
+    if (curve.maxUseF != null && used > curve.maxUseF) {
+      used = curve.maxUseF;
+      flags.push('fluid-max');
+    }
+    if (used < pts[0][0]) used = pts[0][0];
+    var i = 0;
+    while (i < pts.length - 1 && pts[i + 1][0] < used - 1e-9) i++;
+    var a = pts[i];
+    var b = pts[Math.min(i + 1, pts.length - 1)];
+    var span = b[0] - a[0];
+    var u = span ? (used - a[0]) / span : 0;
+    var sg = a[1] + (b[1] - a[1]) * u;
+    var nu = (span && a[2] > 0 && b[2] > 0)
+      ? Math.exp(Math.log(a[2]) + (Math.log(b[2]) - Math.log(a[2])) * u)
+      : a[2];
+    return { sg: sg, nu: nu, visc: nu * sg, f: used, flags: flags };
+  }
+
+  function clampNote(props, series) {
+    var bits = [];
+    if (props.flags.indexOf('table-low') >= 0) {
+      bits.push('The entered temperature is below the published table, so properties are held at ' + formatDutyNum(props.f) + ' °F.');
+    }
+    if (props.flags.indexOf('table-high') >= 0) {
+      bits.push('The entered temperature is above the published table, so properties are held at ' + formatDutyNum(props.f) + ' °F.');
+    }
+    if (props.flags.indexOf('fluid-max') >= 0) {
+      bits.push('The entered temperature is above this fluid\'s maximum use temperature, so properties are held at ' + formatDutyNum(props.f) + ' °F.');
+    }
+    if (props.flags.indexOf('series') >= 0) {
+      bits.push('The entered temperature is above the ' + series.name + ' pumping limit of ' + formatDutyNum(series.f) + ' °F, so properties are held there.');
+    }
+    return bits.join(' ');
+  }
+
+  function curveDuty(duty, curve) {
+    var entered = enteredFahrenheit(duty);
+    var tempF = entered == null ? 68 : entered;
+    var series = seriesLimit(duty);
+    var props = sampleCurve(curve, tempF);
+    if (props.f > series.f) {
+      props = sampleCurve(curve, series.f);
+      props.flags.push('series');
+    }
+    var nu = props.nu;
+    var base = AMBIENT + ' Hydraulic Institute correction of the catalog water curve (ANSI/HI 9.6.7), not a Dean sheet. ' +
+      curve.name + ' at ' + formatDutyNum(props.f) + ' °F: specific gravity ' + formatSg(props.sg) +
+      ' and viscosity ' + formatMu(props.visc) + ' cP (' + formatNu(nu) + ' cSt). ' +
+      clampNote(props, series);
+    var bag = {
+      sg: props.sg, visc: props.visc, nu: nu, temp: props.f, unit: 'F', name: curve.name,
+      flags: props.flags, source: curve.source
+    };
+    var q = Number(duty.q_gpm);
+    var h = Number(duty.h_ft);
+    if (!(q > 0) || !(h > 0)) {
+      return Object.assign({ status: 'ready', applied: false, note: base + DISCLAIMER }, bag);
+    }
+    var hi = hiPreliminary(q, h, nu);
+    if (hi.range === 'high') {
+      return Object.assign({
+        status: 'out-of-range', applied: false, B: hi.B,
+        note: base + 'Parameter B is ' + formatB(hi.B) + ', outside the published range below 40, so head, flow, and efficiency are not corrected. ' + DISCLAIMER
+      }, bag);
+    }
+    if (hi.range === 'low') {
+      return Object.assign({
+        status: 'unchanged', applied: false, B: hi.B, CQ: 1, CH: 1, Ceta: 1, qWater: q, hWater: h,
+        note: base + 'Parameter B is ' + formatB(hi.B) + ', so corrected head, flow, and efficiency stay on the catalog water curve. ' + DISCLAIMER
+      }, bag);
+    }
+    return Object.assign({
+      status: 'corrected', applied: true, B: hi.B, CQ: hi.CQ, CH: hi.CH, Ceta: hi.Ceta,
+      qWater: hi.qWater, hWater: hi.hWater,
+      note: base + 'Corrected flow ' + formatDutyNum(hi.qWater) + ' gpm (CQ = ' + formatFactor(hi.CQ) +
+        '), corrected head ' + formatDutyNum(hi.hWater) + ' ft (CH = ' + formatFactor(hi.CH) +
+        '), and efficiency factor Cη = ' + formatFactor(hi.Ceta) +
+        ', from parameter B = ' + formatB(hi.B) + '. ' + DISCLAIMER
+    }, bag);
+  }
+
   function correctDuty(duty) {
     duty = duty || {};
-    var fluid = duty.fluid;
+    var fluid = canonicalFluid(duty.fluid);
     if (fluid == null || fluid === '' || isWaterFluid(fluid)) {
       var waterRec = FLUIDS[fluid] || FLUIDS.water;
       return waterDuty(duty, waterRec);
     }
+    if (FLUID_CURVES[fluid]) return curveDuty(duty, FLUID_CURVES[fluid]);
     var rec = FLUIDS[fluid];
     if (!rec || rec.sg == null || rec.visc == null || !(rec.sg > 0) || !(rec.visc > 0)) {
       return {
@@ -1604,6 +1745,9 @@
     fluidClass: fluidClass,
     fluidNote: fluidNote,
     fluids: FLUIDS,
+    fluidAlias: FLUID_ALIAS,
+    canonicalFluid: canonicalFluid,
+    fluidCurves: FLUID_CURVES,
     waterProperties: waterProperties,
     resultsSummary: resultsSummary,
     npshNote: npshNote,

@@ -516,13 +516,18 @@ function findSize(result, size) {
     const oil = DeanRA.select(catalog, {
       q_gpm: 100, h_ft: 200, fluid: 'therminol66', temp: 302, unit: 'F', rpm: 3500
     });
-    assert.strictEqual(oil.correction.sg, DeanRA.fluids.therminol66.sg);
-    assert.notStrictEqual(oil.correction.status, 'water');
-    const glycol = DeanRA.select(catalog, {
-      q_gpm: 100, h_ft: 200, fluid: 'eg50', temp: 140, unit: 'F', rpm: 3500
+    assert.ok(Math.abs(oil.correction.sg - 0.921) < 0.001, 'T66 at 302 F ' + oil.correction.sg);
+    assert.ok(Math.abs(oil.correction.nu - 1.65) < 0.02);
+    const alias = DeanRA.select(catalog, {
+      q_gpm: 100, h_ft: 200, fluid: 'therminol66h', temp: 302, unit: 'F', rpm: 3500
     });
-    assert.strictEqual(glycol.correction.status, 'temperature');
-    assert.ok(glycol.correction.sg == null);
+    assert.ok(Math.abs(alias.correction.sg - oil.correction.sg) < 1e-9);
+    const crudeHot = DeanRA.select(catalog, {
+      q_gpm: 100, h_ft: 200, fluid: 'crude', temp: 200, unit: 'F', rpm: 3500
+    });
+    assert.strictEqual(crudeHot.correction.status, 'temperature');
+    assert.ok(crudeHot.correction.sg == null);
+    assert.strictEqual(crudeHot.pick.bhp, null);
   }
   assert.ok(page.indexOf('<title>Dean Pump Selector</title>') > 0);
   assert.ok(page.indexOf('<h1>Dean Pump Selector</h1>') > 0);
@@ -530,6 +535,46 @@ function findSize(result, size) {
   assert.ok(page.indexOf('DeanRA.resultsSummary(') > 0);
   assert.ok(page.indexOf("label: 'Specific gravity'") > 0);
   assert.ok(page.indexOf('DeanRA.npshNote(') > 0);
+  assert.ok(page.indexOf('>Water</option>') > 0);
+  assert.ok(page.indexOf('SG=1.000') < 0);
+  assert.ok(page.indexOf('src="fluid-curves.js"') > 0);
+  assert.ok(page.indexOf('therminol66h') < 0);
+  assert.ok(page.indexOf('eg50c') < 0);
+}
+
+// Therminol 55 and 50% propylene glycol follow the published temperature tables.
+{
+  function row(duty, size) {
+    const r = DeanRA.select(catalog, duty);
+    const hit = r.selections.find(function (s) { return s.curve.size.replace(/\s+/g, '') === size; });
+    return { c: r.correction, hit: hit };
+  }
+  const cold = row({ q_gpm: 100, h_ft: 240, fluid: 'therminol55', temp: 70, unit: 'F', rpm: 3500, service: 'ra', frame: 'RA3146' }, '1.5x3x8.5');
+  assert.ok(cold.c.nu > 13.1, 'cold Therminol 55 is above 70 SSU');
+  assert.strictEqual(cold.c.applied, true);
+  assert.ok(cold.c.Ceta > 0 && cold.c.Ceta < 1);
+  const hot = row({ q_gpm: 100, h_ft: 240, fluid: 'therminol55', temp: 400, unit: 'F', rpm: 3500, service: 'ra', frame: 'RA3146' }, '1.5x3x8.5');
+  assert.ok(hot.c.nu < 2);
+  assert.ok(hot.hit.bhp < cold.hit.bhp);
+  assert.strictEqual(DeanRA.resultsSummary('Therminol 55', '400 °F', hot.c).indexOf('SG ' + hot.c.sg.toFixed(3)) > 0, true);
+  const pg = row({ q_gpm: 100, h_ft: 200, fluid: 'pg50', temp: 0, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
+  assert.ok(pg.c.nu > 13.1);
+  assert.ok(pg.c.flags.indexOf('series') < 0);
+  const pgHot = row({ q_gpm: 100, h_ft: 200, fluid: 'pg50', temp: 300, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
+  assert.ok(pgHot.c.flags.indexOf('table-high') >= 0);
+  assert.ok(pgHot.c.temp < 250);
+  const egCold = row({ q_gpm: 100, h_ft: 200, fluid: 'eg50', temp: 0, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
+  const egMid = row({ q_gpm: 100, h_ft: 200, fluid: 'eg50', temp: 70, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
+  const egHot = row({ q_gpm: 100, h_ft: 200, fluid: 'eg50', temp: 200, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
+  assert.ok(egCold.c.nu > egMid.c.nu && egMid.c.nu > egHot.c.nu);
+  assert.ok(egCold.c.sg > egHot.c.sg);
+  assert.ok(Math.abs(egMid.c.sg - 1.074) < 0.002);
+  assert.ok(egCold.c.flags.length === 0 && egHot.c.flags.length === 0);
+  assert.ok(egCold.c.source.indexOf('Table 15') > 0);
+  assert.ok(egCold.c.source.indexOf('page 23') > 0);
+  const egPast = row({ q_gpm: 100, h_ft: 200, fluid: 'eg50', temp: 300, unit: 'F', rpm: 3500, service: 'rwa', frame: 'RWA4166' }, '1.5x3x8.5');
+  assert.ok(egPast.c.flags.indexOf('table-high') >= 0);
+  assert.strictEqual(DeanRA.canonicalFluid('eg50c'), 'eg50');
 }
 
 console.log('dean-ra-select tests passed');
